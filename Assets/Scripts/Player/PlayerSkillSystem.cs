@@ -144,7 +144,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
             case SkillId.HornBlast:
                 HornBlastEffect.Spawn(
                     transform,
-                    GetSkillValue(skill, 9f, 16f),
+                    GetSkillValue(skill, 12f, 16f),
                     GetSkillValue(skill, 9f, 14f),
                     GetSkillValue(skill, 17f, 26f),
                     IsSkillUpgraded(skill) ? 3 : 2);
