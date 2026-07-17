@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab4c1f8a127c40749f67e19c842ba101, type: 3}
+  m_Name: HudLayoutSettings
+  m_EditorClassIdentifier: 
+  healthLayout:
+    offset: {x: -16, y: -16}
+    size: {x: 455, y: 85}
+  timerLayout:
+    offset: {x: 0, y: -16}
+    size: {x: 330, y: 130}
+  killLayout:
+    offset: {x: 116, y: 0}
+    size: {x: 290, y: 70}
+  pauseLayout:
+    offset: {x: 0, y: 0}
+    size: {x: 116, y: 70}
+  experienceLayout:
+    offset: {x: 0, y: 0}
+    size: {x: 760, y: 60}
+  skillCardsOffset: {x: 22, y: 0}
+  skillCardSize: {x: 200, y: 200}
+  skillCardSpacing: 12
