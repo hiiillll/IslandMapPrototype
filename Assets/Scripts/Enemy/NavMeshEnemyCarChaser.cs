@@ -5,6 +5,10 @@ using UnityEngine.AI;
 [RequireComponent(typeof(Rigidbody))]
 public class NavMeshEnemyCarChaser : MonoBehaviour
 {
+    private const float MinimumKnockbackSpeed = 18f;
+    private const float KnockbackSpeedMultiplier = 1.25f;
+    private const float MaximumKnockbackSpeed = 34f;
+
     [Header("Navigation Driving")]
     [SerializeField] private float fallbackPlayerSpeed = 24f;
     [SerializeField] private float acceleration = 60f;
@@ -84,8 +88,21 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
             direction = -transform.forward;
         }
 
+        Vector3 knockbackDirection = direction.normalized;
+        Vector3 planarVelocity = new Vector3(body.velocity.x, 0f, body.velocity.z);
+        float existingOutwardSpeed = Mathf.Max(0f, Vector3.Dot(planarVelocity, knockbackDirection));
+        float requestedKnockbackSpeed = Mathf.Clamp(
+            Mathf.Max(0f, force) * KnockbackSpeedMultiplier,
+            MinimumKnockbackSpeed,
+            MaximumKnockbackSpeed);
+        float knockbackSpeed = Mathf.Max(existingOutwardSpeed, requestedKnockbackSpeed);
+
         body.WakeUp();
-        body.AddForce(direction.normalized * Mathf.Max(0f, force), ForceMode.VelocityChange);
+        body.velocity = new Vector3(
+            knockbackDirection.x * knockbackSpeed,
+            body.velocity.y,
+            knockbackDirection.z * knockbackSpeed);
+        body.angularVelocity = Vector3.zero;
         knockbackUntil = Mathf.Max(knockbackUntil, Time.time + Mathf.Max(0f, duration));
         forcePathRefresh = true;
         nextPathRefreshTime = Mathf.Max(nextPathRefreshTime, knockbackUntil);
