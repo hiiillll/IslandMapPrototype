@@ -16,7 +16,10 @@ public sealed class ArcadeGameHud : MonoBehaviour
     [SerializeField] private ArcadeHudElementLayout pauseLayout = new ArcadeHudElementLayout { offset = Vector2.zero, size = new Vector2(116f, 72f) };
     [SerializeField] private ArcadeHudElementLayout experienceLayout = new ArcadeHudElementLayout { offset = new Vector2(0f, 10f), size = new Vector2(760f, 66f) };
     [SerializeField] private Vector2 skillCardsOffset = new Vector2(22f, 18f);
-    [SerializeField] private Vector2 skillCardSize = new Vector2(212f, 230f);
+    [SerializeField] private Vector2 qSkillCardOffset = Vector2.zero;
+    [SerializeField] private Vector2 qSkillCardSize = new Vector2(212f, 230f);
+    [SerializeField] private Vector2 eSkillCardOffset = Vector2.zero;
+    [SerializeField] private Vector2 eSkillCardSize = new Vector2(212f, 230f);
     [SerializeField, Min(0f)] private float skillCardSpacing = 12f;
 
     private Texture2D redPanelTexture;
@@ -30,8 +33,6 @@ public sealed class ArcadeGameHud : MonoBehaviour
     private Texture2D killFrameTexture;
     private Texture2D pauseButtonTexture;
     private Texture2D experienceFrameTexture;
-    private Texture2D qSkillCardFrameTexture;
-    private Texture2D eSkillCardFrameTexture;
     private GUIStyle largeNumberStyle;
     private GUIStyle headingStyle;
     private GUIStyle bodyStyle;
@@ -71,8 +72,6 @@ public sealed class ArcadeGameHud : MonoBehaviour
         killFrameTexture = LoadHudTexture("kill_frame") ?? redPanelTexture;
         pauseButtonTexture = LoadHudTexture("pause_button") ?? redPanelTexture;
         experienceFrameTexture = LoadHudTexture("xp_frame") ?? bluePanelTexture;
-        qSkillCardFrameTexture = LoadHudTexture("skill_card_q") ?? redPanelTexture;
-        eSkillCardFrameTexture = LoadHudTexture("skill_card_e") ?? bluePanelTexture;
     }
 
     private void OnGUI()
@@ -123,7 +122,10 @@ public sealed class ArcadeGameHud : MonoBehaviour
         pauseLayout = layoutSettings.pauseLayout ?? pauseLayout;
         experienceLayout = layoutSettings.experienceLayout ?? experienceLayout;
         skillCardsOffset = layoutSettings.skillCardsOffset;
-        skillCardSize = layoutSettings.skillCardSize;
+        qSkillCardOffset = layoutSettings.qSkillCardOffset;
+        qSkillCardSize = layoutSettings.qSkillCardSize;
+        eSkillCardOffset = layoutSettings.eSkillCardOffset;
+        eSkillCardSize = layoutSettings.eSkillCardSize;
         skillCardSpacing = layoutSettings.skillCardSpacing;
     }
 
@@ -283,83 +285,86 @@ public sealed class ArcadeGameHud : MonoBehaviour
 
     private void DrawSkillCards(float scale)
     {
-        float cardWidth = skillCardSize.x * scale;
-        float cardHeight = skillCardSize.y * scale;
         float spacing = skillCardSpacing * scale;
-        float startX = Screen.width - cardWidth * 2f - spacing - skillCardsOffset.x * scale;
-        float startY = Screen.height - cardHeight - skillCardsOffset.y * scale;
+        Vector2 qSize = Vector2.Max(Vector2.one, qSkillCardSize) * scale;
+        Vector2 eSize = Vector2.Max(Vector2.one, eSkillCardSize) * scale;
+        Vector2 qOffset = qSkillCardOffset * scale;
+        Vector2 eOffset = eSkillCardOffset * scale;
+        float eBaseX = Screen.width - (skillCardsOffset.x * scale + eSize.x);
+        float qBaseX = eBaseX - spacing - qSize.x;
+        Rect eRect = new Rect(
+            eBaseX + eOffset.x,
+            Screen.height - (skillCardsOffset.y * scale + eSize.y) + eOffset.y,
+            eSize.x,
+            eSize.y);
+        Rect qRect = new Rect(
+            qBaseX + qOffset.x,
+            Screen.height - (skillCardsOffset.y * scale + qSize.y) + qOffset.y,
+            qSize.x,
+            qSize.y);
         DrawSkillCard(
-            new Rect(startX, startY, cardWidth, cardHeight),
-            "Q",
-            skillSystem.QSkillName,
+            qRect,
             skillSystem.QSkillTexture,
             skillSystem.QCooldownRemaining,
             skillSystem.QCooldownDuration,
-            qSkillCardFrameTexture,
             new Color(1f, 0.2f, 0.06f),
             scale);
         DrawSkillCard(
-            new Rect(startX + cardWidth + spacing, startY, cardWidth, cardHeight),
-            "E",
-            skillSystem.ESkillName,
+            eRect,
             skillSystem.ESkillTexture,
             skillSystem.ECooldownRemaining,
             skillSystem.ECooldownDuration,
-            eSkillCardFrameTexture,
             new Color(0.05f, 0.65f, 1f),
             scale);
     }
 
     private void DrawSkillCard(
         Rect rect,
-        string key,
-        string skillName,
         Texture2D skillTexture,
         float cooldownRemaining,
         float cooldownDuration,
-        Texture2D frameTexture,
         Color accentColor,
         float scale)
     {
-        GUI.DrawTexture(rect, frameTexture, ScaleMode.StretchToFill, true);
-        Rect imageRect = new Rect(
-            rect.x + 50f * scale,
-            rect.y + 82f * scale,
-            rect.width - 100f * scale,
-            rect.height - 132f * scale);
         if (skillTexture != null)
         {
             GUI.color = Color.white;
-            GUI.DrawTexture(imageRect, skillTexture, ScaleMode.ScaleToFit, true);
+            GUI.DrawTexture(rect, skillTexture, ScaleMode.ScaleToFit, true);
             GUI.color = Color.white;
         }
-        GUIStyle nameStyle = new GUIStyle(bodyStyle)
-        {
-            alignment = TextAnchor.MiddleCenter,
-            fontSize = Mathf.RoundToInt(Mathf.Clamp(21f * scale, 12f, 22f))
-        };
-        GUI.Label(
-            new Rect(rect.x + 50f * scale, rect.y + 32f * scale, rect.width - 72f * scale, 32f * scale),
-            skillName,
-            nameStyle);
 
         float readyProgress = cooldownDuration > 0f
             ? 1f - Mathf.Clamp01(cooldownRemaining / cooldownDuration)
             : 1f;
-        DrawSolidRect(
-            new Rect(rect.x + 25f * scale, rect.yMax - 26f * scale, rect.width - 50f * scale, 6f * scale),
+        float cooldownBarHeight = 6f * scale;
+        float cooldownBarWidth = rect.width * 0.72f;
+        float cooldownBarX = rect.center.x - cooldownBarWidth * 0.5f;
+        float cooldownBarY = rect.yMax - 20f * scale;
+        DrawSolidRect(new Rect(cooldownBarX, cooldownBarY, cooldownBarWidth, cooldownBarHeight),
             new Color(0.015f, 0.02f, 0.035f, 0.96f));
-        DrawSolidRect(
-            new Rect(rect.x + 25f * scale, rect.yMax - 26f * scale,
-                (rect.width - 50f * scale) * readyProgress, 6f * scale),
-            accentColor);
+        DrawSolidRect(new Rect(cooldownBarX, cooldownBarY, cooldownBarWidth * readyProgress, cooldownBarHeight), accentColor);
         if (cooldownRemaining > 0f)
         {
-            GUI.color = new Color(0f, 0f, 0f, 0.62f);
-            GUI.DrawTexture(imageRect, solidTexture, ScaleMode.StretchToFill, true);
-            GUI.color = Color.white;
-            GUI.Label(imageRect, cooldownRemaining.ToString("0.0"), largeNumberStyle);
+            DrawCooldownLabel(rect, $"{cooldownRemaining:0.0}s", scale);
         }
+    }
+
+    private void DrawCooldownLabel(Rect rect, string text, float scale)
+    {
+        GUIStyle countdownStyle = new GUIStyle(largeNumberStyle)
+        {
+            fontSize = Mathf.RoundToInt(Mathf.Clamp(34f * scale, 18f, 36f))
+        };
+        GUIStyle outlineStyle = new GUIStyle(countdownStyle);
+        outlineStyle.normal.textColor = new Color(0.02f, 0.02f, 0.03f, 0.9f);
+        countdownStyle.normal.textColor = Color.white;
+
+        float outline = Mathf.Max(1f, 1.5f * scale);
+        GUI.Label(new Rect(rect.x - outline, rect.y, rect.width, rect.height), text, outlineStyle);
+        GUI.Label(new Rect(rect.x + outline, rect.y, rect.width, rect.height), text, outlineStyle);
+        GUI.Label(new Rect(rect.x, rect.y - outline, rect.width, rect.height), text, outlineStyle);
+        GUI.Label(new Rect(rect.x, rect.y + outline, rect.width, rect.height), text, outlineStyle);
+        GUI.Label(rect, text, countdownStyle);
     }
 
     private void DrawSolidRect(Rect rect, Color color)

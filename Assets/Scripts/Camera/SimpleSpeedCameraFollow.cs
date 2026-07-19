@@ -1,6 +1,7 @@
 using UnityEngine;
 
 [RequireComponent(typeof(Camera))]
+[RequireComponent(typeof(AudioListener))]
 public class SimpleSpeedCameraFollow : MonoBehaviour
 {
     private enum CameraViewMode
@@ -46,6 +47,10 @@ public class SimpleSpeedCameraFollow : MonoBehaviour
     private void Awake()
     {
         cameraComponent = GetComponent<Camera>();
+        if (FindObjectOfType<AudioListener>() == null)
+        {
+            gameObject.AddComponent<AudioListener>();
+        }
         topDownHeight = 45f;
         orthographicSize = 22f;
     }

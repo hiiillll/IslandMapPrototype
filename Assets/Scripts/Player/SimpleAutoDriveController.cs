@@ -17,6 +17,7 @@ public class SimpleAutoDriveController : MonoBehaviour
     private PhysicMaterial frictionlessMaterial;
 
     public float ForwardSpeed => forwardSpeed;
+    public float SteeringAmount => Mathf.Abs(smoothedTurnInput);
 
     private void Awake()
     {

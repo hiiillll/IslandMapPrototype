@@ -7,15 +7,15 @@ public class WarshipEnemySpawner : MonoBehaviour
     [SerializeField] private Transform player;
     [SerializeField] private GameObject enemyVisualPrefab;
     [SerializeField] private Transform[] spawnPoints;
-    [SerializeField] private float spawnInterval = 3f;
+    [SerializeField] private float spawnInterval = 4.3f;
     [SerializeField] private int maxEnemies = 6;
-    [SerializeField, Range(0.1f, 1.5f)] private float playerSpeedRatio = 0.95f;
+    [SerializeField, Range(0.1f, 1.5f)] private float playerSpeedRatio = 0.9f;
     [SerializeField] private float warshipDoorSpawnOffset = 2.5f;
     [SerializeField] private float enemySizeMultiplier = 1f;
     [Header("Difficulty Over Time")]
-    [SerializeField] private float finalSpawnInterval = 0.85f;
+    [SerializeField] private float finalSpawnInterval = 1.2f;
     [SerializeField] private int finalMaxEnemies = 16;
-    [SerializeField, Range(0.1f, 1.5f)] private float finalPlayerSpeedRatio = 1.1f;
+    [SerializeField, Range(0.1f, 1.5f)] private float finalPlayerSpeedRatio = 1.05f;
 
     private float nextSpawnTime;
     private int nextSpawnPointIndex;
@@ -29,8 +29,8 @@ public class WarshipEnemySpawner : MonoBehaviour
 
     private void Awake()
     {
-        playerSpeedRatio = 0.95f;
-        finalPlayerSpeedRatio = 1.1f;
+        playerSpeedRatio = 0.9f;
+        finalPlayerSpeedRatio = 1.05f;
         initialSpawnInterval = spawnInterval;
         initialMaxEnemies = maxEnemies;
         initialPlayerSpeedRatio = playerSpeedRatio;

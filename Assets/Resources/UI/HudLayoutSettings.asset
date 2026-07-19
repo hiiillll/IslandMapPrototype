@@ -28,5 +28,8 @@ MonoBehaviour:
     offset: {x: 0, y: 0}
     size: {x: 760, y: 60}
   skillCardsOffset: {x: 22, y: 0}
-  skillCardSize: {x: 200, y: 200}
+  qSkillCardOffset: {x: 0, y: 0}
+  qSkillCardSize: {x: 200, y: 200}
+  eSkillCardOffset: {x: 0, y: 0}
+  eSkillCardSize: {x: 200, y: 200}
   skillCardSpacing: 12
