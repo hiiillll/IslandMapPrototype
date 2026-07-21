@@ -181,9 +181,12 @@ public sealed class ArcadeGameHud : MonoBehaviour
             panelWidth,
             timerLayout.size.y * scale);
         GUI.DrawTexture(panel, timerFrameTexture, ScaleMode.StretchToFill, true);
-        int remainingSeconds = survivalController != null
-            ? Mathf.CeilToInt(survivalController.RemainingTime)
-            : 0;
+        bool endlessMode = GameModeSession.IsEndless && EndlessModeController.Instance != null;
+        int displaySeconds = endlessMode
+            ? Mathf.FloorToInt(EndlessModeController.Instance.ElapsedTime)
+            : survivalController != null
+                ? Mathf.CeilToInt(survivalController.RemainingTime)
+                : 0;
         GUIStyle timerTitleStyle = new GUIStyle(italicHeadingStyle)
         {
             fontSize = Mathf.RoundToInt(20f * scale)
@@ -198,7 +201,7 @@ public sealed class ArcadeGameHud : MonoBehaviour
             timerTitleStyle);
         GUI.Label(
             new Rect(panel.x, panel.y + 62f * scale, panel.width, 52f * scale),
-            $"{remainingSeconds / 60:00}:{remainingSeconds % 60:00}",
+            $"{displaySeconds / 60:00}:{displaySeconds % 60:00}",
             timerValueStyle);
     }
 
@@ -234,6 +237,11 @@ public sealed class ArcadeGameHud : MonoBehaviour
         GUI.DrawTexture(pauseRect, pauseButtonTexture, ScaleMode.StretchToFill, true);
         if (GUI.Button(pauseRect, GUIContent.none, GUIStyle.none))
         {
+            if (GameModeSession.IsEndless && EndlessModeController.Instance != null)
+            {
+                EndlessModeController.Instance.TogglePause();
+                return;
+            }
             isPaused = !isPaused;
             Time.timeScale = isPaused ? 0f : 1f;
         }

@@ -3,6 +3,12 @@ using UnityEngine;
 
 public sealed class PlayerSkillSystem : MonoBehaviour
 {
+    private enum StartMenuPage
+    {
+        Main,
+        EndlessModes
+    }
+
     private enum SkillId
     {
         None,
@@ -58,6 +64,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     private Texture2D eBlinkIcon;
     private Texture2D eFlameTrailIcon;
     private Texture2D eTankShellsIcon;
+    private StartMenuPage startMenuPage;
 
     public bool IsGameplayActive => !isShowingStartScreen && !isChoosingSkills && !isChoosingUpgrade;
     public string QSkillName => GetSkillName(qSkill);
@@ -90,6 +97,13 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         eBlinkIcon = Resources.Load<Texture2D>("UI/SkillIconsLine/E/SkillIcon_Blink_E");
         eFlameTrailIcon = Resources.Load<Texture2D>("UI/SkillIconsLine/E/SkillIcon_FlameTrail_E");
         eTankShellsIcon = Resources.Load<Texture2D>("UI/SkillIconsLine/E/SkillIcon_TankShell_E");
+        startMenuPage = GameModeSession.ConsumeOpenEndlessSelection()
+            ? StartMenuPage.EndlessModes
+            : StartMenuPage.Main;
+        if (GameModeSession.IsEndlessLand)
+        {
+            isShowingStartScreen = false;
+        }
     }
 
     private void Start()
@@ -249,14 +263,46 @@ public sealed class PlayerSkillSystem : MonoBehaviour
             return;
         }
 
-        int levelsGained = progression.Level - lastObservedLevel;
+        int previousLevel = lastObservedLevel;
+        int levelsGained = progression.Level - previousLevel;
         lastObservedLevel = progression.Level;
-        if (!IsGameplayActive || !HasUpgradableSkill())
+        if (!IsGameplayActive)
         {
             return;
         }
 
-        pendingUpgradeChoices += levelsGained;
+        if (GameModeSession.IsEndlessLand)
+        {
+            int skillUpgradeLevels = 0;
+            int healthUpgradeLevels = 0;
+            for (int gainedIndex = 1; gainedIndex <= levelsGained; gainedIndex++)
+            {
+                int reachedLevel = previousLevel + gainedIndex;
+                if (reachedLevel <= 3)
+                {
+                    skillUpgradeLevels++;
+                }
+                else
+                {
+                    healthUpgradeLevels++;
+                }
+            }
+
+            pendingUpgradeChoices += Mathf.Min(skillUpgradeLevels, 2);
+            if (healthUpgradeLevels > 0 && health != null)
+            {
+                health.IncreaseMaxHealth(healthUpgradeLevels, healthUpgradeLevels);
+                if (EndlessModeController.Instance != null)
+                {
+                    EndlessModeController.Instance.ShowMaxHealthUpgrade();
+                }
+            }
+        }
+        else if (HasUpgradableSkill())
+        {
+            pendingUpgradeChoices += levelsGained;
+        }
+
         if (!isChoosingUpgrade)
         {
             ShowNextUpgradeChoice();
@@ -348,6 +394,11 @@ public sealed class PlayerSkillSystem : MonoBehaviour
 
     private void OnGUI()
     {
+        if (VehicleGarageSystem.Instance != null && VehicleGarageSystem.Instance.IsOpen)
+        {
+            return;
+        }
+
         GUI.depth = -1000;
         if (isShowingStartScreen)
         {
@@ -376,19 +427,71 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         float buttonWidth = Mathf.Clamp(Screen.width * 0.22f, 280f, 430f);
         float buttonHeight = Mathf.Clamp(Screen.height * 0.072f, 58f, 78f);
         float panelWidth = buttonWidth + 70f;
-        float panelHeight = buttonHeight + 36f;
+        float panelHeight = startMenuPage == StartMenuPage.Main
+            ? buttonHeight * 3f + 78f
+            : buttonHeight * 2f + 128f;
         float panelX = (Screen.width - panelWidth) * 0.5f;
         float panelY = Screen.height - panelHeight - Mathf.Max(24f, Screen.height * 0.025f);
         GUI.DrawTexture(new Rect(panelX, panelY, panelWidth, panelHeight), startPanelTexture, ScaleMode.StretchToFill);
 
-        Rect buttonRect = new Rect(
-            (Screen.width - buttonWidth) * 0.5f,
-            panelY + 18f,
-            buttonWidth,
-            buttonHeight);
-        if (GUI.Button(buttonRect, "开始游戏", startButtonStyle))
+        if (startMenuPage == StartMenuPage.Main)
         {
+            Rect storyButton = new Rect((Screen.width - buttonWidth) * 0.5f, panelY + 18f, buttonWidth, buttonHeight);
+            Rect endlessButton = new Rect(storyButton.x, storyButton.yMax + 12f, buttonWidth, buttonHeight);
+            Rect garageButton = new Rect(endlessButton.x, endlessButton.yMax + 12f, buttonWidth, buttonHeight);
+            if (GUI.Button(storyButton, "故事模式", startButtonStyle))
+            {
+                GameModeSession.SelectStory();
+                isShowingStartScreen = false;
+            }
+            if (GUI.Button(endlessButton, "无尽模式", startButtonStyle))
+            {
+                startMenuPage = StartMenuPage.EndlessModes;
+            }
+            if (GUI.Button(garageButton, "车库", startButtonStyle))
+            {
+                VehicleGarageSystem garage = VehicleGarageSystem.Instance;
+                if (garage == null)
+                {
+                    garage = GetComponent<VehicleGarageSystem>();
+                }
+                if (garage != null)
+                {
+                    garage.OpenGarage();
+                }
+            }
+            return;
+        }
+
+        GUIStyle modeDescriptionStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.021f, 16f, 23f)),
+            fontStyle = FontStyle.Bold
+        };
+        modeDescriptionStyle.normal.textColor = Color.white;
+        int landTime = EndlessModeController.GetBestTimeMilliseconds(GameModeKind.EndlessLand);
+        int seaTime = EndlessModeController.GetBestTimeMilliseconds(GameModeKind.EndlessSea);
+        Rect landButton = new Rect((Screen.width - buttonWidth) * 0.5f, panelY + 18f, buttonWidth, buttonHeight);
+        Rect seaButton = new Rect(landButton.x, landButton.yMax + 42f, buttonWidth, buttonHeight);
+        if (GUI.Button(landButton, "陆地追逐", startButtonStyle))
+        {
+            GameModeSession.StartEndlessLand();
             isShowingStartScreen = false;
+        }
+        GUI.Label(new Rect(landButton.x - 120f, landButton.yMax, landButton.width + 240f, 32f),
+            $"技能成长 · 最佳 {EndlessModeController.FormatResultTime(landTime)} · 击杀 {EndlessModeController.GetBestKills(GameModeKind.EndlessLand)}",
+            modeDescriptionStyle);
+        if (GUI.Button(seaButton, "海上逃生", startButtonStyle))
+        {
+            GameModeSession.StartEndlessSea();
+        }
+        GUI.Label(new Rect(seaButton.x - 120f, seaButton.yMax, seaButton.width + 240f, 32f),
+            $"纯驾驶生存 · 最佳 {EndlessModeController.FormatResultTime(seaTime)} · 击杀 {EndlessModeController.GetBestKills(GameModeKind.EndlessSea)}",
+            modeDescriptionStyle);
+        if (GUI.Button(new Rect(panelX + 14f, panelY + panelHeight - 35f, 92f, 28f), "返回"))
+        {
+            startMenuPage = StartMenuPage.Main;
         }
     }
 
@@ -802,6 +905,7 @@ public sealed class GravityTrap : MonoBehaviour
             }
 
             enemy.SlowFor(0.55f, 0.12f);
+            enemy.MarkPlayerCredit(2.5f);
             enemyBody.MovePosition(Vector3.MoveTowards(
                 enemyBody.position,
                 transform.position,
@@ -993,7 +1097,7 @@ public sealed class FlameTrailSegment : MonoBehaviour
             return;
         }
 
-        enemy.Explode();
+        enemy.Explode(true);
     }
 
     private void CreateFlameDisc(float diameter, Color color)
@@ -1286,7 +1390,7 @@ public sealed class TankShellProjectile : MonoBehaviour
             NavMeshEnemyCarChaser enemy = hit.GetComponentInParent<NavMeshEnemyCarChaser>();
             if (enemy != null && affectedEnemies.Add(enemy))
             {
-                enemy.Explode();
+                enemy.Explode(true);
             }
         }
         Destroy(gameObject);

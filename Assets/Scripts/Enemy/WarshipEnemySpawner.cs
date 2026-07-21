@@ -113,7 +113,10 @@ public class WarshipEnemySpawner : MonoBehaviour
     private void ApplyDifficulty(float progress)
     {
         spawnInterval = Mathf.Lerp(initialSpawnInterval, finalSpawnInterval, progress);
-        maxEnemies = Mathf.RoundToInt(Mathf.Lerp(initialMaxEnemies, finalMaxEnemies, progress));
+        float enemyLimit = Mathf.Lerp(initialMaxEnemies, finalMaxEnemies, progress);
+        maxEnemies = survivalController != null && survivalController.IsEndless
+            ? progress >= 1f ? finalMaxEnemies : Mathf.FloorToInt(enemyLimit)
+            : Mathf.RoundToInt(enemyLimit);
         playerSpeedRatio = Mathf.Lerp(initialPlayerSpeedRatio, finalPlayerSpeedRatio, progress);
 
         foreach (GameObject enemy in activeEnemies)

@@ -16,6 +16,9 @@ public sealed class BoatChaseDifficultyController : MonoBehaviour
 
     private SurvivalGameController survivalController;
     private float elapsedDifficultyTime;
+    private bool endlessMode;
+    private float finalEnemyChaseSpeedAdvantage;
+    private float finalEnemySpawnInterval;
 
     public float ElapsedDifficultyTime => elapsedDifficultyTime;
     public float DifficultyRampDuration => difficultyRampDuration;
@@ -38,6 +41,27 @@ public sealed class BoatChaseDifficultyController : MonoBehaviour
         enemySpawnIntervalShortenPerSecond = Mathf.Max(0f, spawnIntervalShortenPerSecond);
         minimumEnemySpawnInterval = Mathf.Max(0.01f, minimumSpawnInterval);
         difficultyRampDuration = Mathf.Max(0f, growthDuration);
+        endlessMode = false;
+    }
+
+    public void ConfigureEndless(
+        float fixedPlayerSpeed,
+        float growthDuration,
+        float startingEnemySpeedAdvantage,
+        float endingEnemySpeedAdvantage,
+        float startingSpawnInterval,
+        float endingSpawnInterval)
+    {
+        playerStartSpeed = Mathf.Max(0f, fixedPlayerSpeed);
+        playerSpeedIncreasePerSecond = 0f;
+        maxPlayerSpeed = playerStartSpeed;
+        difficultyRampDuration = Mathf.Max(1f, growthDuration);
+        enemyChaseSpeedAdvantage = Mathf.Max(0f, startingEnemySpeedAdvantage);
+        finalEnemyChaseSpeedAdvantage = Mathf.Max(0f, endingEnemySpeedAdvantage);
+        initialEnemySpawnInterval = Mathf.Max(0.01f, startingSpawnInterval);
+        finalEnemySpawnInterval = Mathf.Max(0.01f, endingSpawnInterval);
+        elapsedDifficultyTime = 0f;
+        endlessMode = true;
     }
 
     private void Awake()
@@ -71,13 +95,40 @@ public sealed class BoatChaseDifficultyController : MonoBehaviour
 
     public float GetEnemyChaseSpeed()
     {
-        return GetPlayerForwardSpeed() + enemyChaseSpeedAdvantage;
+        float advantage = endlessMode
+            ? Mathf.Lerp(enemyChaseSpeedAdvantage, finalEnemyChaseSpeedAdvantage, GetEndlessProgress())
+            : enemyChaseSpeedAdvantage;
+        return GetPlayerForwardSpeed() + advantage;
     }
 
     public float GetSpawnInterval()
     {
+        if (endlessMode)
+        {
+            return Mathf.Lerp(initialEnemySpawnInterval, finalEnemySpawnInterval, GetEndlessProgress());
+        }
+
         float interval = initialEnemySpawnInterval
             - enemySpawnIntervalShortenPerSecond * elapsedDifficultyTime;
         return Mathf.Max(minimumEnemySpawnInterval, interval);
+    }
+
+    public int GetMaximumActiveEnemies()
+    {
+        if (!endlessMode)
+        {
+            return 12;
+        }
+
+        float progress = GetEndlessProgress();
+        return progress >= 1f ? 24 : Mathf.FloorToInt(Mathf.Lerp(12f, 24f, progress));
+    }
+
+    private float GetEndlessProgress()
+    {
+        float progress = difficultyRampDuration > 0f
+            ? Mathf.Clamp01(elapsedDifficultyTime / difficultyRampDuration)
+            : 1f;
+        return Mathf.SmoothStep(0f, 1f, progress);
     }
 }

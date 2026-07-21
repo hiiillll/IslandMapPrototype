@@ -69,7 +69,10 @@ public sealed class PlayerProgression : MonoBehaviour
     {
         float scaledRequirement = baseExperienceToLevel
             * Mathf.Pow(Mathf.Max(1f, experienceGrowth), Mathf.Max(0, targetLevel - 1));
-        return Mathf.Max(1, Mathf.RoundToInt(scaledRequirement));
+        int requirement = GameModeSession.IsEndless
+            ? Mathf.CeilToInt(scaledRequirement)
+            : Mathf.RoundToInt(scaledRequirement);
+        return Mathf.Max(1, requirement);
     }
 
     private void OnDestroy()

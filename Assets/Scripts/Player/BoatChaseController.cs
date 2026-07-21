@@ -3,6 +3,8 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public sealed class BoatChaseController : MonoBehaviour
 {
+    private const float OceanHalfSize = 2000f;
+
     [Header("Automatic Propulsion")]
     [SerializeField, Min(0f)] private float forwardSpeed = 24f;
     [SerializeField, Min(0f)] private float forwardAcceleration = 7.5f;
@@ -58,6 +60,7 @@ public sealed class BoatChaseController : MonoBehaviour
         body.drag = 0f;
         body.angularDrag = 0.2f;
         ApplyAngularVelocityLimit();
+        EnsureOceanBoundaries();
     }
 
     private void Start()
@@ -143,5 +146,28 @@ public sealed class BoatChaseController : MonoBehaviour
         {
             body.maxAngularVelocity = Mathf.Max(2.5f, maximumTurnRate * Mathf.Deg2Rad);
         }
+    }
+
+    private static void EnsureOceanBoundaries()
+    {
+        if (GameObject.Find("COL_OceanBoundary") != null)
+        {
+            return;
+        }
+
+        GameObject root = new GameObject("COL_OceanBoundary");
+        CreateBoundaryWall(root.transform, "North", new Vector3(0f, 0f, OceanHalfSize + 5f), new Vector3(4020f, 100f, 10f));
+        CreateBoundaryWall(root.transform, "South", new Vector3(0f, 0f, -OceanHalfSize - 5f), new Vector3(4020f, 100f, 10f));
+        CreateBoundaryWall(root.transform, "East", new Vector3(OceanHalfSize + 5f, 0f, 0f), new Vector3(10f, 100f, 4020f));
+        CreateBoundaryWall(root.transform, "West", new Vector3(-OceanHalfSize - 5f, 0f, 0f), new Vector3(10f, 100f, 4020f));
+    }
+
+    private static void CreateBoundaryWall(Transform parent, string wallName, Vector3 position, Vector3 size)
+    {
+        GameObject wall = new GameObject(wallName);
+        wall.transform.SetParent(parent, false);
+        wall.transform.position = position;
+        BoxCollider collider = wall.AddComponent<BoxCollider>();
+        collider.size = size;
     }
 }

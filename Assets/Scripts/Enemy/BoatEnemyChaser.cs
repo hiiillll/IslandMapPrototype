@@ -89,15 +89,15 @@ public sealed class BoatEnemyChaser : MonoBehaviour
         if (playerHealth != null)
         {
             playerHealth.TakeDamage(1);
-            Explode();
+            Explode(true);
             return;
         }
 
         BoatEnemyChaser otherEnemy = other.GetComponentInParent<BoatEnemyChaser>();
         if (otherEnemy != null && otherEnemy != this)
         {
-            otherEnemy.Explode();
-            Explode();
+            otherEnemy.Explode(false);
+            Explode(false);
         }
     }
 
@@ -112,7 +112,7 @@ public sealed class BoatEnemyChaser : MonoBehaviour
         Destroy(gameObject);
     }
 
-    private void Explode()
+    private void Explode(bool playerCredit)
     {
         if (destroyed)
         {
@@ -121,6 +121,10 @@ public sealed class BoatEnemyChaser : MonoBehaviour
 
         destroyed = true;
         EnemyExplosionEffect.Spawn(transform.position);
+        if (GameModeSession.IsEndlessSea && playerCredit && PlayerProgression.Instance != null)
+        {
+            PlayerProgression.Instance.RegisterEnemyDestroyed();
+        }
 
         foreach (Collider enemyCollider in GetComponentsInChildren<Collider>())
         {

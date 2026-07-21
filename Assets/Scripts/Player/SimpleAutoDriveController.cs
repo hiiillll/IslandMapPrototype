@@ -43,6 +43,10 @@ public class SimpleAutoDriveController : MonoBehaviour
             health = gameObject.AddComponent<SimplePlayerHealth>();
         }
         health.ConfigureFallDefeat(true, -10f);
+        if (GetComponent<VehicleGarageSystem>() == null)
+        {
+            gameObject.AddComponent<VehicleGarageSystem>();
+        }
         if (GetComponent<PlayerSkillSystem>() == null)
         {
             gameObject.AddComponent<PlayerSkillSystem>();
@@ -66,6 +70,14 @@ public class SimpleAutoDriveController : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
+            if (VehicleGarageSystem.Instance != null && VehicleGarageSystem.Instance.IsOpen)
+            {
+                return;
+            }
+            if (GameModeSession.IsEndless)
+            {
+                return;
+            }
             QuitGame();
             return;
         }

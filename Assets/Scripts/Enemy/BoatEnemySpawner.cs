@@ -59,7 +59,10 @@ public sealed class BoatEnemySpawner : MonoBehaviour
             return;
         }
 
-        if (activeEnemies.Count >= maximumActiveEnemies)
+        int activeLimit = GameModeSession.IsEndlessSea && difficultyController != null
+            ? difficultyController.GetMaximumActiveEnemies()
+            : maximumActiveEnemies;
+        if (activeEnemies.Count >= activeLimit)
         {
             return;
         }
@@ -154,6 +157,12 @@ public sealed class BoatEnemySpawner : MonoBehaviour
             if (insideCamera)
             {
                 continue;
+            }
+
+            if (GameModeSession.IsEndlessSea)
+            {
+                randomX = Mathf.Clamp(randomX, -1980f, 1980f);
+                randomZ = Mathf.Clamp(randomZ, -1980f, 1980f);
             }
 
             spawnPosition = new Vector3(randomX, spawnHeight, randomZ);
