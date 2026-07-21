@@ -37,10 +37,12 @@ public class SimpleAutoDriveController : MonoBehaviour
         angularAcceleration = 14f;
         lateralGrip = 6f;
         ConfigureFrictionlessColliders();
-        if (GetComponent<SimplePlayerHealth>() == null)
+        SimplePlayerHealth health = GetComponent<SimplePlayerHealth>();
+        if (health == null)
         {
-            gameObject.AddComponent<SimplePlayerHealth>();
+            health = gameObject.AddComponent<SimplePlayerHealth>();
         }
+        health.ConfigureFallDefeat(true, -10f);
         if (GetComponent<PlayerSkillSystem>() == null)
         {
             gameObject.AddComponent<PlayerSkillSystem>();

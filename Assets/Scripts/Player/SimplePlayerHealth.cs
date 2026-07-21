@@ -5,6 +5,8 @@ public class SimplePlayerHealth : MonoBehaviour
 {
     [SerializeField] private int maxHealth = 3;
     [SerializeField] private float damageCooldown = 0.25f;
+    [SerializeField] private bool defeatBelowWorldHeight;
+    [SerializeField] private float defeatHeight = -10f;
 
     private int currentHealth;
     private float nextDamageTime;
@@ -16,6 +18,28 @@ public class SimplePlayerHealth : MonoBehaviour
     private void Awake()
     {
         currentHealth = maxHealth;
+    }
+
+    private void Update()
+    {
+        if (defeatBelowWorldHeight && currentHealth > 0 && transform.position.y < defeatHeight)
+        {
+            DefeatImmediately();
+        }
+    }
+
+    public void ConfigureFallDefeat(bool enabled, float worldHeight = -10f)
+    {
+        defeatBelowWorldHeight = enabled;
+        defeatHeight = worldHeight;
+    }
+
+    public void ResetToFullHealth(int healthPoints = 3)
+    {
+        maxHealth = Mathf.Max(1, healthPoints);
+        currentHealth = maxHealth;
+        nextDamageTime = 0f;
+        isRestarting = false;
     }
 
     public void TakeDamage(int amount)
@@ -30,17 +54,7 @@ public class SimplePlayerHealth : MonoBehaviour
         TriggerDamageShake();
         if (currentHealth == 0)
         {
-            SimpleAutoDriveController controller = GetComponent<SimpleAutoDriveController>();
-            if (controller != null)
-            {
-                controller.enabled = false;
-            }
-
-            Rigidbody body = GetComponent<Rigidbody>();
-            if (body != null)
-            {
-                body.velocity = Vector3.zero;
-            }
+            StopPlayer();
         }
     }
 
@@ -78,6 +92,41 @@ public class SimplePlayerHealth : MonoBehaviour
         if (cameraFollow != null)
         {
             cameraFollow.Shake(0.18f, 0.3f);
+            return;
+        }
+
+        BoatChaseTopDownCamera boatCamera = Camera.main != null
+            ? Camera.main.GetComponent<BoatChaseTopDownCamera>()
+            : null;
+        if (boatCamera == null)
+        {
+            boatCamera = FindObjectOfType<BoatChaseTopDownCamera>();
+        }
+        if (boatCamera != null)
+        {
+            boatCamera.Shake(0.22f, 0.55f);
+        }
+    }
+
+    private void DefeatImmediately()
+    {
+        currentHealth = 0;
+        StopPlayer();
+    }
+
+    private void StopPlayer()
+    {
+        SimpleAutoDriveController controller = GetComponent<SimpleAutoDriveController>();
+        if (controller != null)
+        {
+            controller.enabled = false;
+        }
+
+        Rigidbody body = GetComponent<Rigidbody>();
+        if (body != null)
+        {
+            body.velocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
         }
     }
 

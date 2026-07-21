@@ -21,6 +21,7 @@ public sealed class ArcadeGameHud : MonoBehaviour
     [SerializeField] private Vector2 eSkillCardOffset = Vector2.zero;
     [SerializeField] private Vector2 eSkillCardSize = new Vector2(212f, 230f);
     [SerializeField, Min(0f)] private float skillCardSpacing = 12f;
+    [SerializeField] private bool basicHudOnly;
 
     private Texture2D redPanelTexture;
     private Texture2D orangePanelTexture;
@@ -40,6 +41,13 @@ public sealed class ArcadeGameHud : MonoBehaviour
     private GUIStyle italicNumberStyle;
     private GUIStyle italicHeadingStyle;
     private bool isPaused;
+
+    public void ConfigureBasicHudOnly()
+    {
+        basicHudOnly = true;
+        isPaused = false;
+        Time.timeScale = 1f;
+    }
 
     private void Awake()
     {
@@ -92,9 +100,12 @@ public sealed class ArcadeGameHud : MonoBehaviour
         {
             survivalController = FindObjectOfType<SurvivalGameController>();
         }
-        if (skillSystem == null || progression == null || !skillSystem.IsGameplayActive
-            || health == null || health.CurrentHealth <= 0
+        if (progression == null || health == null || health.CurrentHealth <= 0
             || (survivalController != null && survivalController.IsFinished))
+        {
+            return;
+        }
+        if (!basicHudOnly && (skillSystem == null || !skillSystem.IsGameplayActive))
         {
             return;
         }
@@ -107,8 +118,11 @@ public sealed class ArcadeGameHud : MonoBehaviour
         DrawTimerPanel(scale);
         DrawKillPanel(scale);
         DrawPauseButton(scale);
-        DrawExperienceBar(scale);
-        DrawSkillCards(scale);
+        if (!basicHudOnly)
+        {
+            DrawExperienceBar(scale);
+            DrawSkillCards(scale);
+        }
     }
 
     private void ApplySavedLayoutSettings()

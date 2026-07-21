@@ -10,6 +10,7 @@ public sealed class TropicalSurvivalBackgroundMusic : MonoBehaviour
 
     private AudioSource source;
     private PlayerSkillSystem skillSystem;
+    private BoatChaseController boatController;
     private SimplePlayerHealth health;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -47,7 +48,9 @@ public sealed class TropicalSurvivalBackgroundMusic : MonoBehaviour
     {
         RefreshGameplayReferences();
 
-        bool shouldPlay = skillSystem != null && skillSystem.IsGameplayActive
+        bool gameplayActive = (skillSystem != null && skillSystem.IsGameplayActive)
+            || boatController != null;
+        bool shouldPlay = gameplayActive
             && health != null && health.CurrentHealth > 0 && Time.timeScale > 0.001f;
         float targetVolume = shouldPlay ? gameplayVolume : 0f;
         float volumeStep = gameplayVolume / fadeDuration * Time.unscaledDeltaTime;
@@ -69,6 +72,10 @@ public sealed class TropicalSurvivalBackgroundMusic : MonoBehaviour
         if (skillSystem == null)
         {
             skillSystem = FindObjectOfType<PlayerSkillSystem>();
+        }
+        if (boatController == null)
+        {
+            boatController = FindObjectOfType<BoatChaseController>();
         }
         if (health == null)
         {

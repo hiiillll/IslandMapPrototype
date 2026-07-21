@@ -26,8 +26,16 @@ public sealed class PlayerProgression : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        ResetForNewLevel();
+    }
+
+    public void ResetForNewLevel()
+    {
         level = Mathf.Max(1, startingLevel);
+        currentExperience = 0;
         experienceToNextLevel = CalculateExperienceRequirement(level);
+        destroyedEnemies = 0;
+        pickupPulse = 0f;
     }
 
     private void Update()
