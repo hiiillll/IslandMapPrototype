@@ -8,10 +8,15 @@ public class EnvironmentCollisionRefiner : MonoBehaviour
 
     private void Awake()
     {
-        RefineAll();
+        RefineAll(false);
     }
 
     public static void RefineAll()
+    {
+        RefineAll(true);
+    }
+
+    private static void RefineAll(bool refineBuildingFootprints)
     {
         foreach (BoxCollider collider in Object.FindObjectsOfType<BoxCollider>())
         {
@@ -24,7 +29,7 @@ public class EnvironmentCollisionRefiner : MonoBehaviour
             {
                 RefitPalmTrunk(collider);
             }
-            else if (HasBuildingAncestor(collider.transform))
+            else if (refineBuildingFootprints && HasBuildingAncestor(collider.transform))
             {
                 RefitBuildingFootprint(collider);
             }

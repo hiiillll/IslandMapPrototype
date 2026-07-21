@@ -580,18 +580,58 @@ public sealed class PlayerSkillSystem : MonoBehaviour
             rect.width * scale,
             rect.height * scale);
         Texture2D cardTexture = GetSkillCardTexture(skill);
-        if (isHovered || isSelected)
-        {
-            GUI.Box(new Rect(drawRect.x - 5f, drawRect.y - 5f, drawRect.width + 10f, drawRect.height + 10f), GUIContent.none);
-        }
+
+        Color borderColor = isSelected
+            ? new Color(1f, 0.52f, 0.08f, 1f)
+            : isHovered
+                ? new Color(0.1f, 0.78f, 1f, 1f)
+                : new Color(0.48f, 0.53f, 0.6f, 1f);
+        DrawTintedRect(drawRect, new Color(0.018f, 0.024f, 0.034f, 1f));
+        DrawCardBorder(drawRect, borderColor, Mathf.Max(2f, drawRect.width * 0.018f));
+
+        Rect headerRect = new Rect(
+            drawRect.x + drawRect.width * 0.075f,
+            drawRect.y + drawRect.height * 0.045f,
+            drawRect.width * 0.85f,
+            drawRect.height * 0.145f);
+        Rect artworkRect = new Rect(
+            drawRect.x + drawRect.width * 0.075f,
+            drawRect.y + drawRect.height * 0.215f,
+            drawRect.width * 0.85f,
+            drawRect.height * 0.64f);
+        Rect footerRect = new Rect(
+            drawRect.x + drawRect.width * 0.075f,
+            drawRect.y + drawRect.height * 0.88f,
+            drawRect.width * 0.85f,
+            drawRect.height * 0.075f);
+
+        DrawTintedRect(headerRect, new Color(0.025f, 0.035f, 0.05f, 0.98f));
+        DrawTintedRect(artworkRect, Color.black);
         if (cardTexture != null)
         {
-            GUI.DrawTexture(drawRect, cardTexture, ScaleMode.StretchToFill, true);
+            Rect artworkUv = new Rect(0.12f, 0.18f, 0.76f, 0.57f);
+            GUI.DrawTextureWithTexCoords(artworkRect, cardTexture, artworkUv, true);
         }
         else
         {
-            GUI.Box(drawRect, GetSkillName(skill));
+            GUI.Box(artworkRect, GetSkillName(skill));
         }
+        DrawCardBorder(artworkRect, new Color(0.32f, 0.38f, 0.46f, 1f), 2f);
+        DrawTintedRect(footerRect, new Color(0.025f, 0.035f, 0.05f, 0.98f));
+
+        float accentHeight = Mathf.Max(2f, drawRect.height * 0.008f);
+        Rect leftAccent = new Rect(
+            headerRect.x,
+            headerRect.yMax - accentHeight,
+            headerRect.width * 0.48f,
+            accentHeight);
+        Rect rightAccent = new Rect(
+            headerRect.x + headerRect.width * 0.52f,
+            headerRect.yMax - accentHeight,
+            headerRect.width * 0.48f,
+            accentHeight);
+        DrawTintedRect(leftAccent, new Color(1f, 0.18f, 0.04f, 1f));
+        DrawTintedRect(rightAccent, new Color(0.04f, 0.68f, 1f, 1f));
 
         GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
         {
@@ -599,26 +639,44 @@ public sealed class PlayerSkillSystem : MonoBehaviour
             fontStyle = FontStyle.Bold,
             fontSize = Mathf.RoundToInt(Mathf.Clamp(drawRect.width * 0.1f, 18f, 34f))
         };
-        Rect titleRect = new Rect(
-            drawRect.x + drawRect.width * 0.13f,
-            drawRect.y + drawRect.height * 0.072f,
-            drawRect.width * 0.74f,
-            drawRect.height * 0.14f);
+        Rect titleRect = new Rect(headerRect.x, headerRect.y, headerRect.width, headerRect.height - accentHeight);
         titleStyle.normal.textColor = new Color(0f, 0f, 0f, 0.86f);
         GUI.Label(new Rect(titleRect.x + 2f, titleRect.y + 2f, titleRect.width, titleRect.height), GetSkillName(skill), titleStyle);
         titleStyle.normal.textColor = Color.white;
         GUI.Label(titleRect, GetSkillName(skill), titleStyle);
 
         string selectedSlot = GetSelectedSlotText(skill);
-        if (selectedSlot != "未装备")
+        GUIStyle footerStyle = new GUIStyle(GUI.skin.label)
         {
-            GUI.Box(new Rect(rect.x + 12f, rect.y + 12f, 92f, 28f), selectedSlot);
-        }
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = Mathf.RoundToInt(Mathf.Clamp(drawRect.width * 0.065f, 13f, 21f)),
+            fontStyle = FontStyle.Bold
+        };
+        footerStyle.normal.textColor = isSelected ? borderColor : new Color(0.72f, 0.78f, 0.86f, 1f);
+        string footerText = isSelected ? selectedSlot : $"冷却 {GetCooldown(skill):0.#}秒";
+        GUI.Label(footerRect, footerText, footerStyle);
+
         if (Event.current.type == EventType.MouseUp && rect.Contains(Event.current.mousePosition))
         {
             SelectSkillCard(skill);
             Event.current.Use();
         }
+    }
+
+    private static void DrawTintedRect(Rect rect, Color color)
+    {
+        Color previousColor = GUI.color;
+        GUI.color = color;
+        GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill);
+        GUI.color = previousColor;
+    }
+
+    private static void DrawCardBorder(Rect rect, Color color, float thickness)
+    {
+        DrawTintedRect(new Rect(rect.x, rect.y, rect.width, thickness), color);
+        DrawTintedRect(new Rect(rect.x, rect.yMax - thickness, rect.width, thickness), color);
+        DrawTintedRect(new Rect(rect.x, rect.y, thickness, rect.height), color);
+        DrawTintedRect(new Rect(rect.xMax - thickness, rect.y, thickness, rect.height), color);
     }
 
     private Texture2D GetSkillCardTexture(SkillId skill)

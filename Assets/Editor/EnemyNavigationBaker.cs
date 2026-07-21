@@ -23,7 +23,6 @@ public static class EnemyNavigationBaker
         }
 
         Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
-        EnvironmentCollisionRefiner.RefineAll();
 
         int notWalkableArea = NavMesh.GetAreaFromName("Not Walkable");
         if (notWalkableArea < 0)

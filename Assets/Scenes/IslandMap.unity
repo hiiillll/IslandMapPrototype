@@ -6351,8 +6351,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.70347196, y: 0.47964227, z: 0.49892896}
-  m_Center: {x: -0.041620787, y: 0.23981634, z: -0.10892115}
+  m_Size: {x: 0.7034719, y: 0.47964227, z: 0.4977077}
+  m_Center: {x: -0.041620787, y: 0.23981002, z: -0.10831193}
 --- !u!114 &776928943
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6384,8 +6384,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 35e95dc5ff2b64380880dd7ac5922847, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Size: {x: 0.654516, y: 0.03405601, z: 0.6268827}
-  m_Center: {x: -0.043053716, y: 0.008413008, z: -0.024163246}
+  m_Size: {x: 0.789465, y: 0.4968723, z: 0.58719766}
+  m_Center: {x: -0.04162076, y: 0.23981003, z: -0.10831198}
   m_Area: 1
   m_AffectedAgents: ffffffff
 --- !u!1001 &779010263
@@ -8417,8 +8417,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 35e95dc5ff2b64380880dd7ac5922847, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Size: {x: 0.7851902, y: 0.037038647, z: 0.8309684}
-  m_Center: {x: -0.001861006, y: 0.010430857, z: 0.0008728802}
+  m_Size: {x: 0.78519094, y: 0.5924617, z: 0.8309684}
+  m_Center: {x: -0.001861006, y: 0.2881424, z: 0.0008728802}
   m_Area: 1
   m_AffectedAgents: ffffffff
 --- !u!1001 &963417553
@@ -8761,8 +8761,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 35e95dc5ff2b64380880dd7ac5922847, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Size: {x: 1.0476403, y: 0.03759652, z: 1.0189967}
-  m_Center: {x: 0.0025023818, y: 0.008183821, z: -0.03817454}
+  m_Size: {x: 1.0476403, y: 0.3551747, z: 1.0189967}
+  m_Center: {x: 0.0025023818, y: 0.1669728, z: -0.03817454}
   m_Area: 1
   m_AffectedAgents: ffffffff
 --- !u!1 &997917943 stripped
@@ -8971,8 +8971,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 35e95dc5ff2b64380880dd7ac5922847, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Size: {x: 0.9421684, y: 0.03759652, z: 0.90993744}
-  m_Center: {x: 0.0025024116, y: 0.008183821, z: -0.03817451}
+  m_Size: {x: 0.9421684, y: 0.33304048, z: 0.90993744}
+  m_Center: {x: 0.0025024116, y: 0.15590443, z: -0.03817451}
   m_Area: 1
   m_AffectedAgents: ffffffff
 --- !u!1 &1010725675
