@@ -5,6 +5,7 @@ public sealed class GearPickup : MonoBehaviour
 {
     private const int ExperienceValue = 20;
     private const float Lifetime = 25f;
+    private const float AutoPickupRadius = 3f;
 
     private static Material goldMaterial;
     private static Material darkMaterial;
@@ -40,7 +41,7 @@ public sealed class GearPickup : MonoBehaviour
         triggerObject.transform.SetParent(pickupObject.transform, false);
         SphereCollider pickupTrigger = triggerObject.AddComponent<SphereCollider>();
         pickupTrigger.isTrigger = true;
-        pickupTrigger.radius = 1.05f;
+        pickupTrigger.radius = AutoPickupRadius;
 
         pickupObject.AddComponent<GearPickup>();
     }
@@ -78,6 +79,16 @@ public sealed class GearPickup : MonoBehaviour
 
         PlayerProgression progression = other.GetComponentInParent<PlayerProgression>();
         if (progression == null)
+        {
+            return;
+        }
+
+        CollectExperience(progression);
+    }
+
+    private void CollectExperience(PlayerProgression progression)
+    {
+        if (collected || progression == null)
         {
             return;
         }

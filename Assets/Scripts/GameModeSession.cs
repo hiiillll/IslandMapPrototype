@@ -68,6 +68,15 @@ public static class GameModeSession
         SceneManager.LoadScene(IslandSceneName);
     }
 
+    public static void ReturnToMainMenu()
+    {
+        CurrentMode = GameModeKind.Story;
+        openEndlessSelection = false;
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
+        SceneManager.LoadScene(IslandSceneName);
+    }
+
     public static bool ConsumeOpenEndlessSelection()
     {
         bool shouldOpen = openEndlessSelection;

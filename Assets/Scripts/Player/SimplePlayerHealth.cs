@@ -3,8 +3,10 @@ using UnityEngine.SceneManagement;
 
 public class SimplePlayerHealth : MonoBehaviour
 {
+    private const float DamageInvincibilityDuration = 1f;
+
     [SerializeField] private int maxHealth = 3;
-    [SerializeField] private float damageCooldown = 0.25f;
+    [SerializeField] private float damageCooldown = DamageInvincibilityDuration;
     [SerializeField] private bool defeatBelowWorldHeight;
     [SerializeField] private float defeatHeight = -10f;
 
@@ -17,6 +19,7 @@ public class SimplePlayerHealth : MonoBehaviour
 
     private void Awake()
     {
+        damageCooldown = DamageInvincibilityDuration;
         currentHealth = maxHealth;
     }
 

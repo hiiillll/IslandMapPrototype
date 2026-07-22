@@ -30,14 +30,26 @@ public sealed class VehicleGarageSystem : MonoBehaviour
         new VehicleDefinition
         {
             Id = "garage_car_02",
-            DisplayName = "都市跑车",
+            DisplayName = "Porsche 911 GT3 RS",
             ResourcePath = "Vehicles/GarageCar02/Model"
         },
         new VehicleDefinition
         {
             Id = "garage_car_03",
-            DisplayName = "先锋跑车",
+            DisplayName = "BMW M4",
             ResourcePath = "Vehicles/GarageCar03/Model"
+        },
+        new VehicleDefinition
+        {
+            Id = "garage_car_04",
+            DisplayName = "Nissan GTR",
+            ResourcePath = "Vehicles/GarageCar04/Model"
+        },
+        new VehicleDefinition
+        {
+            Id = "garage_car_05",
+            DisplayName = "Ferrari F40",
+            ResourcePath = "Vehicles/GarageCar05/Model"
         }
     };
 

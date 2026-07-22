@@ -24,11 +24,11 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     private const float BlinkCooldown = 5f;
     private const float FlameTrailCooldown = 9f;
     private const float TankShellCooldown = 7f;
-    private const float UnupgradedHornBlastCooldown = 5.5f;
-    private const float UnupgradedGravityTrapCooldown = 13.5f;
-    private const float UnupgradedBlinkCooldown = 9f;
-    private const float UnupgradedFlameTrailCooldown = 15f;
-    private const float UnupgradedTankShellCooldown = 12f;
+    private const float UnupgradedHornBlastCooldown = 4.5f;
+    private const float UnupgradedGravityTrapCooldown = 11f;
+    private const float UnupgradedBlinkCooldown = 7f;
+    private const float UnupgradedFlameTrailCooldown = 12f;
+    private const float UnupgradedTankShellCooldown = 10f;
 
     private SkillId qSkill;
     private SkillId eSkill;
@@ -158,7 +158,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
             case SkillId.HornBlast:
                 HornBlastEffect.Spawn(
                     transform,
-                    GetSkillValue(skill, 9f, 16f),
+                    GetSkillValue(skill, 12f, 16f),
                     GetSkillValue(skill, 9f, 14f),
                     GetSkillValue(skill, 17f, 26f),
                     IsSkillUpgraded(skill) ? 3 : 2);
@@ -658,15 +658,15 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         switch (skill)
         {
             case SkillId.HornBlast:
-                return "冷却 5.5秒 → 3秒\\n范围、击退与脉冲恢复";
+                return "冷却 4.5秒 → 3秒\\n范围 12 → 16，击退与脉冲增强";
             case SkillId.GravityTrap:
-                return "冷却 13.5秒 → 8秒\\范围、持续与拉力恢复";
+                return "冷却 11秒 → 8秒\\n范围、持续与拉力恢复";
             case SkillId.Blink:
-                return "冷却 9秒 → 5秒\\n位移距离与出场速度恢复";
+                return "冷却 7秒 → 5秒\\n位移距离与出场速度恢复";
             case SkillId.FlameTrail:
-                return "冷却 15秒 → 9秒\\n喷火时间、宽度与残留恢复";
+                return "冷却 12秒 → 9秒\\n喷火时间、宽度与残留恢复";
             case SkillId.TankShells:
-                return "冷却 12秒 → 7秒\\n射程、速度与爆炸范围恢复";
+                return "冷却 10秒 → 7秒\\n射程、速度与爆炸范围恢复";
             default:
                 return "恢复完整技能强度";
         }

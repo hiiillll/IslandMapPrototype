@@ -397,20 +397,16 @@ public sealed class EndlessModeController : MonoBehaviour
     private void DrawPauseMenu()
     {
         DrawScreenDim();
-        Rect panel = CenteredPanel(520f, 420f);
+        Rect panel = CenteredPanel(520f, 330f);
         GUI.Box(panel, GUIContent.none);
         GUI.Label(new Rect(panel.x + 30f, panel.y + 34f, panel.width - 60f, 64f), "游戏暂停", titleStyle);
-        if (GUI.Button(new Rect(panel.x + 95f, panel.y + 126f, panel.width - 190f, 58f), "继续", buttonStyle))
+        if (GUI.Button(new Rect(panel.x + 95f, panel.y + 126f, panel.width - 190f, 58f), "继续游戏", buttonStyle))
         {
             TogglePause();
         }
-        if (GUI.Button(new Rect(panel.x + 95f, panel.y + 210f, panel.width - 190f, 58f), "重新挑战", buttonStyle))
+        if (GUI.Button(new Rect(panel.x + 95f, panel.y + 210f, panel.width - 190f, 58f), "返回主页面", buttonStyle))
         {
-            GameModeSession.RetryCurrentMode();
-        }
-        if (GUI.Button(new Rect(panel.x + 95f, panel.y + 294f, panel.width - 190f, 58f), "返回模式选择", buttonStyle))
-        {
-            GameModeSession.ReturnToEndlessSelection();
+            GameModeSession.ReturnToMainMenu();
         }
     }
 

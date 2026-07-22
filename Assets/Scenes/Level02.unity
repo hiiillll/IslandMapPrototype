@@ -20,13 +20,13 @@ RenderSettings:
   m_FogDensity: 0.01
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.5, g: 0.72, b: 0.85, a: 1}
-  m_AmbientEquatorColor: {r: 0.34, g: 0.53, b: 0.58, a: 1}
-  m_AmbientGroundColor: {r: 0.15, g: 0.22, b: 0.25, a: 1}
+  m_AmbientSkyColor: {r: 0.48, g: 0.74, b: 0.96, a: 1}
+  m_AmbientEquatorColor: {r: 0.72, g: 0.86, b: 0.92, a: 1}
+  m_AmbientGroundColor: {r: 0.36, g: 0.42, b: 0.38, a: 1}
   m_AmbientIntensity: 1
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 03f2d732979c8164dbea53a1a675f824, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -276,8 +276,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startingLevel: 1
-  baseExperienceToLevel: 100
-  experienceGrowth: 1.25
+  baseExperienceToLevel: 80
+  experienceIncreasePerLevel: 20
 --- !u!114 &96857769
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -628,7 +628,7 @@ Camera:
   m_GameObject: {fileID: 710442798}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 2
+  m_ClearFlags: 1
   m_BackGroundColor: {r: 0.08, g: 0.45, b: 0.62, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2

@@ -5,6 +5,7 @@ public sealed class BoatEnemyChaser : MonoBehaviour
 {
     [SerializeField, Min(0f)] private float fallbackMoveSpeed = 30.5f;
     [SerializeField, Min(0f)] private float rotationSpeed = 5f;
+    [SerializeField, Range(0f, 1f)] private float healthPackDropChance = 0.1f;
 
     private Transform player;
     private Rigidbody body;
@@ -89,15 +90,15 @@ public sealed class BoatEnemyChaser : MonoBehaviour
         if (playerHealth != null)
         {
             playerHealth.TakeDamage(1);
-            Explode(true);
+            Explode();
             return;
         }
 
         BoatEnemyChaser otherEnemy = other.GetComponentInParent<BoatEnemyChaser>();
         if (otherEnemy != null && otherEnemy != this)
         {
-            otherEnemy.Explode(false);
-            Explode(false);
+            otherEnemy.Explode();
+            Explode();
         }
     }
 
@@ -112,7 +113,7 @@ public sealed class BoatEnemyChaser : MonoBehaviour
         Destroy(gameObject);
     }
 
-    private void Explode(bool playerCredit)
+    private void Explode()
     {
         if (destroyed)
         {
@@ -121,7 +122,12 @@ public sealed class BoatEnemyChaser : MonoBehaviour
 
         destroyed = true;
         EnemyExplosionEffect.Spawn(transform.position);
-        if (GameModeSession.IsEndlessSea && playerCredit && PlayerProgression.Instance != null)
+        if (Random.value <= healthPackDropChance)
+        {
+            HealthPickup.SpawnAt(transform.position);
+        }
+
+        if (PlayerProgression.Instance != null)
         {
             PlayerProgression.Instance.RegisterEnemyDestroyed();
         }
