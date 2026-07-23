@@ -8,10 +8,20 @@ public sealed class SurvivalGameController : MonoBehaviour
 
     private float elapsedTime;
     private bool hasWon;
+    private bool endlessMode;
 
-    public float DifficultyProgress => Mathf.Clamp01(elapsedTime / survivalDuration);
+    public float DifficultyProgress
+    {
+        get
+        {
+            float progress = Mathf.Clamp01(elapsedTime / survivalDuration);
+            return endlessMode ? Mathf.SmoothStep(0f, 1f, progress) : progress;
+        }
+    }
     public bool IsFinished => hasWon;
     public float RemainingTime => Mathf.Max(0f, survivalDuration - elapsedTime);
+    public float ElapsedTime => elapsedTime;
+    public bool IsEndless => endlessMode;
 
     public void Configure(
         float duration,
@@ -21,9 +31,20 @@ public sealed class SurvivalGameController : MonoBehaviour
         survivalDuration = Mathf.Max(1f, duration);
         completeWithDockObjective = useDockObjective;
         completeWithPlaneObjective = usePlaneObjective;
+        endlessMode = false;
         elapsedTime = 0f;
         hasWon = false;
         Time.timeScale = 1f;
+    }
+
+    public void ConfigureEndless(float difficultyDuration = 180f)
+    {
+        survivalDuration = Mathf.Max(1f, difficultyDuration);
+        completeWithDockObjective = false;
+        completeWithPlaneObjective = false;
+        endlessMode = true;
+        elapsedTime = 0f;
+        hasWon = false;
     }
 
     private void Awake()
@@ -35,6 +56,12 @@ public sealed class SurvivalGameController : MonoBehaviour
     {
         if (hasWon)
         {
+            return;
+        }
+
+        if (endlessMode)
+        {
+            elapsedTime += Time.deltaTime;
             return;
         }
 

@@ -123,6 +123,10 @@ public sealed class ArcadeGameHud : MonoBehaviour
             DrawExperienceBar(scale);
             DrawSkillCards(scale);
         }
+        if (isPaused && !GameModeSession.IsEndless)
+        {
+            DrawStoryPauseMenu(scale);
+        }
     }
 
     private void ApplySavedLayoutSettings()
@@ -181,9 +185,12 @@ public sealed class ArcadeGameHud : MonoBehaviour
             panelWidth,
             timerLayout.size.y * scale);
         GUI.DrawTexture(panel, timerFrameTexture, ScaleMode.StretchToFill, true);
-        int remainingSeconds = survivalController != null
-            ? Mathf.CeilToInt(survivalController.RemainingTime)
-            : 0;
+        bool endlessMode = GameModeSession.IsEndless && EndlessModeController.Instance != null;
+        int displaySeconds = endlessMode
+            ? Mathf.FloorToInt(EndlessModeController.Instance.ElapsedTime)
+            : survivalController != null
+                ? Mathf.CeilToInt(survivalController.RemainingTime)
+                : 0;
         GUIStyle timerTitleStyle = new GUIStyle(italicHeadingStyle)
         {
             fontSize = Mathf.RoundToInt(20f * scale)
@@ -198,7 +205,7 @@ public sealed class ArcadeGameHud : MonoBehaviour
             timerTitleStyle);
         GUI.Label(
             new Rect(panel.x, panel.y + 62f * scale, panel.width, 52f * scale),
-            $"{remainingSeconds / 60:00}:{remainingSeconds % 60:00}",
+            $"{displaySeconds / 60:00}:{displaySeconds % 60:00}",
             timerValueStyle);
     }
 
@@ -234,8 +241,61 @@ public sealed class ArcadeGameHud : MonoBehaviour
         GUI.DrawTexture(pauseRect, pauseButtonTexture, ScaleMode.StretchToFill, true);
         if (GUI.Button(pauseRect, GUIContent.none, GUIStyle.none))
         {
+            if (GameModeSession.IsEndless && EndlessModeController.Instance != null)
+            {
+                EndlessModeController.Instance.TogglePause();
+                return;
+            }
             isPaused = !isPaused;
             Time.timeScale = isPaused ? 0f : 1f;
+            AudioListener.pause = isPaused;
+        }
+    }
+
+    private void DrawStoryPauseMenu(float scale)
+    {
+        Color previousColor = GUI.color;
+        GUI.color = new Color(0f, 0f, 0f, 0.82f);
+        GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), solidTexture, ScaleMode.StretchToFill);
+        GUI.color = previousColor;
+
+        float panelWidth = Mathf.Min(Screen.width - 40f, 520f * scale);
+        float panelHeight = Mathf.Min(Screen.height - 40f, 330f * scale);
+        Rect panel = new Rect(
+            (Screen.width - panelWidth) * 0.5f,
+            (Screen.height - panelHeight) * 0.5f,
+            panelWidth,
+            panelHeight);
+        GUI.Box(panel, GUIContent.none);
+
+        GUIStyle pauseTitleStyle = new GUIStyle(headingStyle)
+        {
+            fontSize = Mathf.RoundToInt(34f * scale)
+        };
+        GUIStyle pauseMenuButtonStyle = new GUIStyle(GUI.skin.button)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = Mathf.RoundToInt(22f * scale),
+            fontStyle = FontStyle.Bold
+        };
+        GUI.Label(new Rect(panel.x + 30f, panel.y + 28f * scale, panel.width - 60f, 55f * scale),
+            "游戏暂停", pauseTitleStyle);
+
+        float buttonWidth = panel.width - 170f * scale;
+        float buttonHeight = 58f * scale;
+        float buttonX = panel.x + (panel.width - buttonWidth) * 0.5f;
+        if (GUI.Button(new Rect(buttonX, panel.y + 112f * scale, buttonWidth, buttonHeight),
+            "继续游戏", pauseMenuButtonStyle))
+        {
+            isPaused = false;
+            Time.timeScale = 1f;
+            AudioListener.pause = false;
+        }
+        if (GUI.Button(new Rect(buttonX, panel.y + 200f * scale, buttonWidth, buttonHeight),
+            "返回主页面", pauseMenuButtonStyle))
+        {
+            isPaused = false;
+            GameModeSession.ReturnToMainMenu();
         }
     }
 

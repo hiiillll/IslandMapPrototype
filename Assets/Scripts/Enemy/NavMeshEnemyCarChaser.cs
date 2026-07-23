@@ -8,7 +8,14 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
     [Header("Navigation Driving")]
     [SerializeField] private float fallbackPlayerSpeed = 24f;
     [SerializeField] private float acceleration = 60f;
-    [SerializeField] private float turnSpeedDegrees = 540f;
+    [SerializeField] private float turnSpeedDegrees = 400f;
+    [SerializeField] private float turnAccelerationDegrees = 1200f;
+    [SerializeField] private float directionResponse = 12f;
+    [SerializeField] private float obstacleTurnSpeedDegrees = 520f;
+    [SerializeField] private float obstacleTurnAccelerationDegrees = 1800f;
+    [SerializeField] private float obstacleDirectionResponse = 18f;
+    [SerializeField] private float obstacleCheckDistance = 8f;
+    [SerializeField] private float obstacleCheckRadius = 0.7f;
     [SerializeField] private float lookAheadDistance = 9f;
     [SerializeField] private float minimumVisibleLookAhead = 2.5f;
     [SerializeField] private float visibilityStep = 1.5f;
@@ -31,6 +38,7 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
     private NavMeshPath navigationPath;
     private NavMeshQueryFilter navigationFilter;
     private Vector3[] pathCorners = Array.Empty<Vector3>();
+    private readonly RaycastHit[] obstacleHits = new RaycastHit[8];
     private int cornerIndex;
     private float speedRatio = 0.95f;
     private float nextPathRefreshTime;
@@ -39,6 +47,9 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
     private float slowMultiplier = 1f;
     private float slowUntil;
     private float knockbackUntil;
+    private float playerCreditUntil;
+    private float currentTurnSpeedDegrees;
+    private Vector3 smoothedDriveDirection;
     private bool exploded;
 
     public void Configure(Transform playerTarget, float newSpeedRatio)
@@ -69,6 +80,7 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
             ? Mathf.Min(slowMultiplier, clampedMultiplier)
             : clampedMultiplier;
         slowUntil = Mathf.Max(slowUntil, Time.time + Mathf.Max(0f, duration));
+        MarkPlayerCredit(duration + 2f);
     }
 
     public void ApplyKnockback(Vector3 direction, float force, float duration = 0.55f)
@@ -87,8 +99,19 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
         body.WakeUp();
         body.AddForce(direction.normalized * Mathf.Max(0f, force), ForceMode.VelocityChange);
         knockbackUntil = Mathf.Max(knockbackUntil, Time.time + Mathf.Max(0f, duration));
+        MarkPlayerCredit(duration + 2f);
         forcePathRefresh = true;
         nextPathRefreshTime = Mathf.Max(nextPathRefreshTime, knockbackUntil);
+    }
+
+    public void MarkPlayerCredit(float duration = 2f)
+    {
+        if (!GameModeSession.IsEndlessLand || exploded)
+        {
+            return;
+        }
+
+        playerCreditUntil = Mathf.Max(playerCreditUntil, Time.time + Mathf.Max(0f, duration));
     }
 
     private void Awake()
@@ -101,6 +124,7 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
         body.drag = 0f;
         body.angularDrag = 0f;
         body.maxAngularVelocity = 12f;
+        smoothedDriveDirection = body.rotation * Vector3.forward;
         navigationPath = new NavMeshPath();
         navigationFilter = new NavMeshQueryFilter
         {
@@ -167,11 +191,28 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
         }
 
         Vector3 driveDirection = GetDriveDirection();
-        Quaternion desiredRotation = Quaternion.LookRotation(driveDirection, Vector3.up);
+        bool obstacleAhead = IsStaticObstacleAhead();
+        float activeDirectionResponse = obstacleAhead ? obstacleDirectionResponse : directionResponse;
+        float activeTurnSpeed = obstacleAhead ? obstacleTurnSpeedDegrees : turnSpeedDegrees;
+        float activeTurnAcceleration = obstacleAhead
+            ? obstacleTurnAccelerationDegrees
+            : turnAccelerationDegrees;
+        float directionBlend = 1f - Mathf.Exp(-activeDirectionResponse * Time.fixedDeltaTime);
+        smoothedDriveDirection = Vector3.Slerp(
+            smoothedDriveDirection,
+            driveDirection,
+            directionBlend).normalized;
+        Quaternion desiredRotation = Quaternion.LookRotation(smoothedDriveDirection, Vector3.up);
+        float remainingAngle = Quaternion.Angle(body.rotation, desiredRotation);
+        float targetTurnSpeed = Mathf.Min(activeTurnSpeed, remainingAngle * activeDirectionResponse);
+        currentTurnSpeedDegrees = Mathf.MoveTowards(
+            currentTurnSpeedDegrees,
+            targetTurnSpeed,
+            activeTurnAcceleration * Time.fixedDeltaTime);
         Quaternion nextRotation = Quaternion.RotateTowards(
             body.rotation,
             desiredRotation,
-            turnSpeedDegrees * Time.fixedDeltaTime);
+            currentTurnSpeedDegrees * Time.fixedDeltaTime);
         body.MoveRotation(nextRotation);
         body.angularVelocity = Vector3.zero;
 
@@ -373,13 +414,13 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
         Collider other = collision.collider;
         if (other.GetComponentInParent<SimplePlayerHealth>() != null)
         {
-            Explode(true);
+            Explode(true, true);
             return;
         }
 
         if (other.GetComponentInParent<NavMeshEnemyCarChaser>() != null || IsStaticObstacle(other))
         {
-            Explode();
+            Explode(false);
         }
     }
 
@@ -396,7 +437,31 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
         return !isDrivingSurface && !objectName.StartsWith("SPAWN_");
     }
 
-    public void Explode(bool shakeCamera = false)
+    private bool IsStaticObstacleAhead()
+    {
+        Vector3 forward = body.rotation * Vector3.forward;
+        Vector3 origin = body.position + Vector3.up * 0.6f;
+        int hitCount = Physics.SphereCastNonAlloc(
+            origin,
+            obstacleCheckRadius,
+            forward,
+            obstacleHits,
+            obstacleCheckDistance,
+            Physics.DefaultRaycastLayers,
+            QueryTriggerInteraction.Ignore);
+        for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
+        {
+            Collider hitCollider = obstacleHits[hitIndex].collider;
+            if (hitCollider != null && !hitCollider.transform.IsChildOf(transform)
+                && IsStaticObstacle(hitCollider))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void Explode(bool playerCredit, bool shakeCamera = false)
     {
         if (exploded)
         {
@@ -424,14 +489,17 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
             Debug.LogException(exception, this);
         }
 
+        bool creditedToPlayer = playerCredit
+            || (GameModeSession.IsEndlessLand && Time.time <= playerCreditUntil);
+        bool grantsPlayerRewards = !GameModeSession.IsEndless || creditedToPlayer;
         PlayerProgression progression = PlayerProgression.Instance;
-        if (progression != null)
+        if (grantsPlayerRewards && progression != null)
         {
             progression.RegisterEnemyDestroyed();
         }
 
         GearPickup.SpawnAt(transform.position);
-        if (UnityEngine.Random.value <= healthPackDropChance)
+        if (grantsPlayerRewards && UnityEngine.Random.value <= healthPackDropChance)
         {
             HealthPickup.SpawnAt(transform.position);
         }
@@ -448,7 +516,7 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
             NavMeshEnemyCarChaser enemy = hit.GetComponentInParent<NavMeshEnemyCarChaser>();
             if (enemy != null && enemy != this)
             {
-                enemy.Explode();
+                enemy.Explode(creditedToPlayer);
             }
         }
 

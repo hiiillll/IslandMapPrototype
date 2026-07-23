@@ -3,6 +3,8 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class SimpleAutoDriveController : MonoBehaviour
 {
+    private const float LandPhysicsTimestep = 1f / 60f;
+
     [SerializeField] private float forwardSpeed = 24f;
     [SerializeField] private float turnSpeed = 3.6f;
     [SerializeField] private float inputSmoothing = 24f;
@@ -15,12 +17,15 @@ public class SimpleAutoDriveController : MonoBehaviour
     private float smoothedTurnInput;
     private float currentTurnRate;
     private PhysicMaterial frictionlessMaterial;
+    private float previousFixedDeltaTime;
 
     public float ForwardSpeed => forwardSpeed;
     public float SteeringAmount => Mathf.Abs(smoothedTurnInput);
 
     private void Awake()
     {
+        previousFixedDeltaTime = Time.fixedDeltaTime;
+        Time.fixedDeltaTime = LandPhysicsTimestep;
         body = GetComponent<Rigidbody>();
         body.useGravity = true;
         body.interpolation = RigidbodyInterpolation.Interpolate;
@@ -43,6 +48,10 @@ public class SimpleAutoDriveController : MonoBehaviour
             health = gameObject.AddComponent<SimplePlayerHealth>();
         }
         health.ConfigureFallDefeat(true, -10f);
+        if (GetComponent<VehicleGarageSystem>() == null)
+        {
+            gameObject.AddComponent<VehicleGarageSystem>();
+        }
         if (GetComponent<PlayerSkillSystem>() == null)
         {
             gameObject.AddComponent<PlayerSkillSystem>();
@@ -66,6 +75,14 @@ public class SimpleAutoDriveController : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
+            if (VehicleGarageSystem.Instance != null && VehicleGarageSystem.Instance.IsOpen)
+            {
+                return;
+            }
+            if (GameModeSession.IsEndless)
+            {
+                return;
+            }
             QuitGame();
             return;
         }
@@ -131,6 +148,7 @@ public class SimpleAutoDriveController : MonoBehaviour
 
     private void OnDestroy()
     {
+        Time.fixedDeltaTime = previousFixedDeltaTime;
         if (frictionlessMaterial != null)
         {
             Destroy(frictionlessMaterial);

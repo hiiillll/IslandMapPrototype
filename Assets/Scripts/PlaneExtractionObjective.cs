@@ -4,6 +4,8 @@ using UnityEngine.Video;
 [RequireComponent(typeof(SphereCollider))]
 public sealed class PlaneExtractionObjective : MonoBehaviour
 {
+    private const float OceanHalfSize = 2000f;
+
     [Header("Plane Objective")]
     [SerializeField] private string planeResourcePath = "Level02/PlaneObjective/a20e928798d90a32b7b6c4b41a481066";
     [SerializeField, Min(0f)] private float spawnDistance = 42f;
@@ -57,7 +59,12 @@ public sealed class PlaneExtractionObjective : MonoBehaviour
         }
 
         Vector3 direction = new Vector3(direction2D.x, 0f, direction2D.y);
-        transform.position = player.position + direction * spawnDistance + Vector3.up * altitude;
+        Vector3 objectivePosition = player.position + direction * spawnDistance;
+        float safeCoordinate = OceanHalfSize - interactionRadius - planeWorldSize * 0.5f - 8f;
+        objectivePosition.x = Mathf.Clamp(objectivePosition.x, -safeCoordinate, safeCoordinate);
+        objectivePosition.z = Mathf.Clamp(objectivePosition.z, -safeCoordinate, safeCoordinate);
+        objectivePosition.y = player.position.y + altitude;
+        transform.position = objectivePosition;
         SpawnPlane(direction);
         extractionZone.radius = interactionRadius;
         extractionZone.enabled = true;

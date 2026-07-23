@@ -5,6 +5,7 @@ public sealed class BoatEnemyChaser : MonoBehaviour
 {
     [SerializeField, Min(0f)] private float fallbackMoveSpeed = 30.5f;
     [SerializeField, Min(0f)] private float rotationSpeed = 5f;
+    [SerializeField, Range(0f, 1f)] private float healthPackDropChance = 0.1f;
 
     private Transform player;
     private Rigidbody body;
@@ -121,6 +122,15 @@ public sealed class BoatEnemyChaser : MonoBehaviour
 
         destroyed = true;
         EnemyExplosionEffect.Spawn(transform.position);
+        if (Random.value <= healthPackDropChance)
+        {
+            HealthPickup.SpawnAt(transform.position);
+        }
+
+        if (PlayerProgression.Instance != null)
+        {
+            PlayerProgression.Instance.RegisterEnemyDestroyed();
+        }
 
         foreach (Collider enemyCollider in GetComponentsInChildren<Collider>())
         {

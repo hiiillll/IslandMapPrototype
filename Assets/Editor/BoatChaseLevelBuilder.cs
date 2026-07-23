@@ -11,6 +11,7 @@ public static class BoatChaseLevelBuilder
     private const string LevelTwoScenePath = "Assets/Scenes/Level02.unity";
     private const string OceanTexturePath = "Assets/Art/Textures/Ocean_BoatChase_Tile.png";
     private const string OceanMaterialPath = "Assets/Art/Materials/Ocean_BoatChase.mat";
+    private const string SkyMaterialPath = "Assets/Art/Sky/MAT_Sky_TropicalNoon.mat";
     private const string BoatModelPath = "Assets/Models/Imported/Model_16/485ec29b8ae85aa1f00db80da3760cf6.obj";
     private const string EnemyBoatModelPath = "Assets/Models/Imported/Model_17/25318314cfea921a21d08ea9355017fe.obj";
     private const float OceanSize = 4000f;
@@ -253,7 +254,7 @@ public static class BoatChaseLevelBuilder
         cameraObject.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 
         Camera cameraComponent = cameraObject.AddComponent<Camera>();
-        cameraComponent.clearFlags = CameraClearFlags.SolidColor;
+        cameraComponent.clearFlags = CameraClearFlags.Skybox;
         cameraComponent.backgroundColor = new Color(0.08f, 0.45f, 0.62f);
         BoatChaseTopDownCamera cameraFollow = cameraObject.AddComponent<BoatChaseTopDownCamera>();
         cameraFollow.Configure(playerBoat, 62f, 36f);
@@ -325,10 +326,18 @@ public static class BoatChaseLevelBuilder
 
     private static void ConfigureRenderSettings()
     {
+        Material skyMaterial = AssetDatabase.LoadAssetAtPath<Material>(SkyMaterialPath);
+        if (skyMaterial == null)
+        {
+            throw new System.InvalidOperationException($"Skybox material is missing at {SkyMaterialPath}.");
+        }
+
+        RenderSettings.skybox = skyMaterial;
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.5f, 0.72f, 0.85f);
-        RenderSettings.ambientEquatorColor = new Color(0.34f, 0.53f, 0.58f);
-        RenderSettings.ambientGroundColor = new Color(0.15f, 0.22f, 0.25f);
+        RenderSettings.ambientSkyColor = new Color(0.48f, 0.74f, 0.96f);
+        RenderSettings.ambientEquatorColor = new Color(0.72f, 0.86f, 0.92f);
+        RenderSettings.ambientGroundColor = new Color(0.36f, 0.42f, 0.38f);
+        DynamicGI.UpdateEnvironment();
     }
 
     private static void ConfigureBuildScenes()

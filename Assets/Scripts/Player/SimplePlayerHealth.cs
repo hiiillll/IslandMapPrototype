@@ -3,8 +3,10 @@ using UnityEngine.SceneManagement;
 
 public class SimplePlayerHealth : MonoBehaviour
 {
+    private const float DamageInvincibilityDuration = 1f;
+
     [SerializeField] private int maxHealth = 3;
-    [SerializeField] private float damageCooldown = 0.25f;
+    [SerializeField] private float damageCooldown = DamageInvincibilityDuration;
     [SerializeField] private bool defeatBelowWorldHeight;
     [SerializeField] private float defeatHeight = -10f;
 
@@ -17,6 +19,7 @@ public class SimplePlayerHealth : MonoBehaviour
 
     private void Awake()
     {
+        damageCooldown = DamageInvincibilityDuration;
         currentHealth = maxHealth;
     }
 
@@ -68,6 +71,17 @@ public class SimplePlayerHealth : MonoBehaviour
         currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
     }
 
+    public void IncreaseMaxHealth(int amount, int healAmount = 1)
+    {
+        if (amount <= 0 || currentHealth <= 0)
+        {
+            return;
+        }
+
+        maxHealth += amount;
+        currentHealth = Mathf.Min(maxHealth, currentHealth + Mathf.Max(0, healAmount));
+    }
+
     private void OnCollisionEnter(Collision collision)
     {
         NavMeshEnemyCarChaser enemy = collision.collider.GetComponentInParent<NavMeshEnemyCarChaser>();
@@ -77,7 +91,7 @@ public class SimplePlayerHealth : MonoBehaviour
         }
 
         TakeDamage(1);
-        enemy.Explode(true);
+        enemy.Explode(true, true);
     }
 
     private void TriggerDamageShake()
@@ -132,7 +146,7 @@ public class SimplePlayerHealth : MonoBehaviour
 
     private void OnGUI()
     {
-        if (currentHealth > 0)
+        if (currentHealth > 0 || GameModeSession.IsEndless)
         {
             return;
         }

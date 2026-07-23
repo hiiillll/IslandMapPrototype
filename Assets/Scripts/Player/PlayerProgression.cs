@@ -2,9 +2,12 @@ using UnityEngine;
 
 public sealed class PlayerProgression : MonoBehaviour
 {
+    private const int FirstExperienceRequirement = 80;
+    private const int ExperienceIncreasePerLevel = 20;
+
     [SerializeField] private int startingLevel = 1;
-    [SerializeField] private int baseExperienceToLevel = 100;
-    [SerializeField] private float experienceGrowth = 1.25f;
+    [SerializeField] private int baseExperienceToLevel = FirstExperienceRequirement;
+    [SerializeField] private int experienceIncreasePerLevel = ExperienceIncreasePerLevel;
 
     private int level;
     private int currentExperience;
@@ -25,6 +28,8 @@ public sealed class PlayerProgression : MonoBehaviour
 
     private void Awake()
     {
+        baseExperienceToLevel = FirstExperienceRequirement;
+        experienceIncreasePerLevel = ExperienceIncreasePerLevel;
         Instance = this;
         ResetForNewLevel();
     }
@@ -67,9 +72,8 @@ public sealed class PlayerProgression : MonoBehaviour
 
     private int CalculateExperienceRequirement(int targetLevel)
     {
-        float scaledRequirement = baseExperienceToLevel
-            * Mathf.Pow(Mathf.Max(1f, experienceGrowth), Mathf.Max(0, targetLevel - 1));
-        return Mathf.Max(1, Mathf.RoundToInt(scaledRequirement));
+        int levelOffset = Mathf.Max(0, targetLevel - 1);
+        return Mathf.Max(1, baseExperienceToLevel + experienceIncreasePerLevel * levelOffset);
     }
 
     private void OnDestroy()
