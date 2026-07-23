@@ -16973,6 +16973,23 @@ MonoBehaviour:
   acceleration: 8
   angularAcceleration: 12
   lateralGrip: 10
+  driftKey: 32
+  minimumDriftSpeedRatio: 0.3
+  maximumDriftAngle: 40
+  driftAngleLimitResponse: 8
+  driftGripMultiplier: 0.35
+  driftTurnMultiplier: 1.28
+  driftSpeedLossPerSecond: 0.045
+  driftVelocitySteerRate: 85
+  maximumControlledSlipAngle: 35
+  counterSteerSlipAngle: 10
+  driftSlipAngleResponse: 90
+  gripRecoveryTime: 0.4
+  counterSteerGripMultiplier: 1.5
+  groundCheckDistance: 0.45
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!54 &2131322937
 Rigidbody:
   m_ObjectHideFlags: 0

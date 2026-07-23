@@ -645,7 +645,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
                 panel.y + 132f,
                 choiceWidth,
                 132f);
-            string choiceText = $"{GetSkillName(skill)}\\n\\n{GetUpgradeSummary(skill)}";
+            string choiceText = $"{GetSkillName(skill)}\n\n{GetUpgradeSummary(skill)}";
             if (GUI.Button(choiceRect, choiceText, choiceStyle))
             {
                 UpgradeSkill(skill);
@@ -658,15 +658,15 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         switch (skill)
         {
             case SkillId.HornBlast:
-                return "冷却 4.5秒 → 3秒\\n范围 12 → 16，击退与脉冲增强";
+                return "冷却 4.5秒 → 3秒\n范围 12 → 16，击退与脉冲增强";
             case SkillId.GravityTrap:
-                return "冷却 11秒 → 8秒\\n范围、持续与拉力恢复";
+                return "冷却 11秒 → 8秒\n范围、持续与拉力恢复";
             case SkillId.Blink:
-                return "冷却 7秒 → 5秒\\n位移距离与出场速度恢复";
+                return "冷却 7秒 → 5秒\n位移距离与出场速度恢复";
             case SkillId.FlameTrail:
-                return "冷却 12秒 → 9秒\\n喷火时间、宽度与残留恢复";
+                return "冷却 12秒 → 9秒\n喷火时间、宽度与残留恢复";
             case SkillId.TankShells:
-                return "冷却 10秒 → 7秒\\n射程、速度与爆炸范围恢复";
+                return "冷却 10秒 → 7秒\n射程、速度与爆炸范围恢复";
             default:
                 return "恢复完整技能强度";
         }

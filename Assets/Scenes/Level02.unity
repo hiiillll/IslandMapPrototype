@@ -186,7 +186,7 @@ MonoBehaviour:
   playerSpeedIncreasePerSecond: 0.12
   maxPlayerSpeed: 0
   difficultyRampDuration: 50
-  enemyChaseSpeedAdvantage: 0.5
+  enemyChaseSpeedAdvantage: 2.1
   initialEnemySpawnInterval: 2.5
   enemySpawnIntervalShortenPerSecond: 0.04
   minimumEnemySpawnInterval: 0.55
@@ -814,9 +814,13 @@ MonoBehaviour:
   difficultyController: {fileID: 62930357}
   openingSpawnDelay: 3
   offscreenSpawnDistance: 60
+  minimumSpawnDistance: 75
   spawnSearchAttempts: 30
   spawnCollisionGrace: 0.15
   maximumActiveEnemies: 12
+  forwardSpawnExclusionHalfAngle: 20
+  enemyMaximumTurnRate: 145
+  enemyTurnAcceleration: 420
 --- !u!1 &1638315203
 GameObject:
   m_ObjectHideFlags: 0

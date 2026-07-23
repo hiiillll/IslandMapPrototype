@@ -13,9 +13,15 @@ public sealed class BoatEnemySpawner : MonoBehaviour
     [Header("Off-screen Spawning")]
     [SerializeField, Min(0f)] private float openingSpawnDelay = 3f;
     [SerializeField, Min(0f)] private float offscreenSpawnDistance = 60f;
+    [SerializeField, Min(0f)] private float minimumSpawnDistance = 75f;
     [SerializeField, Min(1)] private int spawnSearchAttempts = 30;
     [SerializeField, Min(0f)] private float spawnCollisionGrace = 0.15f;
     [SerializeField, Min(1)] private int maximumActiveEnemies = 12;
+    [SerializeField, Range(0f, 180f)] private float forwardSpawnExclusionHalfAngle = 20f;
+
+    [Header("Story Enemy Tracking")]
+    [SerializeField, Min(0f)] private float enemyMaximumTurnRate = 145f;
+    [SerializeField, Min(0f)] private float enemyTurnAcceleration = 420f;
 
     private float spawnTimer;
     private bool spawningEnabled = true;
@@ -130,7 +136,11 @@ public sealed class BoatEnemySpawner : MonoBehaviour
         enemyBody.mass = 800f;
 
         BoatEnemyChaser chaser = enemy.AddComponent<BoatEnemyChaser>();
-        chaser.Configure(player, difficultyController);
+        chaser.Configure(
+            player,
+            difficultyController,
+            enemyMaximumTurnRate,
+            enemyTurnAcceleration);
         enemy.AddComponent<BoatWakeTrail>();
         activeEnemies.Add(enemy);
         StartCoroutine(TemporarilyDisableCollision(enemyCollider));
@@ -147,30 +157,120 @@ public sealed class BoatEnemySpawner : MonoBehaviour
         float bottom = cameraPosition.z - cameraHeight * 0.5f;
         float top = cameraPosition.z + cameraHeight * 0.5f;
         float spawnHeight = player.position.y;
+        float exclusionHalfAngle = Mathf.Clamp(forwardSpawnExclusionHalfAngle, 0f, 180f);
+        float allowedArc = 360f - exclusionHalfAngle * 2f;
+        Vector3 playerForward = Vector3.ProjectOnPlane(player.forward, Vector3.up).normalized;
+        if (allowedArc <= 0f || playerForward.sqrMagnitude < 0.001f)
+        {
+            spawnPosition = default;
+            return false;
+        }
 
         for (int attempt = 0; attempt < spawnSearchAttempts; attempt++)
         {
-            float randomX = Random.Range(left - offscreenSpawnDistance, right + offscreenSpawnDistance);
-            float randomZ = Random.Range(bottom - offscreenSpawnDistance, top + offscreenSpawnDistance);
-            bool insideCamera = randomX >= left && randomX <= right
-                && randomZ >= bottom && randomZ <= top;
-            if (insideCamera)
+            float yawOffset = exclusionHalfAngle + Random.value * allowedArc;
+            Vector3 spawnDirection = Quaternion.AngleAxis(yawOffset, Vector3.up) * playerForward;
+            float distanceToCameraEdge = GetDistanceToCameraEdge(
+                player.position,
+                spawnDirection,
+                left,
+                right,
+                bottom,
+                top);
+            float extraDistance = Random.Range(1f, Mathf.Max(1f, offscreenSpawnDistance));
+            float spawnDistance = Mathf.Max(
+                minimumSpawnDistance,
+                distanceToCameraEdge + extraDistance);
+            Vector3 candidatePosition = player.position
+                + spawnDirection * spawnDistance;
+            candidatePosition.y = spawnHeight;
+
+            if (GameModeSession.IsEndlessSea)
+            {
+                candidatePosition.x = Mathf.Clamp(candidatePosition.x, -1980f, 1980f);
+                candidatePosition.z = Mathf.Clamp(candidatePosition.z, -1980f, 1980f);
+            }
+
+            bool insideCamera = candidatePosition.x >= left && candidatePosition.x <= right
+                && candidatePosition.z >= bottom && candidatePosition.z <= top;
+            Vector3 finalSpawnOffset = Vector3.ProjectOnPlane(
+                candidatePosition - player.position,
+                Vector3.up);
+            bool isTooClose = finalSpawnOffset.sqrMagnitude
+                < minimumSpawnDistance * minimumSpawnDistance;
+            if (insideCamera || isTooClose || IsInsideForwardSpawnExclusion(candidatePosition))
             {
                 continue;
             }
 
-            if (GameModeSession.IsEndlessSea)
-            {
-                randomX = Mathf.Clamp(randomX, -1980f, 1980f);
-                randomZ = Mathf.Clamp(randomZ, -1980f, 1980f);
-            }
-
-            spawnPosition = new Vector3(randomX, spawnHeight, randomZ);
+            spawnPosition = candidatePosition;
             return true;
         }
 
         spawnPosition = default;
         return false;
+    }
+
+    private static float GetDistanceToCameraEdge(
+        Vector3 origin,
+        Vector3 direction,
+        float left,
+        float right,
+        float bottom,
+        float top)
+    {
+        bool originInsideCamera = origin.x >= left && origin.x <= right
+            && origin.z >= bottom && origin.z <= top;
+        if (!originInsideCamera)
+        {
+            return 0f;
+        }
+
+        float distanceToVerticalEdge = float.PositiveInfinity;
+        if (direction.x > 0.001f)
+        {
+            distanceToVerticalEdge = (right - origin.x) / direction.x;
+        }
+        else if (direction.x < -0.001f)
+        {
+            distanceToVerticalEdge = (left - origin.x) / direction.x;
+        }
+
+        float distanceToHorizontalEdge = float.PositiveInfinity;
+        if (direction.z > 0.001f)
+        {
+            distanceToHorizontalEdge = (top - origin.z) / direction.z;
+        }
+        else if (direction.z < -0.001f)
+        {
+            distanceToHorizontalEdge = (bottom - origin.z) / direction.z;
+        }
+
+        return Mathf.Max(0f, Mathf.Min(distanceToVerticalEdge, distanceToHorizontalEdge));
+    }
+
+    private bool IsInsideForwardSpawnExclusion(Vector3 candidatePosition)
+    {
+        float exclusionHalfAngle = Mathf.Clamp(forwardSpawnExclusionHalfAngle, 0f, 180f);
+        if (exclusionHalfAngle <= 0f || player == null)
+        {
+            return false;
+        }
+
+        Vector3 playerForward = Vector3.ProjectOnPlane(player.forward, Vector3.up);
+        Vector3 directionToCandidate = Vector3.ProjectOnPlane(
+            candidatePosition - player.position,
+            Vector3.up);
+        if (directionToCandidate.sqrMagnitude < 0.001f)
+        {
+            return true;
+        }
+        if (playerForward.sqrMagnitude < 0.001f)
+        {
+            return false;
+        }
+
+        return Vector3.Angle(playerForward, directionToCandidate) <= exclusionHalfAngle;
     }
 
     private IEnumerator TemporarilyDisableCollision(Collider enemyCollider)
