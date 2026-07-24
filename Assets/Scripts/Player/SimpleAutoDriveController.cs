@@ -12,6 +12,11 @@ public class SimpleAutoDriveController : MonoBehaviour
     [SerializeField] private float angularAcceleration = 14f;
     [SerializeField] private float lateralGrip = 6f;
 
+    [Header("Surface Handling")]
+    [SerializeField, Range(0.05f, 1f)] private float beachLateralGripMultiplier = 0.22f;
+    [SerializeField, Range(0.05f, 1f)] private float beachAccelerationMultiplier = 0.5f;
+    [SerializeField, Min(0f)] private float surfaceGripResponse = 5f;
+
     [Header("Arcade Handbrake Drift")]
     [SerializeField] private KeyCode driftKey = KeyCode.Space;
     [SerializeField, Range(0f, 1f)] private float minimumDriftSpeedRatio = 0.3f;
@@ -41,6 +46,9 @@ public class SimpleAutoDriveController : MonoBehaviour
     private float gripRecoveryProgress = 1f;
     private float currentGripMultiplier = 1f;
     private float currentDriftAngle;
+    private float currentSurfaceGripMultiplier = 1f;
+    private float currentSurfaceAccelerationMultiplier = 1f;
+    private bool isOnBeach;
     private PhysicMaterial frictionlessMaterial;
     private float previousFixedDeltaTime;
     private Collider[] vehicleColliders;
@@ -50,6 +58,7 @@ public class SimpleAutoDriveController : MonoBehaviour
     public float SteeringAmount => Mathf.Abs(smoothedTurnInput);
     public bool IsDrifting => isDrifting;
     public bool IsGrounded => isGrounded;
+    public bool IsOnBeach => isOnBeach;
     public float CurrentDriftAngle => currentDriftAngle;
 
     private void Awake()
@@ -141,7 +150,9 @@ public class SimpleAutoDriveController : MonoBehaviour
     {
         body.WakeUp();
         Vector3 planarVelocity = new Vector3(body.velocity.x, 0f, body.velocity.z);
-        isGrounded = CheckGrounded();
+        isGrounded = CheckGrounded(out Collider groundCollider);
+        isOnBeach = isGrounded && IsBeachSurface(groundCollider);
+        UpdateSurfaceHandling();
         UpdateDriftState(planarVelocity.magnitude);
 
         float turnMultiplier = isDrifting ? driftTurnMultiplier : 1f;
@@ -176,7 +187,10 @@ public class SimpleAutoDriveController : MonoBehaviour
             planarVelocity = Vector3.Lerp(
                 planarVelocity,
                 targetVelocity,
-                acceleration * currentGripMultiplier * Time.fixedDeltaTime);
+                acceleration
+                    * currentGripMultiplier
+                    * currentSurfaceAccelerationMultiplier
+                    * Time.fixedDeltaTime);
         }
 
         Vector3 gripRight = isDrifting ? nextRight : currentRight;
@@ -185,6 +199,7 @@ public class SimpleAutoDriveController : MonoBehaviour
             * lateralSpeed
             * lateralGrip
             * currentGripMultiplier
+            * currentSurfaceGripMultiplier
             * Time.fixedDeltaTime;
         if (isDrifting)
         {
@@ -304,8 +319,41 @@ public class SimpleAutoDriveController : MonoBehaviour
             && Mathf.Sign(smoothedTurnInput) != driftDirection;
     }
 
-    private bool CheckGrounded()
+    private void UpdateSurfaceHandling()
     {
+        float targetGrip = isOnBeach ? beachLateralGripMultiplier : 1f;
+        float targetAcceleration = isOnBeach ? beachAccelerationMultiplier : 1f;
+        float maximumChange = surfaceGripResponse * Time.fixedDeltaTime;
+        currentSurfaceGripMultiplier = Mathf.MoveTowards(
+            currentSurfaceGripMultiplier,
+            targetGrip,
+            maximumChange);
+        currentSurfaceAccelerationMultiplier = Mathf.MoveTowards(
+            currentSurfaceAccelerationMultiplier,
+            targetAcceleration,
+            maximumChange);
+    }
+
+    private static bool IsBeachSurface(Collider groundCollider)
+    {
+        if (groundCollider == null)
+        {
+            return false;
+        }
+
+        if (groundCollider.name.IndexOf("Beach", System.StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return true;
+        }
+
+        PhysicMaterial surfaceMaterial = groundCollider.sharedMaterial;
+        return surfaceMaterial != null
+            && surfaceMaterial.name.IndexOf("Beach", System.StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private bool CheckGrounded(out Collider groundCollider)
+    {
+        groundCollider = null;
         if (vehicleColliders == null || vehicleColliders.Length == 0)
         {
             return false;
@@ -343,18 +391,21 @@ public class SimpleAutoDriveController : MonoBehaviour
             rayDistance,
             groundLayers,
             QueryTriggerInteraction.Ignore);
+        float closestDistance = float.PositiveInfinity;
         for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
         {
             RaycastHit hit = groundHits[hitIndex];
             if (hit.collider != null
                 && !hit.collider.transform.IsChildOf(transform)
-                && Vector3.Dot(hit.normal, Vector3.up) >= 0.5f)
+                && Vector3.Dot(hit.normal, Vector3.up) >= 0.5f
+                && hit.distance < closestDistance)
             {
-                return true;
+                closestDistance = hit.distance;
+                groundCollider = hit.collider;
             }
         }
 
-        return false;
+        return groundCollider != null;
     }
 
     private void ConfigureFrictionlessColliders()
