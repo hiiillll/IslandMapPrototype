@@ -4,6 +4,10 @@ using UnityEngine.AI;
 
 public class WarshipEnemySpawner : MonoBehaviour
 {
+    [Header("Story Mode")]
+    [SerializeField, Min(1f)] private float storySurvivalDuration = 120f;
+    [SerializeField, Range(0f, 1f)] private float storyStartingDifficultyProgress = 1f / 3f;
+
     [SerializeField] private Transform player;
     [SerializeField] private GameObject enemyVisualPrefab;
     [SerializeField] private Transform[] spawnPoints;
@@ -44,6 +48,10 @@ public class WarshipEnemySpawner : MonoBehaviour
         if (survivalController == null)
         {
             survivalController = gameObject.AddComponent<SurvivalGameController>();
+        }
+        if (!GameModeSession.IsEndless)
+        {
+            survivalController.Configure(storySurvivalDuration, true);
         }
 
         drivingMaterial = new PhysicMaterial("EnemyCar_Frictionless")
@@ -112,12 +120,18 @@ public class WarshipEnemySpawner : MonoBehaviour
 
     private void ApplyDifficulty(float progress)
     {
-        spawnInterval = Mathf.Lerp(initialSpawnInterval, finalSpawnInterval, progress);
-        float enemyLimit = Mathf.Lerp(initialMaxEnemies, finalMaxEnemies, progress);
+        float effectiveProgress = survivalController != null && !survivalController.IsEndless
+            ? Mathf.Lerp(storyStartingDifficultyProgress, 1f, progress)
+            : progress;
+        spawnInterval = Mathf.Lerp(initialSpawnInterval, finalSpawnInterval, effectiveProgress);
+        float enemyLimit = Mathf.Lerp(initialMaxEnemies, finalMaxEnemies, effectiveProgress);
         maxEnemies = survivalController != null && survivalController.IsEndless
-            ? progress >= 1f ? finalMaxEnemies : Mathf.FloorToInt(enemyLimit)
+            ? effectiveProgress >= 1f ? finalMaxEnemies : Mathf.FloorToInt(enemyLimit)
             : Mathf.RoundToInt(enemyLimit);
-        playerSpeedRatio = Mathf.Lerp(initialPlayerSpeedRatio, finalPlayerSpeedRatio, progress);
+        playerSpeedRatio = Mathf.Lerp(
+            initialPlayerSpeedRatio,
+            finalPlayerSpeedRatio,
+            effectiveProgress);
 
         foreach (GameObject enemy in activeEnemies)
         {
