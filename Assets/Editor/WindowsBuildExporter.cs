@@ -7,13 +7,17 @@ using UnityEngine;
 
 public static class WindowsBuildExporter
 {
+    public static string BuildDirectory => Path.Combine(
+        Directory.GetParent(Application.dataPath).FullName,
+        "Builds",
+        "SpeedEscape_Windows");
+
+    public static string ExecutablePath => Path.Combine(BuildDirectory, "SpeedEscape.exe");
+
+    [MenuItem("Tools/Island Map/Windows Build/Build Now")]
     public static void BuildWindows()
     {
-        string projectDirectory = Directory.GetParent(Application.dataPath).FullName;
-        string buildDirectory = Path.Combine(projectDirectory, "Builds", "SpeedEscape_Windows");
-        Directory.CreateDirectory(buildDirectory);
-
-        string executablePath = Path.Combine(buildDirectory, "SpeedEscape.exe");
+        Directory.CreateDirectory(BuildDirectory);
         string[] scenes = EditorBuildSettings.scenes
             .Where(scene => scene.enabled)
             .Select(scene => scene.path)
@@ -26,7 +30,7 @@ public static class WindowsBuildExporter
         BuildReport report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
         {
             scenes = scenes,
-            locationPathName = executablePath,
+            locationPathName = ExecutablePath,
             target = BuildTarget.StandaloneWindows64,
             options = BuildOptions.None
         });
@@ -35,6 +39,13 @@ public static class WindowsBuildExporter
             throw new InvalidOperationException($"Windows build failed: {report.summary.result}");
         }
 
-        Debug.Log($"Windows build completed: {executablePath}");
+        Debug.Log($"Windows build completed: {ExecutablePath}");
+    }
+
+    [MenuItem("Tools/Island Map/Windows Build/Open Build Folder")]
+    private static void OpenBuildFolder()
+    {
+        Directory.CreateDirectory(BuildDirectory);
+        EditorUtility.RevealInFinder(BuildDirectory);
     }
 }
