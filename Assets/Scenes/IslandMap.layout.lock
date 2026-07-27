@@ -1,0 +1,7 @@
+LEVEL 01 ROAD LAYOUT LOCKED
+
+The road network and road-marking positions in Assets/Scenes/IslandMap.unity were
+manually edited and approved on 2026-07-27.
+
+Road-generation and road-marking placement tools must not overwrite this scene
+while this file exists. Build and ordinary scene editing are unaffected.
