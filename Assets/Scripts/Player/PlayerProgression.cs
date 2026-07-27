@@ -14,6 +14,7 @@ public sealed class PlayerProgression : MonoBehaviour
     private int experienceToNextLevel;
     private int destroyedEnemies;
     private float pickupPulse;
+    private float healthPackDropChanceBonus;
 
     public static PlayerProgression Instance { get; private set; }
 
@@ -21,6 +22,7 @@ public sealed class PlayerProgression : MonoBehaviour
     public int CurrentExperience => currentExperience;
     public int ExperienceToNextLevel => experienceToNextLevel;
     public int DestroyedEnemies => destroyedEnemies;
+    public float HealthPackDropChanceBonus => healthPackDropChanceBonus;
     public float ExperienceProgress => experienceToNextLevel > 0
         ? Mathf.Clamp01((float)currentExperience / experienceToNextLevel)
         : 0f;
@@ -41,6 +43,7 @@ public sealed class PlayerProgression : MonoBehaviour
         experienceToNextLevel = CalculateExperienceRequirement(level);
         destroyedEnemies = 0;
         pickupPulse = 0f;
+        healthPackDropChanceBonus = 0f;
     }
 
     private void Update()
@@ -68,6 +71,12 @@ public sealed class PlayerProgression : MonoBehaviour
     public void RegisterEnemyDestroyed()
     {
         destroyedEnemies++;
+    }
+
+    public void IncreaseHealthPackDropChance(float amount)
+    {
+        healthPackDropChanceBonus = Mathf.Clamp01(
+            healthPackDropChanceBonus + Mathf.Max(0f, amount));
     }
 
     private int CalculateExperienceRequirement(int targetLevel)

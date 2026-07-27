@@ -215,6 +215,12 @@ public sealed class EndlessModeController : MonoBehaviour
         PlayFeedbackTone(660f, 0.12f);
     }
 
+    public void ShowHealthPackDropUpgrade()
+    {
+        ShowStatusMessage("血包掉落率 +10%", 2f);
+        PlayFeedbackTone(720f, 0.12f);
+    }
+
     private void UpdateMilestones()
     {
         if (!reachedOneMinute && elapsedTime >= 60f)

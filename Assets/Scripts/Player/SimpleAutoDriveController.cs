@@ -4,8 +4,11 @@ using UnityEngine;
 public class SimpleAutoDriveController : MonoBehaviour
 {
     private const float LandPhysicsTimestep = 1f / 60f;
+    public const float BaseForwardSpeed = 25.3f;
+    public const float StoryForwardSpeed = 25.3f;
+    public const float StoryForwardSpeedMultiplier = StoryForwardSpeed / BaseForwardSpeed;
 
-    [SerializeField] private float forwardSpeed = 24f;
+    [SerializeField] private float forwardSpeed = BaseForwardSpeed;
     [SerializeField] private float turnSpeed = 3.6f;
     [SerializeField] private float inputSmoothing = 24f;
     [SerializeField] private float acceleration = 14f;
@@ -74,7 +77,7 @@ public class SimpleAutoDriveController : MonoBehaviour
         body.angularDrag = 0f;
         body.maxAngularVelocity = 10f;
 
-        forwardSpeed = 24f;
+        forwardSpeed = GetDefaultForwardSpeedForCurrentMode();
         turnSpeed = 3.6f;
         inputSmoothing = 24f;
         acceleration = 14f;
@@ -332,6 +335,11 @@ public class SimpleAutoDriveController : MonoBehaviour
             currentSurfaceAccelerationMultiplier,
             targetAcceleration,
             maximumChange);
+    }
+
+    public static float GetDefaultForwardSpeedForCurrentMode()
+    {
+        return GameModeSession.IsEndless ? BaseForwardSpeed : StoryForwardSpeed;
     }
 
     private static bool IsBeachSurface(Collider groundCollider)

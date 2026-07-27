@@ -29,6 +29,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     private const float UnupgradedBlinkCooldown = 7f;
     private const float UnupgradedFlameTrailCooldown = 12f;
     private const float UnupgradedTankShellCooldown = 10f;
+    private const float HealthPackDropChanceUpgrade = 0.1f;
 
     private SkillId qSkill;
     private SkillId eSkill;
@@ -40,6 +41,8 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     private bool eSkillUpgraded;
     private bool isChoosingUpgrade;
     private int pendingUpgradeChoices;
+    private bool isChoosingLevelFourReward;
+    private int pendingLevelFourRewardChoices;
     private int lastObservedLevel;
     private Rigidbody body;
     private SimplePlayerHealth health;
@@ -66,7 +69,10 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     private Texture2D eTankShellsIcon;
     private StartMenuPage startMenuPage;
 
-    public bool IsGameplayActive => !isShowingStartScreen && !isChoosingSkills && !isChoosingUpgrade;
+    public bool IsGameplayActive => !isShowingStartScreen
+        && !isChoosingSkills
+        && !isChoosingUpgrade
+        && !isChoosingLevelFourReward;
     public string QSkillName => GetSkillName(qSkill);
     public string ESkillName => GetSkillName(eSkill);
     public Texture2D QSkillTexture => GetSkillIconTexture(qSkill, true);
@@ -115,7 +121,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     private void Update()
     {
         QueueSkillUpgradesForLevelChanges();
-        if (isShowingStartScreen || isChoosingSkills || isChoosingUpgrade
+        if (isShowingStartScreen || isChoosingSkills || isChoosingUpgrade || isChoosingLevelFourReward
             || (health != null && health.CurrentHealth <= 0))
         {
             return;
@@ -282,6 +288,10 @@ public sealed class PlayerSkillSystem : MonoBehaviour
                 {
                     skillUpgradeLevels++;
                 }
+                else if (reachedLevel == 4)
+                {
+                    pendingLevelFourRewardChoices++;
+                }
                 else
                 {
                     healthUpgradeLevels++;
@@ -303,7 +313,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
             pendingUpgradeChoices += levelsGained;
         }
 
-        if (!isChoosingUpgrade)
+        if (!isChoosingUpgrade && !isChoosingLevelFourReward)
         {
             ShowNextUpgradeChoice();
         }
@@ -316,15 +326,24 @@ public sealed class PlayerSkillSystem : MonoBehaviour
 
     private void ShowNextUpgradeChoice()
     {
-        if (pendingUpgradeChoices <= 0 || !HasUpgradableSkill())
+        if (pendingUpgradeChoices > 0 && HasUpgradableSkill())
         {
-            pendingUpgradeChoices = 0;
-            isChoosingUpgrade = false;
+            isChoosingUpgrade = true;
+            isChoosingLevelFourReward = false;
+            Time.timeScale = 0f;
             return;
         }
 
-        isChoosingUpgrade = true;
-        Time.timeScale = 0f;
+        pendingUpgradeChoices = 0;
+        isChoosingUpgrade = false;
+        if (pendingLevelFourRewardChoices > 0)
+        {
+            isChoosingLevelFourReward = true;
+            Time.timeScale = 0f;
+            return;
+        }
+
+        isChoosingLevelFourReward = false;
     }
 
     private void UpgradeSkill(SkillId skill)
@@ -345,13 +364,56 @@ public sealed class PlayerSkillSystem : MonoBehaviour
 
         pendingUpgradeChoices--;
         isChoosingUpgrade = false;
-        if (pendingUpgradeChoices > 0 && HasUpgradableSkill())
+        if ((pendingUpgradeChoices > 0 && HasUpgradableSkill())
+            || pendingLevelFourRewardChoices > 0)
         {
             ShowNextUpgradeChoice();
             return;
         }
 
         pendingUpgradeChoices = 0;
+        Time.timeScale = 1f;
+    }
+
+    private void SelectLevelFourReward(bool increaseMaxHealth)
+    {
+        if (!isChoosingLevelFourReward || pendingLevelFourRewardChoices <= 0)
+        {
+            return;
+        }
+
+        if (increaseMaxHealth)
+        {
+            if (health != null)
+            {
+                health.IncreaseMaxHealth(1, 1);
+            }
+            if (EndlessModeController.Instance != null)
+            {
+                EndlessModeController.Instance.ShowMaxHealthUpgrade();
+            }
+        }
+        else
+        {
+            if (progression != null)
+            {
+                progression.IncreaseHealthPackDropChance(HealthPackDropChanceUpgrade);
+            }
+            if (EndlessModeController.Instance != null)
+            {
+                EndlessModeController.Instance.ShowHealthPackDropUpgrade();
+            }
+        }
+
+        pendingLevelFourRewardChoices--;
+        isChoosingLevelFourReward = false;
+        if ((pendingUpgradeChoices > 0 && HasUpgradableSkill())
+            || pendingLevelFourRewardChoices > 0)
+        {
+            ShowNextUpgradeChoice();
+            return;
+        }
+
         Time.timeScale = 1f;
     }
 
@@ -411,6 +473,10 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         else if (isChoosingUpgrade)
         {
             DrawSkillUpgradeSelection();
+        }
+        else if (isChoosingLevelFourReward)
+        {
+            DrawLevelFourRewardSelection();
         }
     }
 
@@ -650,6 +716,63 @@ public sealed class PlayerSkillSystem : MonoBehaviour
             {
                 UpgradeSkill(skill);
             }
+        }
+    }
+
+    private void DrawLevelFourRewardSelection()
+    {
+        Rect screenRect = new Rect(0f, 0f, Screen.width, Screen.height);
+        Color previousColor = GUI.color;
+        GUI.color = new Color(0f, 0f, 0f, 0.76f);
+        GUI.DrawTexture(screenRect, Texture2D.whiteTexture, ScaleMode.StretchToFill);
+        GUI.color = previousColor;
+
+        float panelWidth = Mathf.Min(Screen.width - 48f, 920f);
+        const float panelHeight = 320f;
+        Rect panel = new Rect(
+            (Screen.width - panelWidth) * 0.5f,
+            (Screen.height - panelHeight) * 0.5f,
+            panelWidth,
+            panelHeight);
+        GUI.Box(panel, GUIContent.none);
+
+        GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 30,
+            fontStyle = FontStyle.Bold
+        };
+        GUIStyle descriptionStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 17,
+            wordWrap = true
+        };
+        GUIStyle choiceStyle = new GUIStyle(GUI.skin.button)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 20,
+            fontStyle = FontStyle.Bold,
+            wordWrap = true
+        };
+
+        GUI.Label(new Rect(panel.x + 20f, panel.y + 22f, panel.width - 40f, 44f), "等级 4 奖励", titleStyle);
+        GUI.Label(
+            new Rect(panel.x + 30f, panel.y + 68f, panel.width - 60f, 42f),
+            "选择一项本局永久强化",
+            descriptionStyle);
+
+        const float spacing = 18f;
+        float choiceWidth = (panel.width - 56f - spacing) * 0.5f;
+        Rect healthChoice = new Rect(panel.x + 28f, panel.y + 130f, choiceWidth, 150f);
+        Rect dropChoice = new Rect(healthChoice.xMax + spacing, healthChoice.y, choiceWidth, healthChoice.height);
+        if (GUI.Button(healthChoice, "提高生命上限\n\n最大生命 +1\n并恢复 1 点生命", choiceStyle))
+        {
+            SelectLevelFourReward(true);
+        }
+        if (GUI.Button(dropChoice, "提高血包掉落率\n\n敌人掉落概率 +10%\n本局持续生效", choiceStyle))
+        {
+            SelectLevelFourReward(false);
         }
     }
 

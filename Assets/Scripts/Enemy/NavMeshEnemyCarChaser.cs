@@ -397,8 +397,16 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
 
     private float GetTargetSpeed()
     {
-        float playerSpeed = playerDrive != null ? playerDrive.ForwardSpeed : fallbackPlayerSpeed;
+        float playerSpeed = playerDrive != null
+            ? playerDrive.ForwardSpeed
+            : GetFallbackPlayerSpeed();
         return playerSpeed * speedRatio * slowMultiplier;
+    }
+
+    private float GetFallbackPlayerSpeed()
+    {
+        return fallbackPlayerSpeed
+            * (GameModeSession.IsEndless ? 1f : SimpleAutoDriveController.StoryForwardSpeedMultiplier);
     }
 
     private bool HasUsablePath()
@@ -516,7 +524,10 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
         }
 
         GearPickup.SpawnAt(transform.position);
-        if (grantsPlayerRewards && UnityEngine.Random.value <= healthPackDropChance)
+        float activeHealthPackDropChance = Mathf.Clamp01(
+            healthPackDropChance
+            + (progression != null ? progression.HealthPackDropChanceBonus : 0f));
+        if (grantsPlayerRewards && UnityEngine.Random.value <= activeHealthPackDropChance)
         {
             HealthPickup.SpawnAt(transform.position);
         }
