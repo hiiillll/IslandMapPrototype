@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -35,7 +36,8 @@ public static class Level03ActivePlanSplineRoadRequestRunner
         try
         {
             Level03ActivePlanSplineRoadRebuilder.Rebuild();
-            Level03ActivePlanSplineRoadRebuilder.RenderVerificationPreview();
+            EditorApplication.delayCall +=
+                Level03ActivePlanSplineRoadRebuilder.RenderVerificationPreview;
         }
         catch (Exception exception)
         {
@@ -58,9 +60,10 @@ public static class Level03ActivePlanSplineRoadGenerator
     private const float SimplificationTolerance = 2f;
     private const float SkeletonThreshold = 0.15f;
     private const float SplineSampleSpacing = 2.5f;
-    private const float WidthProbeStep = 1f;
-    private const float MinimumHalfWidth = 3f;
-    private const float MaximumHalfWidth = 32f;
+    private const float StandardRoadHalfWidth = 25f;
+    private const float JunctionEndpointClusterDistance = 37.5f;
+    private const float MaximumJunctionFillRadius = 43.75f;
+    private const int JunctionFillSegments = 20;
     // Edges shorter than this are medial-axis branches inside a wide painted
     // endpoint, not authored road segments. Keeping them creates round-looking
     // side lobes even when the ribbon itself uses a straight end cut.
@@ -68,19 +71,11 @@ public static class Level03ActivePlanSplineRoadGenerator
     private const int ControlSmoothRadius = 2;
     private const int ControlSmoothPasses = 2;
     private const int TangentSampleSpan = 1;
-    private const int WidthSmoothRadius = 24;
-    private const int JunctionWidthBlendSamples = 32;
-    private const int WidthSpikeWindow = 28;
-    private const float MaximumLocalWidthRatio = 1.15f;
     private const int CapSegments = 20;
-    private const float MarkingMinimumRoadWidth = 25f;
     private const float MarkingDashLength = 18f;
     private const float MarkingGapLength = 14f;
     private const float MarkingHalfWidth = 1.35f;
-    // Skeleton graph nodes also occur at ordinary T-junctions. Half a normal
-    // dash gap on each adjoining path keeps the centre line visually regular
-    // without painting through a broad intersection.
-    private const float MarkingJunctionClearance = MarkingGapLength * 0.5f;
+    private const float MarkingHeightOffset = 0.08f;
 
     private static readonly int[] NeighbourX = { -1, 0, 1, -1, 1, -1, 0, 1 };
     private static readonly int[] NeighbourY = { -1, -1, -1, 0, 0, 1, 1, 1 };
@@ -104,6 +99,7 @@ public static class Level03ActivePlanSplineRoadGenerator
         List<Vector3> vertices = new List<Vector3>(32000);
         List<Vector2> uvs = new List<Vector2>(32000);
         List<int> triangles = new List<int>(48000);
+        List<RoadEndpoint> roadEndpoints = new List<RoadEndpoint>();
         int generatedPaths = 0;
         int skippedPaths = 0;
         int[] generatedByQuarter = new int[4];
@@ -124,6 +120,16 @@ public static class Level03ActivePlanSplineRoadGenerator
 
             bool closed = controls.Count > 2 &&
                           Vector2.Distance(controls[0], controls[controls.Count - 1]) <= 0.1f;
+            if (!closed)
+            {
+                roadEndpoints.Add(new RoadEndpoint(
+                    controls[0],
+                    graph.IsTerminal(pixelPath[0])));
+                roadEndpoints.Add(new RoadEndpoint(
+                    controls[controls.Count - 1],
+                    graph.IsTerminal(pixelPath[pixelPath.Count - 1])));
+            }
+
             // Keep authored dead ends and bridge landings as straight, width-matched
             // cuts. Round caps from several traced paths can overlap at a graph node
             // and create the large circular protrusions visible in close-up.
@@ -155,11 +161,7 @@ public static class Level03ActivePlanSplineRoadGenerator
                 closed,
                 capStart,
                 capEnd,
-                roadPlan,
-                worldWidth,
-                worldDepth,
                 roadHeight,
-                threshold,
                 vertices,
                 uvs,
                 triangles);
@@ -175,6 +177,17 @@ public static class Level03ActivePlanSplineRoadGenerator
                 3);
             generatedByQuarter[quarter]++;
             generatedPaths++;
+        }
+
+        foreach (JunctionPatch junction in BuildJunctionPatches(roadEndpoints))
+        {
+            AddJunctionFill(
+                junction.centre,
+                junction.radius,
+                roadHeight,
+                vertices,
+                uvs,
+                triangles);
         }
 
         if (triangles.Count == 0)
@@ -251,6 +264,11 @@ public static class Level03ActivePlanSplineRoadGenerator
                 graph.Height,
                 worldWidth,
                 worldDepth);
+            if (CalculateLength(controls) < MinimumPathLength)
+            {
+                continue;
+            }
+
             bool closed = controls.Count > 2 &&
                           Vector2.Distance(controls[0], controls[controls.Count - 1]) <= 0.1f;
             controls = SmoothControls(
@@ -276,11 +294,7 @@ public static class Level03ActivePlanSplineRoadGenerator
             int pathDashCount = AddDashedCenterline(
                 samples,
                 closed,
-                roadHeight + 0.035f,
-                roadPlan,
-                worldWidth,
-                worldDepth,
-                threshold,
+                roadHeight + MarkingHeightOffset,
                 vertices,
                 uvs,
                 triangles);
@@ -311,10 +325,6 @@ public static class Level03ActivePlanSplineRoadGenerator
         List<Vector2> samples,
         bool closed,
         float height,
-        Texture2D roadPlan,
-        float worldWidth,
-        float worldDepth,
-        float threshold,
         List<Vector3> vertices,
         List<Vector2> uvs,
         List<int> triangles)
@@ -327,70 +337,89 @@ public static class Level03ActivePlanSplineRoadGenerator
         }
 
         float totalLength = distances[distances.Length - 1];
-        float start = closed ? 0f : MarkingJunctionClearance;
-        float end = closed ? totalLength : totalLength - MarkingJunctionClearance;
-        int dashCount = 0;
-        for (float distance = start;
-             distance + MarkingDashLength <= end;
-             distance += MarkingDashLength + MarkingGapLength)
+        if (totalLength <= Mathf.Epsilon)
         {
-            Vector2 first = PointAtDistance(samples, distances, distance);
-            Vector2 second = PointAtDistance(
-                samples,
-                distances,
-                distance + MarkingDashLength);
-            Vector2 direction = (second - first).normalized;
-            if (direction.sqrMagnitude < 0.5f)
+            return 0;
+        }
+
+        float period = MarkingDashLength + MarkingGapLength;
+        float halfDash = MarkingDashLength * 0.5f;
+        int intervalCount = Mathf.Max(1, Mathf.RoundToInt(totalLength / period));
+        float spacing = totalLength / intervalCount;
+        int dashCount = 0;
+        if (closed)
+        {
+            for (int dash = 0; dash < intervalCount; dash++)
             {
-                continue;
+                float centre = (dash + 0.5f) * spacing;
+                dashCount += AddDash(
+                    samples,
+                    distances,
+                    centre - halfDash,
+                    centre + halfDash,
+                    height,
+                    vertices,
+                    uvs,
+                    triangles);
             }
 
-            Vector2 right = new Vector2(direction.y, -direction.x) * MarkingHalfWidth;
-            Vector2 centre = PointAtDistance(
+            return dashCount;
+        }
+
+        for (int dash = 0; dash <= intervalCount; dash++)
+        {
+            float centre = dash * spacing;
+            dashCount += AddDash(
                 samples,
                 distances,
-                distance + MarkingDashLength * 0.5f);
-            Vector2 widthDirection = right.normalized;
-            float roadWidth = MeasureHalfWidth(
-                                  centre,
-                                  -widthDirection,
-                                  roadPlan,
-                                  worldWidth,
-                                  worldDepth,
-                                  threshold) +
-                              MeasureHalfWidth(
-                                  centre,
-                                  widthDirection,
-                                  roadPlan,
-                                  worldWidth,
-                                  worldDepth,
-                                  threshold);
-            if (roadWidth < MarkingMinimumRoadWidth)
-            {
-                continue;
-            }
-
-            int firstVertex = vertices.Count;
-            AddVertex(first - right, height, vertices, uvs);
-            AddVertex(first + right, height, vertices, uvs);
-            AddVertex(second + right, height, vertices, uvs);
-            AddVertex(second - right, height, vertices, uvs);
-            AddUpwardTriangle(
-                firstVertex,
-                firstVertex + 1,
-                firstVertex + 2,
+                Mathf.Max(0f, centre - halfDash),
+                Mathf.Min(totalLength, centre + halfDash),
+                height,
                 vertices,
+                uvs,
                 triangles);
-            AddUpwardTriangle(
-                firstVertex,
-                firstVertex + 2,
-                firstVertex + 3,
-                vertices,
-                triangles);
-            dashCount++;
         }
 
         return dashCount;
+    }
+
+    private static int AddDash(
+        List<Vector2> samples,
+        float[] distances,
+        float startDistance,
+        float endDistance,
+        float height,
+        List<Vector3> vertices,
+        List<Vector2> uvs,
+        List<int> triangles)
+    {
+        Vector2 first = PointAtDistance(samples, distances, startDistance);
+        Vector2 second = PointAtDistance(samples, distances, endDistance);
+        Vector2 direction = (second - first).normalized;
+        if (direction.sqrMagnitude < 0.5f)
+        {
+            return 0;
+        }
+
+        Vector2 right = new Vector2(direction.y, -direction.x) * MarkingHalfWidth;
+        int firstVertex = vertices.Count;
+        AddVertex(first - right, height, vertices, uvs);
+        AddVertex(first + right, height, vertices, uvs);
+        AddVertex(second + right, height, vertices, uvs);
+        AddVertex(second - right, height, vertices, uvs);
+        AddUpwardTriangle(
+            firstVertex,
+            firstVertex + 1,
+            firstVertex + 2,
+            vertices,
+            triangles);
+        AddUpwardTriangle(
+            firstVertex,
+            firstVertex + 2,
+            firstVertex + 3,
+            vertices,
+            triangles);
+        return 1;
     }
 
     private static Vector2 PointAtDistance(
@@ -519,11 +548,7 @@ public static class Level03ActivePlanSplineRoadGenerator
         bool closed,
         bool capStart,
         bool capEnd,
-        Texture2D roadPlan,
-        float worldWidth,
-        float worldDepth,
         float roadHeight,
-        float threshold,
         List<Vector3> vertices,
         List<Vector2> uvs,
         List<int> triangles)
@@ -553,29 +578,10 @@ public static class Level03ActivePlanSplineRoadGenerator
 
             Vector2 right = new Vector2(tangent.y, -tangent.x);
             rightVectors[index] = right;
-            leftWidths[index] = MeasureHalfWidth(
-                samples[index], -right, roadPlan, worldWidth, worldDepth, threshold);
-            rightWidths[index] = MeasureHalfWidth(
-                samples[index], right, roadPlan, worldWidth, worldDepth, threshold);
+            leftWidths[index] = StandardRoadHalfWidth;
+            rightWidths[index] = StandardRoadHalfWidth;
         }
 
-        ClampLocalWidthSpikes(leftWidths, closed);
-        ClampLocalWidthSpikes(rightWidths, closed);
-
-        if (!closed && !capStart)
-        {
-            StabilizeJunctionWidth(leftWidths, true);
-            StabilizeJunctionWidth(rightWidths, true);
-        }
-
-        if (!closed && !capEnd)
-        {
-            StabilizeJunctionWidth(leftWidths, false);
-            StabilizeJunctionWidth(rightWidths, false);
-        }
-
-        SmoothWidths(leftWidths, closed);
-        SmoothWidths(rightWidths, closed);
         int firstVertex = vertices.Count;
         for (int index = 0; index < count; index++)
         {
@@ -636,34 +642,6 @@ public static class Level03ActivePlanSplineRoadGenerator
         }
     }
 
-    private static float MeasureHalfWidth(
-        Vector2 centre,
-        Vector2 direction,
-        Texture2D roadPlan,
-        float worldWidth,
-        float worldDepth,
-        float threshold)
-    {
-        float lastInside = 0f;
-        for (float distance = WidthProbeStep;
-             distance <= MaximumHalfWidth;
-             distance += WidthProbeStep)
-        {
-            Vector2 point = centre + direction * distance;
-            if (!IsInsideRoad(point, roadPlan, worldWidth, worldDepth, threshold))
-            {
-                break;
-            }
-
-            lastInside = distance;
-        }
-
-        return Mathf.Clamp(
-            lastInside + WidthProbeStep * 0.5f,
-            MinimumHalfWidth,
-            MaximumHalfWidth);
-    }
-
     private static bool IsInsideRoad(
         Vector2 point,
         Texture2D roadPlan,
@@ -675,103 +653,6 @@ public static class Level03ActivePlanSplineRoadGenerator
         float v = point.y / worldDepth + 0.5f;
         return u >= 0f && u <= 1f && v >= 0f && v <= 1f &&
                roadPlan.GetPixelBilinear(u, v).grayscale > threshold;
-    }
-
-    private static void SmoothWidths(float[] widths, bool closed)
-    {
-        float[] source = (float[])widths.Clone();
-        int uniqueCount = closed ? widths.Length - 1 : widths.Length;
-        for (int index = 0; index < uniqueCount; index++)
-        {
-            float total = 0f;
-            float weightTotal = 0f;
-            for (int offset = -WidthSmoothRadius; offset <= WidthSmoothRadius; offset++)
-            {
-                int sample = index + offset;
-                if (closed)
-                {
-                    sample = (sample % uniqueCount + uniqueCount) % uniqueCount;
-                }
-                else if (sample < 0 || sample >= uniqueCount)
-                {
-                    continue;
-                }
-
-                float weight = WidthSmoothRadius + 1 - Mathf.Abs(offset);
-                total += source[sample] * weight;
-                weightTotal += weight;
-            }
-
-            widths[index] = total / weightTotal;
-        }
-
-        if (closed)
-        {
-            widths[widths.Length - 1] = widths[0];
-        }
-    }
-
-    private static void StabilizeJunctionWidth(float[] widths, bool atStart)
-    {
-        if (widths.Length < 3)
-        {
-            return;
-        }
-
-        int blendCount = Mathf.Min(JunctionWidthBlendSamples, widths.Length - 1);
-        List<float> references = new List<float>(widths.Length);
-        for (int index = 0; index < widths.Length; index++)
-        {
-            references.Add(widths[index]);
-        }
-
-        references.Sort();
-        float stableWidth = references[references.Count / 2];
-        for (int offset = 0; offset <= blendCount; offset++)
-        {
-            int index = atStart ? offset : widths.Length - 1 - offset;
-            float blend = (float)offset / blendCount;
-            float bounded = Mathf.Min(widths[index], stableWidth * 1.08f);
-            widths[index] = Mathf.Lerp(stableWidth, bounded, blend);
-        }
-    }
-
-    private static void ClampLocalWidthSpikes(float[] widths, bool closed)
-    {
-        if (widths.Length < 3)
-        {
-            return;
-        }
-
-        float[] source = (float[])widths.Clone();
-        int uniqueCount = closed ? widths.Length - 1 : widths.Length;
-        for (int index = 0; index < uniqueCount; index++)
-        {
-            List<float> neighbours = new List<float>(WidthSpikeWindow * 2 + 1);
-            for (int offset = -WidthSpikeWindow; offset <= WidthSpikeWindow; offset++)
-            {
-                int sample = index + offset;
-                if (closed)
-                {
-                    sample = (sample % uniqueCount + uniqueCount) % uniqueCount;
-                }
-                else if (sample < 0 || sample >= uniqueCount)
-                {
-                    continue;
-                }
-
-                neighbours.Add(source[sample]);
-            }
-
-            neighbours.Sort();
-            float median = neighbours[neighbours.Count / 2];
-            widths[index] = Mathf.Min(source[index], median * MaximumLocalWidthRatio);
-        }
-
-        if (closed)
-        {
-            widths[widths.Length - 1] = widths[0];
-        }
     }
 
     private static void AddRoundEndCap(
@@ -801,6 +682,89 @@ public static class Level03ActivePlanSplineRoadGenerator
                     centreIndex,
                     centreIndex + segment + 1,
                     centreIndex + segment,
+                    vertices,
+                    triangles);
+            }
+        }
+    }
+
+    private static IEnumerable<JunctionPatch> BuildJunctionPatches(
+        IReadOnlyList<RoadEndpoint> endpoints)
+    {
+        bool[] assigned = new bool[endpoints.Count];
+        for (int first = 0; first < endpoints.Count; first++)
+        {
+            if (assigned[first])
+            {
+                continue;
+            }
+
+            List<int> cluster = new List<int> { first };
+            assigned[first] = true;
+            for (int clusterIndex = 0; clusterIndex < cluster.Count; clusterIndex++)
+            {
+                Vector2 clusterPoint = endpoints[cluster[clusterIndex]].position;
+                for (int candidate = 0; candidate < endpoints.Count; candidate++)
+                {
+                    if (assigned[candidate] ||
+                        Vector2.Distance(clusterPoint, endpoints[candidate].position) >
+                        JunctionEndpointClusterDistance)
+                    {
+                        continue;
+                    }
+
+                    assigned[candidate] = true;
+                    cluster.Add(candidate);
+                }
+            }
+
+            bool isJunction = cluster.Count > 1 ||
+                              cluster.Any(index => !endpoints[index].terminal);
+            if (!isJunction)
+            {
+                continue;
+            }
+
+            Vector2 centre = Vector2.zero;
+            foreach (int index in cluster)
+            {
+                centre += endpoints[index].position;
+            }
+            centre /= cluster.Count;
+
+            float endpointSpread = cluster.Max(index =>
+                Vector2.Distance(centre, endpoints[index].position));
+            yield return new JunctionPatch(
+                centre,
+                Mathf.Min(
+                    MaximumJunctionFillRadius,
+                    StandardRoadHalfWidth + endpointSpread));
+        }
+    }
+
+    private static void AddJunctionFill(
+        Vector2 centre,
+        float radius,
+        float roadHeight,
+        List<Vector3> vertices,
+        List<Vector2> uvs,
+        List<int> triangles)
+    {
+        int centreIndex = vertices.Count;
+        AddVertex(centre, roadHeight, vertices, uvs);
+        for (int segment = 0; segment <= JunctionFillSegments; segment++)
+        {
+            float angle = Mathf.PI * 2f * segment / JunctionFillSegments;
+            Vector2 point = centre + new Vector2(
+                Mathf.Cos(angle),
+                Mathf.Sin(angle)) * radius;
+            AddVertex(point, roadHeight, vertices, uvs);
+            if (segment > 0)
+            {
+                AddUpwardTriangle(
+                    centreIndex,
+                    centreIndex + segment,
+                    centreIndex + segment + 1,
                     vertices,
                     triangles);
             }
@@ -838,6 +802,30 @@ public static class Level03ActivePlanSplineRoadGenerator
     {
         vertices.Add(new Vector3(point.x, roadHeight, point.y));
         uvs.Add(new Vector2(point.x / 24f, point.y / 24f));
+    }
+
+    private sealed class RoadEndpoint
+    {
+        public RoadEndpoint(Vector2 position, bool terminal)
+        {
+            this.position = position;
+            this.terminal = terminal;
+        }
+
+        public readonly Vector2 position;
+        public readonly bool terminal;
+    }
+
+    private sealed class JunctionPatch
+    {
+        public JunctionPatch(Vector2 centre, float radius)
+        {
+            this.centre = centre;
+            this.radius = radius;
+        }
+
+        public readonly Vector2 centre;
+        public readonly float radius;
     }
 
     private static List<Vector2> Simplify(List<Vector2> points, float tolerance)
@@ -1014,6 +1002,13 @@ public static class Level03ActivePlanSplineRoadGenerator
             List<int> neighbours = new List<int>(8);
             GetNeighbours(index, neighbours);
             return neighbours.Count <= 1;
+        }
+
+        public bool IsJunction(int index)
+        {
+            List<int> neighbours = new List<int>(8);
+            GetNeighbours(index, neighbours);
+            return neighbours.Count >= 3;
         }
 
         public List<List<int>> TracePaths()
@@ -1248,9 +1243,10 @@ public static class Level03ActivePlanSplineRoadRebuilder
     private const string RoadMarkingMeshPath =
         "Assets/Level03/GeneratedTerrainRoad/MESH_Level03_RoadMarkings.asset";
     private const string RoadMarkingMaterialPath =
-        "Assets/Art/Materials/RoadMarkings/MAT_RoadMarking_White.mat";
+        "Assets/Level03/GeneratedTerrainRoad/MAT_Level03_RoadMarkingOverlay.mat";
     private const string RoadObjectName = "ENV_Level03_RoadNetwork_FromReference";
     private const string RoadMarkingObjectName = "ENV_Level03_RoadMarkings";
+    private const string RoadMarkingChunkObjectPrefix = "RoadMarkingChunk_";
     private const float LandWidth = 4000f;
     private const float RoadHeight = 0.40f;
     private const float RoadThreshold = 0.55f;
@@ -1302,10 +1298,11 @@ public static class Level03ActivePlanSplineRoadRebuilder
             }
             else
             {
-                EditorUtility.CopySerialized(generated, saved);
+                CopyMeshData(generated, saved);
                 UnityEngine.Object.DestroyImmediate(generated);
                 EditorUtility.SetDirty(saved);
             }
+            saved.UploadMeshData(false);
 
             Mesh savedMarkings = AssetDatabase.LoadAssetAtPath<Mesh>(RoadMarkingMeshPath);
             if (savedMarkings == null)
@@ -1315,10 +1312,11 @@ public static class Level03ActivePlanSplineRoadRebuilder
             }
             else
             {
-                EditorUtility.CopySerialized(generatedMarkings, savedMarkings);
+                CopyMeshData(generatedMarkings, savedMarkings);
                 UnityEngine.Object.DestroyImmediate(generatedMarkings);
                 EditorUtility.SetDirty(savedMarkings);
             }
+            savedMarkings.UploadMeshData(false);
 
             GameObject roadObject = null;
             foreach (GameObject root in scene.GetRootGameObjects())
@@ -1331,6 +1329,7 @@ public static class Level03ActivePlanSplineRoadRebuilder
                     }
 
                     roadObject = filter.gameObject;
+                    filter.sharedMesh = null;
                     filter.sharedMesh = saved;
                     MeshCollider collider = filter.GetComponent<MeshCollider>();
                     if (collider != null)
@@ -1358,10 +1357,32 @@ public static class Level03ActivePlanSplineRoadRebuilder
 
             markingObject.transform.localPosition = Vector3.zero;
             markingObject.layer = roadObject.layer;
-            markingObject.isStatic = true;
-            markingObject.GetComponent<MeshFilter>().sharedMesh = savedMarkings;
-            markingObject.GetComponent<MeshRenderer>().sharedMaterial =
-                AssetDatabase.LoadAssetAtPath<Material>(RoadMarkingMaterialPath);
+            markingObject.isStatic = false;
+            GameObjectUtility.SetStaticEditorFlags(markingObject, 0);
+            MeshFilter markingFilter = markingObject.GetComponent<MeshFilter>();
+            markingFilter.sharedMesh = null;
+            markingFilter.sharedMesh = savedMarkings;
+            MeshRenderer markingRenderer = markingObject.GetComponent<MeshRenderer>();
+            Material markingMaterial = GetOrCreateRoadMarkingMaterial();
+            markingRenderer.sharedMaterial = markingMaterial;
+            markingRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            markingRenderer.receiveShadows = false;
+            markingRenderer.allowOcclusionWhenDynamic = false;
+            markingRenderer.enabled = false;
+            for (int index = markingObject.transform.childCount - 1;
+                 index >= 0;
+                 index--)
+            {
+                Transform child = markingObject.transform.GetChild(index);
+                if (child.name.StartsWith(
+                        RoadMarkingChunkObjectPrefix,
+                        StringComparison.Ordinal))
+                {
+                    UnityEngine.Object.DestroyImmediate(child.gameObject);
+                }
+            }
+            markingRenderer.enabled = true;
+            SceneView.RepaintAll();
 
             AssetDatabase.SaveAssets();
             EditorSceneManager.MarkSceneDirty(scene);
@@ -1416,6 +1437,14 @@ public static class Level03ActivePlanSplineRoadRebuilder
                 "CodexLevel03RoadDetail_NorthBridge.png");
             RenderRoadDetail(camera, new Vector2(-230f, -1050f), 280f,
                 "CodexLevel03RoadDetail_SouthJunction.png");
+            RenderRoadDetail(camera, new Vector2(342f, -1111f), 210f,
+                "CodexLevel03RoadDetail_ApartmentSouth.png");
+            RenderRoadDetail(camera, new Vector2(800f, -248f), 210f,
+                "CodexLevel03RoadDetail_ApartmentEastLow.png");
+            RenderRoadDetail(camera, new Vector2(802f, 456f), 210f,
+                "CodexLevel03RoadDetail_ApartmentEastHigh.png");
+            RenderRoadDetail(camera, new Vector2(396f, 948f), 210f,
+                "CodexLevel03RoadDetail_ApartmentNorth.png");
 
             camera.orthographic = false;
             camera.fieldOfView = 52f;
@@ -1496,6 +1525,75 @@ public static class Level03ActivePlanSplineRoadRebuilder
             wrapMode = TextureWrapMode.Clamp
         };
         return texture.LoadImage(File.ReadAllBytes(assetPath), false) ? texture : null;
+    }
+
+    private static Material GetOrCreateRoadMarkingMaterial()
+    {
+        Material material = AssetDatabase.LoadAssetAtPath<Material>(
+            RoadMarkingMaterialPath);
+        if (material == null)
+        {
+            Shader shader = Shader.Find("Standard") ?? Shader.Find("Unlit/Color");
+            if (shader == null)
+            {
+                throw new InvalidOperationException(
+                    "Unity could not find a Standard or Unlit shader for Level03 road markings.");
+            }
+
+            material = new Material(shader)
+            {
+                name = "MAT_Level03_RoadMarkingOverlay",
+                enableInstancing = true,
+                renderQueue = 2020
+            };
+            AssetDatabase.CreateAsset(material, RoadMarkingMaterialPath);
+        }
+
+        Shader standardShader = Shader.Find("Standard");
+        if (standardShader != null && material.shader != standardShader)
+        {
+            material.shader = standardShader;
+        }
+
+        if (material.HasProperty("_Color"))
+        {
+            material.SetColor("_Color", new Color(0.94f, 0.95f, 0.91f, 1f));
+        }
+        if (material.HasProperty("_Glossiness"))
+        {
+            material.SetFloat("_Glossiness", 0.05f);
+        }
+
+        material.renderQueue = 2020;
+        EditorUtility.SetDirty(material);
+        return material;
+    }
+
+    private static void CopyMeshData(Mesh source, Mesh destination)
+    {
+        Vector3[] vertices = source.vertices;
+        Vector3[] normals = source.normals;
+        Vector2[] uvs = source.uv;
+        int[] triangles = source.triangles;
+
+        destination.Clear();
+        destination.name = source.name;
+        destination.indexFormat = source.indexFormat;
+        destination.vertices = vertices;
+        if (normals.Length == vertices.Length)
+        {
+            destination.normals = normals;
+        }
+        if (uvs.Length == vertices.Length)
+        {
+            destination.uv = uvs;
+        }
+        destination.triangles = triangles;
+        if (normals.Length != vertices.Length)
+        {
+            destination.RecalculateNormals();
+        }
+        destination.bounds = source.bounds;
     }
 
     private static void DestroyTexture(Texture2D texture)
