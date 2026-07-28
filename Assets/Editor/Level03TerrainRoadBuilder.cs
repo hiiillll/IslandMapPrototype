@@ -35,6 +35,47 @@ public static class Level03BuildRequestRunner
     }
 }
 
+[InitializeOnLoad]
+public static class Level03FlatGrassRequestRunner
+{
+    private const string RequestPath =
+        "Assets/Level03/APPLY_FIRST_LEVEL_FLAT_GRASS.request";
+
+    static Level03FlatGrassRequestRunner()
+    {
+        EditorApplication.delayCall += TryRun;
+    }
+
+    private static void TryRun()
+    {
+        if (!File.Exists(RequestPath))
+        {
+            return;
+        }
+
+        if (EditorApplication.isCompiling || EditorApplication.isUpdating ||
+            EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorApplication.delayCall += TryRun;
+            return;
+        }
+
+        try
+        {
+            Level03TerrainRoadBuilder.ApplyFirstLevelGrassToFlatLand();
+            Level03ActivePlanSplineRoadRebuilder.RenderVerificationPreview();
+        }
+        catch (System.Exception exception)
+        {
+            Debug.LogException(exception);
+        }
+        finally
+        {
+            AssetDatabase.DeleteAsset(RequestPath);
+        }
+    }
+}
+
 public static class Level03TerrainRoadBuilder
 {
     private const string ScenePath = "Assets/Scenes/Level03.unity";
@@ -42,6 +83,7 @@ public static class Level03TerrainRoadBuilder
     private const string RoadPlanPath = "Assets/Level03/References/Level03_RoadPlan_Active.png";
     private const string GeneratedFolder = "Assets/Level03/GeneratedTerrainRoad";
     private const string LandMeshPath = GeneratedFolder + "/MESH_Level03_Land.asset";
+    private const string FlatGrassMeshPath = GeneratedFolder + "/MESH_Level03_FlatGrass.asset";
     private const string RoadMeshPath = GeneratedFolder + "/MESH_Level03_Roads.asset";
     private const string GrassMaterialPath = GeneratedFolder + "/MAT_Level03_Grass.mat";
     private const string RoadMaterialPath = GeneratedFolder + "/MAT_Level03_Road.mat";
@@ -50,12 +92,11 @@ public static class Level03TerrainRoadBuilder
     private const string PreviewPath = PreviewFolder + "/Level03_TerrainRoadPreview.png";
     private const string SourceGrassMaterialPath = "Assets/Art/Materials/Grass.mat";
     private const string SourceRoadMaterialPath = "Assets/Art/Materials/Road.mat";
-    private const string SourceOceanMaterialPath = "Assets/Art/Materials/Ocean.mat";
+    private const string SourceOceanMaterialPath = "Assets/Art/Materials/Ocean_BoatChase.mat";
     private const string SkyMaterialPath = "Assets/Art/Sky/MAT_Sky_TropicalNoon.mat";
 
     private const int PreviewLayer = 31;
     private const int LandColumns = 512;
-    private const int RoadColumns = 1024;
     private const float OceanSize = 4000f;
     private const float LandWidth = 4000f;
     private const float FlatLandHeight = 0.35f;
@@ -91,14 +132,21 @@ public static class Level03TerrainRoadBuilder
 
         float landDepth = LandWidth * heightReference.height / heightReference.width;
         Mesh landMesh = BuildLandMesh(heightReference, roadPlan, landDepth);
+        Mesh flatGrassMesh = BuildFlatGrassMesh(
+            landMesh,
+            landDepth,
+            heightReference);
         Mesh roadMesh = BuildRoadMesh(roadPlan, landDepth);
         SaveMeshAsset(landMesh, LandMeshPath);
+        SaveMeshAsset(flatGrassMesh, FlatGrassMeshPath);
         SaveMeshAsset(roadMesh, RoadMeshPath);
 
         Material grassMaterial = CreateMaterialCopy(
             SourceGrassMaterialPath,
             GrassMaterialPath,
             new Vector2(1f, 1f));
+        Material flatGrassMaterial = AssetDatabase.LoadAssetAtPath<Material>(
+            SourceGrassMaterialPath);
         Material roadMaterial = CreateMaterialCopy(
             SourceRoadMaterialPath,
             RoadMaterialPath,
@@ -106,7 +154,7 @@ public static class Level03TerrainRoadBuilder
         Material oceanMaterial = CreateMaterialCopy(
             SourceOceanMaterialPath,
             OceanMaterialPath,
-            new Vector2(12f, 12f));
+            new Vector2(8f, 8f));
 
         Scene previousScene = SceneManager.GetActiveScene();
         bool rebuildingActiveLevel03 = previousScene.IsValid()
@@ -127,6 +175,12 @@ public static class Level03TerrainRoadBuilder
             grassMaterial,
             environment.transform,
             true);
+        CreateMeshObject(
+            "ENV_Level03_FlatGrass_FirstLevel",
+            flatGrassMesh,
+            flatGrassMaterial,
+            environment.transform,
+            false);
         GameObject roads = CreateMeshObject(
             "ENV_Level03_RoadNetwork_FromReference",
             roadMesh,
@@ -269,79 +323,135 @@ public static class Level03TerrainRoadBuilder
 
     private static Mesh BuildRoadMesh(Texture2D roadPlan, float landDepth)
     {
-        int rows = Mathf.RoundToInt(RoadColumns * (float)roadPlan.height / roadPlan.width);
-        List<Vector3> vertices = new List<Vector3>(rows * 40);
-        List<Vector2> uvs = new List<Vector2>(rows * 40);
-        List<int> triangles = new List<int>(rows * 60);
+        return Level03ActivePlanSplineRoadGenerator.Build(
+            roadPlan,
+            LandWidth,
+            landDepth,
+            RoadHeight,
+            RoadThreshold);
+    }
 
-        for (int row = 0; row < rows; row++)
+    private static Mesh BuildFlatGrassMesh(
+        Mesh landMesh,
+        float landDepth,
+        Texture2D heightReference)
+    {
+        Vector3[] vertices = landMesh.vertices;
+        Vector2[] uvs = new Vector2[vertices.Length];
+        bool[] mountainSource = new bool[vertices.Length];
+        for (int index = 0; index < vertices.Length; index++)
         {
-            float sampleV = 1f - (row + 0.5f) / rows;
-            int column = 0;
-            while (column < RoadColumns)
+            vertices[index].y += 0.015f;
+            float u = vertices[index].x / LandWidth + 0.5f;
+            float v = 0.5f + vertices[index].z / landDepth;
+            uvs[index] = new Vector2(
+                u,
+                0.5f - vertices[index].z / landDepth);
+            mountainSource[index] = SampleLuminance(heightReference, u, v) >
+                                    MountainStartLuminance;
+            float mountainX = (vertices[index].x - 120f) / 650f;
+            float mountainZ = vertices[index].z / 800f;
+            mountainSource[index] |= mountainX * mountainX + mountainZ * mountainZ < 1f;
+        }
+
+        int[] sourceTriangles = landMesh.triangles;
+        List<int> flatTriangles = new List<int>(sourceTriangles.Length);
+        Vector3[] sourceVertices = landMesh.vertices;
+        for (int index = 0; index < sourceTriangles.Length; index += 3)
+        {
+            int first = sourceTriangles[index];
+            int second = sourceTriangles[index + 1];
+            int third = sourceTriangles[index + 2];
+            if (Mathf.Abs(sourceVertices[first].y - FlatLandHeight) > 0.001f ||
+                Mathf.Abs(sourceVertices[second].y - FlatLandHeight) > 0.001f ||
+                Mathf.Abs(sourceVertices[third].y - FlatLandHeight) > 0.001f ||
+                mountainSource[first] ||
+                mountainSource[second] ||
+                mountainSource[third])
             {
-                float sampleU = (column + 0.5f) / RoadColumns;
-                if (SampleLuminance(roadPlan, sampleU, sampleV) <= RoadThreshold)
-                {
-                    column++;
-                    continue;
-                }
-
-                int runStart = column;
-                do
-                {
-                    column++;
-                    sampleU = (column + 0.5f) / RoadColumns;
-                }
-                while (column < RoadColumns
-                    && SampleLuminance(roadPlan, sampleU, sampleV) > RoadThreshold);
-
-                int runEnd = column;
-                float xLeft = -LandWidth * 0.5f + LandWidth * runStart / RoadColumns;
-                float xRight = -LandWidth * 0.5f + LandWidth * runEnd / RoadColumns;
-                float zTop = landDepth * (0.5f - (float)row / rows);
-                float zBottom = landDepth * (0.5f - (float)(row + 1) / rows);
-                AddRoadQuad(vertices, uvs, triangles, xLeft, xRight, zBottom, zTop);
+                continue;
             }
+
+            flatTriangles.Add(first);
+            flatTriangles.Add(second);
+            flatTriangles.Add(third);
         }
 
         Mesh mesh = new Mesh
         {
-            name = "MESH_Level03_RoadNetwork",
-            indexFormat = IndexFormat.UInt32
+            name = "MESH_Level03_FlatGrass_FirstLevel",
+            indexFormat = IndexFormat.UInt32,
+            vertices = vertices,
+            uv = uvs,
+            triangles = flatTriangles.ToArray()
         };
-        mesh.SetVertices(vertices);
-        mesh.SetUVs(0, uvs);
-        mesh.SetTriangles(triangles, 0);
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
         return mesh;
     }
 
-    private static void AddRoadQuad(
-        List<Vector3> vertices,
-        List<Vector2> uvs,
-        List<int> triangles,
-        float xLeft,
-        float xRight,
-        float zBottom,
-        float zTop)
+    [MenuItem("Tools/Island Map/Level03/Apply First-Level Grass To Flat Land")]
+    public static void ApplyFirstLevelGrassToFlatLand()
     {
-        int firstVertex = vertices.Count;
-        vertices.Add(new Vector3(xLeft, RoadHeight, zBottom));
-        vertices.Add(new Vector3(xLeft, RoadHeight, zTop));
-        vertices.Add(new Vector3(xRight, RoadHeight, zTop));
-        vertices.Add(new Vector3(xRight, RoadHeight, zBottom));
-        uvs.Add(new Vector2(xLeft / 24f, zBottom / 24f));
-        uvs.Add(new Vector2(xLeft / 24f, zTop / 24f));
-        uvs.Add(new Vector2(xRight / 24f, zTop / 24f));
-        uvs.Add(new Vector2(xRight / 24f, zBottom / 24f));
-        triangles.Add(firstVertex);
-        triangles.Add(firstVertex + 1);
-        triangles.Add(firstVertex + 2);
-        triangles.Add(firstVertex);
-        triangles.Add(firstVertex + 2);
-        triangles.Add(firstVertex + 3);
+        Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        Mesh landMesh = AssetDatabase.LoadAssetAtPath<Mesh>(LandMeshPath);
+        Material flatGrassMaterial = AssetDatabase.LoadAssetAtPath<Material>(
+            SourceGrassMaterialPath);
+        Texture2D heightReference = LoadTextureFromFile(HeightReferencePath);
+        if (landMesh == null || flatGrassMaterial == null || heightReference == null)
+        {
+            DestroyTexture(heightReference);
+            throw new System.InvalidOperationException(
+                "The Level03 land mesh, height reference, or first-level grass " +
+                "material is missing.");
+        }
+
+        float landDepth = landMesh.bounds.size.z;
+        Mesh flatGrassMesh = BuildFlatGrassMesh(
+            landMesh,
+            landDepth,
+            heightReference);
+        DestroyTexture(heightReference);
+        SaveMeshAsset(flatGrassMesh, FlatGrassMeshPath);
+
+        GameObject land = GameObject.Find("ENV_Level03_FlatIslands_And_MainMountain");
+        if (land == null)
+        {
+            throw new System.InvalidOperationException(
+                "The Level03 land object is missing.");
+        }
+
+        GameObject flatGrass = GameObject.Find("ENV_Level03_FlatGrass_FirstLevel");
+        if (flatGrass == null)
+        {
+            flatGrass = CreateMeshObject(
+                "ENV_Level03_FlatGrass_FirstLevel",
+                flatGrassMesh,
+                flatGrassMaterial,
+                land.transform.parent,
+                false);
+        }
+        else
+        {
+            flatGrass.GetComponent<MeshFilter>().sharedMesh = flatGrassMesh;
+            flatGrass.GetComponent<MeshRenderer>().sharedMaterial = flatGrassMaterial;
+        }
+
+        flatGrass.layer = land.layer;
+        flatGrass.isStatic = true;
+        flatGrass.transform.SetParent(land.transform.parent, false);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log(
+            $"[Level03 Flat Grass] Applied the first-level grass material to " +
+            $"{flatGrassMesh.triangles.Length / 3:N0} flat triangles only.");
+    }
+
+    public static void ApplyFirstLevelGrassToFlatLandFromCommandLine()
+    {
+        ApplyFirstLevelGrassToFlatLand();
+        Level03ActivePlanSplineRoadRebuilder.RenderVerificationPreview();
     }
 
     private static bool[] FindLargestConnectedComponent(bool[] source, int width, int height)
