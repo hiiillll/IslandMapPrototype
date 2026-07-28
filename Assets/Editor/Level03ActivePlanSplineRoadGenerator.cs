@@ -73,12 +73,14 @@ public static class Level03ActivePlanSplineRoadGenerator
     private const int WidthSpikeWindow = 28;
     private const float MaximumLocalWidthRatio = 1.15f;
     private const int CapSegments = 20;
-    private const float MarkingMinimumPathLength = 170f;
     private const float MarkingMinimumRoadWidth = 25f;
     private const float MarkingDashLength = 18f;
     private const float MarkingGapLength = 14f;
     private const float MarkingHalfWidth = 1.35f;
-    private const float MarkingJunctionClearance = 22f;
+    // Skeleton graph nodes also occur at ordinary T-junctions. Half a normal
+    // dash gap on each adjoining path keeps the centre line visually regular
+    // without painting through a broad intersection.
+    private const float MarkingJunctionClearance = MarkingGapLength * 0.5f;
 
     private static readonly int[] NeighbourX = { -1, 0, 1, -1, 1, -1, 0, 1 };
     private static readonly int[] NeighbourY = { -1, -1, -1, 0, 0, 1, 1, 1 };
@@ -239,6 +241,7 @@ public static class Level03ActivePlanSplineRoadGenerator
         List<Vector2> uvs = new List<Vector2>(12000);
         List<int> triangles = new List<int>(18000);
         int markedPaths = 0;
+        int dashCount = 0;
 
         foreach (List<int> pixelPath in graph.TracePaths())
         {
@@ -248,12 +251,6 @@ public static class Level03ActivePlanSplineRoadGenerator
                 graph.Height,
                 worldWidth,
                 worldDepth);
-            float pathLength = CalculateLength(controls);
-            if (pathLength < MarkingMinimumPathLength)
-            {
-                continue;
-            }
-
             bool closed = controls.Count > 2 &&
                           Vector2.Distance(controls[0], controls[controls.Count - 1]) <= 0.1f;
             controls = SmoothControls(
@@ -276,38 +273,22 @@ public static class Level03ActivePlanSplineRoadGenerator
                 continue;
             }
 
-            int middle = samples.Count / 2;
-            int previous = Mathf.Max(0, middle - 1);
-            int next = Mathf.Min(samples.Count - 1, middle + 1);
-            Vector2 tangent = (samples[next] - samples[previous]).normalized;
-            Vector2 right = new Vector2(tangent.y, -tangent.x);
-            float roadWidth = MeasureHalfWidth(
-                                  samples[middle],
-                                  -right,
-                                  roadPlan,
-                                  worldWidth,
-                                  worldDepth,
-                                  threshold) +
-                              MeasureHalfWidth(
-                                  samples[middle],
-                                  right,
-                                  roadPlan,
-                                  worldWidth,
-                                  worldDepth,
-                                  threshold);
-            if (roadWidth < MarkingMinimumRoadWidth)
-            {
-                continue;
-            }
-
-            AddDashedCenterline(
+            int pathDashCount = AddDashedCenterline(
                 samples,
                 closed,
                 roadHeight + 0.035f,
+                roadPlan,
+                worldWidth,
+                worldDepth,
+                threshold,
                 vertices,
                 uvs,
                 triangles);
-            markedPaths++;
+            if (pathDashCount > 0)
+            {
+                markedPaths++;
+                dashCount += pathDashCount;
+            }
         }
 
         Mesh mesh = new Mesh
@@ -322,14 +303,18 @@ public static class Level03ActivePlanSplineRoadGenerator
         mesh.RecalculateBounds();
         Debug.Log(
             $"[Level03 Road Markings] Generated {markedPaths} marked main-road paths " +
-            $"with {triangles.Count / 3:N0} triangles.");
+            $"with {dashCount} dashes and {triangles.Count / 3:N0} triangles.");
         return mesh;
     }
 
-    private static void AddDashedCenterline(
+    private static int AddDashedCenterline(
         List<Vector2> samples,
         bool closed,
         float height,
+        Texture2D roadPlan,
+        float worldWidth,
+        float worldDepth,
+        float threshold,
         List<Vector3> vertices,
         List<Vector2> uvs,
         List<int> triangles)
@@ -344,6 +329,7 @@ public static class Level03ActivePlanSplineRoadGenerator
         float totalLength = distances[distances.Length - 1];
         float start = closed ? 0f : MarkingJunctionClearance;
         float end = closed ? totalLength : totalLength - MarkingJunctionClearance;
+        int dashCount = 0;
         for (float distance = start;
              distance + MarkingDashLength <= end;
              distance += MarkingDashLength + MarkingGapLength)
@@ -360,6 +346,30 @@ public static class Level03ActivePlanSplineRoadGenerator
             }
 
             Vector2 right = new Vector2(direction.y, -direction.x) * MarkingHalfWidth;
+            Vector2 centre = PointAtDistance(
+                samples,
+                distances,
+                distance + MarkingDashLength * 0.5f);
+            Vector2 widthDirection = right.normalized;
+            float roadWidth = MeasureHalfWidth(
+                                  centre,
+                                  -widthDirection,
+                                  roadPlan,
+                                  worldWidth,
+                                  worldDepth,
+                                  threshold) +
+                              MeasureHalfWidth(
+                                  centre,
+                                  widthDirection,
+                                  roadPlan,
+                                  worldWidth,
+                                  worldDepth,
+                                  threshold);
+            if (roadWidth < MarkingMinimumRoadWidth)
+            {
+                continue;
+            }
+
             int firstVertex = vertices.Count;
             AddVertex(first - right, height, vertices, uvs);
             AddVertex(first + right, height, vertices, uvs);
@@ -377,7 +387,10 @@ public static class Level03ActivePlanSplineRoadGenerator
                 firstVertex + 3,
                 vertices,
                 triangles);
+            dashCount++;
         }
+
+        return dashCount;
     }
 
     private static Vector2 PointAtDistance(

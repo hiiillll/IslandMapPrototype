@@ -20,9 +20,9 @@ RenderSettings:
   m_FogDensity: 0.01
   m_LinearFogStart: 2100
   m_LinearFogEnd: 5200
-  m_AmbientSkyColor: {r: 0.55, g: 0.67, b: 0.76, a: 1}
-  m_AmbientEquatorColor: {r: 0.38, g: 0.48, b: 0.42, a: 1}
-  m_AmbientGroundColor: {r: 0.18, g: 0.22, b: 0.2, a: 1}
+  m_AmbientSkyColor: {r: 0.72, g: 0.76, b: 0.75, a: 1}
+  m_AmbientEquatorColor: {r: 0.61, g: 0.62, b: 0.54, a: 1}
+  m_AmbientGroundColor: {r: 0.43, g: 0.44, b: 0.38, a: 1}
   m_AmbientIntensity: 0.92
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
@@ -1056,8 +1056,8 @@ Light:
   serializedVersion: 10
   m_Type: 1
   m_Shape: 0
-  m_Color: {r: 1, g: 0.94, b: 0.82, a: 1}
-  m_Intensity: 1.02
+  m_Color: {r: 1, g: 0.96, b: 0.84, a: 1}
+  m_Intensity: 0.88
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -1589,7 +1589,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1266438108}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
