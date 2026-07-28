@@ -24,10 +24,12 @@ public static class Level03IllustratedMapStyleInstaller
     private const string SoilLayerPath = LayerFolder + "/TL_Level03_MountainSoil.terrainlayer";
     private const string RockLayerPath = LayerFolder + "/TL_Level03_MountainRock.terrainlayer";
     private const string OceanMaterialPath = "Assets/Level03/GeneratedTerrainRoad/MAT_Level03_Ocean.mat";
+    private const string Level02OceanMaterialPath = "Assets/Art/Materials/Ocean_BoatChase.mat";
     private const string BeachMaterialPath = "Assets/Level03/GeneratedTerrainRoad/MAT_Level03_Beach.mat";
     private const string RoadMaterialPath = "Assets/Level03/GeneratedTerrainRoad/MAT_Level03_Road.mat";
     private const string OceanShaderName = "IslandMap/IllustratedOcean";
     private const string FlatGrassName = "ENV_Level03_FlatGrass_FirstLevel";
+    private const string GorillaPropsName = "DECOR_Level03_GorillaMountainProps";
     private const int ShoreMaskResolution = 1024;
     private const float WorldMinimum = -2000f;
     private const float WorldSize = 4000f;
@@ -58,6 +60,37 @@ public static class Level03IllustratedMapStyleInstaller
         EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
         Apply();
         Level03ActivePlanSplineRoadRebuilder.RenderVerificationPreview();
+    }
+
+    public static void ApplyUniformOceanOnlyFromCommandLine()
+    {
+        Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        Texture2D shoreMask = LoadRequired<Texture2D>(ShoreMaskPath);
+        ConfigureUniformOcean(shoreMask);
+        RemoveGorillaProps(scene);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[Level03 Ocean] Applied one uniform cyan-blue color without modifying Terrain data.");
+    }
+
+    public static void ApplyLevel02OceanOnlyFromCommandLine()
+    {
+        Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        GameObject ocean = Resources.FindObjectsOfTypeAll<GameObject>()
+            .FirstOrDefault(item => item.scene == scene && item.name == "ENV_Level03_Ocean_4000x4000");
+        MeshRenderer renderer = ocean != null ? ocean.GetComponent<MeshRenderer>() : null;
+        if (renderer == null)
+        {
+            throw new InvalidOperationException("Level03 ocean renderer was not found.");
+        }
+
+        renderer.sharedMaterial = LoadRequired<Material>(Level02OceanMaterialPath);
+        EditorUtility.SetDirty(renderer);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[Level03 Ocean] Assigned the exact Ocean_BoatChase material used by Level02.");
     }
 
     [MenuItem("Tools/Island Map/Level03/Apply Illustrated Whole Map Style")]
@@ -123,6 +156,7 @@ public static class Level03IllustratedMapStyleInstaller
         }
 
         bool overlayDisabled = DisableFlatGrassOverlay(scene);
+        RemoveGorillaProps(scene);
         Texture2D shoreMask = BuildShoreMask(terrains);
         ConfigureSceneMaterials(shoreMask);
         ConfigureLighting(scene);
@@ -366,23 +400,7 @@ public static class Level03IllustratedMapStyleInstaller
 
     private static void ConfigureSceneMaterials(Texture2D shoreMask)
     {
-        Material ocean = LoadRequired<Material>(OceanMaterialPath);
-        Shader oceanShader = Shader.Find(OceanShaderName);
-        if (oceanShader == null)
-        {
-            throw new InvalidOperationException($"Ocean shader was not found: {OceanShaderName}");
-        }
-        ocean.shader = oceanShader;
-        ocean.SetTexture("_MainTex", LoadRequired<Texture2D>(OceanTexturePath));
-        ocean.SetTextureScale("_MainTex", new Vector2(5f, 5f));
-        ocean.SetTexture("_ShoreMask", shoreMask);
-        ocean.SetColor("_DeepColor", new Color(0.025f, 0.18f, 0.28f, 1f));
-        ocean.SetColor("_MidColor", new Color(0.035f, 0.34f, 0.44f, 1f));
-        ocean.SetColor("_ShallowColor", new Color(0.12f, 0.56f, 0.58f, 1f));
-        ocean.SetColor("_FoamColor", new Color(0.68f, 0.84f, 0.73f, 1f));
-        ocean.SetFloat("_TextureStrength", 0.26f);
-        ocean.SetFloat("_FoamStrength", 0.48f);
-        EditorUtility.SetDirty(ocean);
+        ConfigureUniformOcean(shoreMask);
 
         Material beach = LoadRequired<Material>(BeachMaterialPath);
         SetMainTexture(beach, LoadRequired<Texture2D>(SandTexturePath), new Vector2(1.25f, 1.25f));
@@ -395,6 +413,28 @@ public static class Level03IllustratedMapStyleInstaller
         SetMaterialFloatIfPresent(road, "_Glossiness", 0.05f);
         SetMaterialFloatIfPresent(road, "_Metallic", 0f);
         EditorUtility.SetDirty(road);
+    }
+
+    private static void ConfigureUniformOcean(Texture2D shoreMask)
+    {
+        Material ocean = LoadRequired<Material>(OceanMaterialPath);
+        Shader oceanShader = Shader.Find(OceanShaderName);
+        if (oceanShader == null)
+        {
+            throw new InvalidOperationException($"Ocean shader was not found: {OceanShaderName}");
+        }
+        ocean.shader = oceanShader;
+        ocean.SetTexture("_MainTex", LoadRequired<Texture2D>(OceanTexturePath));
+        ocean.SetTextureScale("_MainTex", new Vector2(5f, 5f));
+        ocean.SetTexture("_ShoreMask", shoreMask);
+        Color uniformOcean = new Color(0.035f, 0.50f, 0.60f, 1f);
+        ocean.SetColor("_DeepColor", uniformOcean);
+        ocean.SetColor("_MidColor", uniformOcean);
+        ocean.SetColor("_ShallowColor", uniformOcean);
+        ocean.SetColor("_FoamColor", uniformOcean);
+        ocean.SetFloat("_TextureStrength", 0f);
+        ocean.SetFloat("_FoamStrength", 0f);
+        EditorUtility.SetDirty(ocean);
     }
 
     private static void ConfigureLighting(Scene scene)
@@ -446,6 +486,16 @@ public static class Level03IllustratedMapStyleInstaller
         renderer.enabled = false;
         EditorUtility.SetDirty(renderer);
         return !renderer.enabled;
+    }
+
+    private static void RemoveGorillaProps(Scene scene)
+    {
+        GameObject props = Resources.FindObjectsOfTypeAll<GameObject>()
+            .FirstOrDefault(item => item.scene == scene && item.name == GorillaPropsName);
+        if (props != null)
+        {
+            UnityEngine.Object.DestroyImmediate(props);
+        }
     }
 
     private static void EnsureRequiredTexture(string assetPath)

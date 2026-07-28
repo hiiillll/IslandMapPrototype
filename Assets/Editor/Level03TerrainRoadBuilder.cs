@@ -100,7 +100,7 @@ public static class Level03TerrainRoadBuilder
     private const float OceanSize = 4000f;
     private const float LandWidth = 4000f;
     private const float FlatLandHeight = 0.35f;
-    private const float RoadHeight = 0.62f;
+    private const float RoadHeight = 0.40f;
     private const float MaximumMountainHeight = 360f;
     private const float LandThreshold = 0.075f;
     private const float MountainStartLuminance = 0.28f;

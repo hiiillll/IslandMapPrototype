@@ -36,6 +36,8 @@ public class SimpleAutoDriveController : MonoBehaviour
     [SerializeField, Min(1f)] private float counterSteerGripMultiplier = 1.5f;
     [SerializeField, Min(0f)] private float groundCheckDistance = 0.45f;
     [SerializeField] private LayerMask groundLayers = ~0;
+    [SerializeField, Min(0f)] private float speedMultiplier = 1f;
+    [SerializeField] private bool preserveInitialHeading;
 
     private Rigidbody body;
     private float turnInput;
@@ -77,7 +79,8 @@ public class SimpleAutoDriveController : MonoBehaviour
         body.angularDrag = 0f;
         body.maxAngularVelocity = 10f;
 
-        forwardSpeed = GetDefaultForwardSpeedForCurrentMode();
+        forwardSpeed = GetDefaultForwardSpeedForCurrentMode()
+            * Mathf.Max(0f, speedMultiplier);
         turnSpeed = 3.6f;
         inputSmoothing = 24f;
         acceleration = 14f;
@@ -111,7 +114,10 @@ public class SimpleAutoDriveController : MonoBehaviour
 
     private void Start()
     {
-        body.rotation = Quaternion.identity;
+        if (!preserveInitialHeading)
+        {
+            body.rotation = Quaternion.identity;
+        }
     }
 
     private void Update()

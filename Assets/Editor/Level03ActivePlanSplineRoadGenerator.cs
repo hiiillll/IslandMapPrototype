@@ -1252,7 +1252,7 @@ public static class Level03ActivePlanSplineRoadRebuilder
     private const string RoadObjectName = "ENV_Level03_RoadNetwork_FromReference";
     private const string RoadMarkingObjectName = "ENV_Level03_RoadMarkings";
     private const float LandWidth = 4000f;
-    private const float RoadHeight = 0.62f;
+    private const float RoadHeight = 0.40f;
     private const float RoadThreshold = 0.55f;
 
     public static void RebuildFromCommandLine()
@@ -1345,6 +1345,7 @@ public static class Level03ActivePlanSplineRoadRebuilder
             {
                 throw new InvalidOperationException("The Level03 road object is missing.");
             }
+            roadObject.transform.localPosition = Vector3.zero;
 
             GameObject markingObject = GameObject.Find(RoadMarkingObjectName);
             if (markingObject == null)
@@ -1355,6 +1356,7 @@ public static class Level03ActivePlanSplineRoadRebuilder
                 markingObject.AddComponent<MeshRenderer>();
             }
 
+            markingObject.transform.localPosition = Vector3.zero;
             markingObject.layer = roadObject.layer;
             markingObject.isStatic = true;
             markingObject.GetComponent<MeshFilter>().sharedMesh = savedMarkings;
