@@ -240,6 +240,126 @@ public static class Level03ActivePlanSplineRoadGenerator
         return mesh;
     }
 
+    public static Mesh BuildCollision(
+        Texture2D roadPlan,
+        float worldWidth,
+        float worldDepth,
+        float collisionHeight,
+        float threshold)
+    {
+        if (roadPlan == null)
+        {
+            throw new ArgumentNullException(nameof(roadPlan));
+        }
+
+        int width = roadPlan.width;
+        int height = roadPlan.height;
+        Dictionary<int, int> vertexLookup = new Dictionary<int, int>(48000);
+        List<Vector3> vertices = new List<Vector3>(48000);
+        List<int> triangles = new List<int>(180000);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                if (roadPlan.GetPixel(x, height - 1 - y).grayscale <= threshold)
+                {
+                    continue;
+                }
+
+                int northWest = GetCollisionVertex(
+                    x,
+                    y,
+                    width,
+                    height,
+                    worldWidth,
+                    worldDepth,
+                    collisionHeight,
+                    vertexLookup,
+                    vertices);
+                int northEast = GetCollisionVertex(
+                    x + 1,
+                    y,
+                    width,
+                    height,
+                    worldWidth,
+                    worldDepth,
+                    collisionHeight,
+                    vertexLookup,
+                    vertices);
+                int southWest = GetCollisionVertex(
+                    x,
+                    y + 1,
+                    width,
+                    height,
+                    worldWidth,
+                    worldDepth,
+                    collisionHeight,
+                    vertexLookup,
+                    vertices);
+                int southEast = GetCollisionVertex(
+                    x + 1,
+                    y + 1,
+                    width,
+                    height,
+                    worldWidth,
+                    worldDepth,
+                    collisionHeight,
+                    vertexLookup,
+                    vertices);
+
+                triangles.Add(northWest);
+                triangles.Add(northEast);
+                triangles.Add(southWest);
+                triangles.Add(northEast);
+                triangles.Add(southEast);
+                triangles.Add(southWest);
+            }
+        }
+
+        Mesh mesh = new Mesh
+        {
+            name = "MESH_Level03_RoadCollision_Thin",
+            indexFormat = IndexFormat.UInt32
+        };
+        mesh.SetVertices(vertices);
+        mesh.SetTriangles(triangles, 0, true);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        Debug.Log(
+            $"[Level03 Road Collision] Generated a single-layer collision surface with " +
+            $"{vertices.Count:N0} shared vertices and {triangles.Count / 3:N0} triangles.");
+        return mesh;
+    }
+
+    private static int GetCollisionVertex(
+        int gridX,
+        int gridY,
+        int width,
+        int height,
+        float worldWidth,
+        float worldDepth,
+        float collisionHeight,
+        Dictionary<int, int> vertexLookup,
+        List<Vector3> vertices)
+    {
+        int key = gridY * (width + 1) + gridX;
+        if (vertexLookup.TryGetValue(key, out int vertexIndex))
+        {
+            return vertexIndex;
+        }
+
+        float u = (float)gridX / width;
+        float v = (float)gridY / height;
+        vertexIndex = vertices.Count;
+        vertices.Add(new Vector3(
+            worldWidth * (u - 0.5f),
+            collisionHeight,
+            worldDepth * (0.5f - v)));
+        vertexLookup.Add(key, vertexIndex);
+        return vertexIndex;
+    }
+
     public static Mesh BuildMarkings(
         Texture2D roadPlan,
         float worldWidth,
@@ -1240,6 +1360,8 @@ public static class Level03ActivePlanSplineRoadRebuilder
     private const string HeightReferencePath = "Assets/Level03/References/Level03_HeightReference.png";
     private const string RoadPlanPath = "Assets/Level03/References/Level03_RoadPlan_Active.png";
     private const string RoadMeshPath = "Assets/Level03/GeneratedTerrainRoad/MESH_Level03_Roads.asset";
+    private const string RoadCollisionMeshPath =
+        "Assets/Level03/GeneratedTerrainRoad/MESH_Level03_RoadCollision_Thin.asset";
     private const string RoadMarkingMeshPath =
         "Assets/Level03/GeneratedTerrainRoad/MESH_Level03_RoadMarkings.asset";
     private const string RoadMarkingMaterialPath =
@@ -1249,6 +1371,7 @@ public static class Level03ActivePlanSplineRoadRebuilder
     private const string RoadMarkingChunkObjectPrefix = "RoadMarkingChunk_";
     private const float LandWidth = 4000f;
     private const float RoadHeight = 0.40f;
+    private const float RoadCollisionHeight = 0.355f;
     private const float RoadThreshold = 0.55f;
 
     public static void RebuildFromCommandLine()
@@ -1284,6 +1407,12 @@ public static class Level03ActivePlanSplineRoadRebuilder
                 worldDepth,
                 RoadHeight,
                 RoadThreshold);
+            Mesh generatedCollision = Level03ActivePlanSplineRoadGenerator.BuildCollision(
+                roadPlan,
+                LandWidth,
+                worldDepth,
+                RoadCollisionHeight,
+                RoadThreshold);
             Mesh generatedMarkings = Level03ActivePlanSplineRoadGenerator.BuildMarkings(
                 roadPlan,
                 LandWidth,
@@ -1303,6 +1432,21 @@ public static class Level03ActivePlanSplineRoadRebuilder
                 EditorUtility.SetDirty(saved);
             }
             saved.UploadMeshData(false);
+
+            Mesh savedCollision = AssetDatabase.LoadAssetAtPath<Mesh>(
+                RoadCollisionMeshPath);
+            if (savedCollision == null)
+            {
+                AssetDatabase.CreateAsset(generatedCollision, RoadCollisionMeshPath);
+                savedCollision = generatedCollision;
+            }
+            else
+            {
+                CopyMeshData(generatedCollision, savedCollision);
+                UnityEngine.Object.DestroyImmediate(generatedCollision);
+                EditorUtility.SetDirty(savedCollision);
+            }
+            savedCollision.UploadMeshData(false);
 
             Mesh savedMarkings = AssetDatabase.LoadAssetAtPath<Mesh>(RoadMarkingMeshPath);
             if (savedMarkings == null)
@@ -1335,7 +1479,7 @@ public static class Level03ActivePlanSplineRoadRebuilder
                     if (collider != null)
                     {
                         collider.sharedMesh = null;
-                        collider.sharedMesh = saved;
+                        collider.sharedMesh = savedCollision;
                     }
                 }
             }

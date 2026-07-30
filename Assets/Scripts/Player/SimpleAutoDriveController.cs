@@ -20,6 +20,9 @@ public class SimpleAutoDriveController : MonoBehaviour
     [SerializeField, Range(0.05f, 1f)] private float beachAccelerationMultiplier = 0.5f;
     [SerializeField, Min(0f)] private float surfaceGripResponse = 5f;
 
+    [Header("Steep Slope Handling")]
+    [SerializeField, Range(5f, 60f)] private float maximumDriveSlope = 38f;
+
     [Header("Arcade Handbrake Drift")]
     [SerializeField] private KeyCode driftKey = KeyCode.Space;
     [SerializeField, Range(0f, 1f)] private float minimumDriftSpeedRatio = 0.3f;
@@ -54,6 +57,7 @@ public class SimpleAutoDriveController : MonoBehaviour
     private float currentSurfaceGripMultiplier = 1f;
     private float currentSurfaceAccelerationMultiplier = 1f;
     private bool isOnBeach;
+    private bool isDriveSurfaceSafe;
     private PhysicMaterial frictionlessMaterial;
     private float previousFixedDeltaTime;
     private Collider[] vehicleColliders;
@@ -159,10 +163,17 @@ public class SimpleAutoDriveController : MonoBehaviour
     {
         body.WakeUp();
         Vector3 planarVelocity = new Vector3(body.velocity.x, 0f, body.velocity.z);
-        isGrounded = CheckGrounded(out Collider groundCollider);
-        isOnBeach = isGrounded && IsBeachSurface(groundCollider);
+        isGrounded = CheckGrounded(out Collider groundCollider, out RaycastHit groundHit);
+        isDriveSurfaceSafe = isGrounded
+            && Vector3.Angle(groundHit.normal, Vector3.up) <= maximumDriveSlope;
+        isOnBeach = isDriveSurfaceSafe && IsBeachSurface(groundCollider);
         UpdateSurfaceHandling();
         UpdateDriftState(planarVelocity.magnitude);
+
+        if (!isDriveSurfaceSafe)
+        {
+            return;
+        }
 
         float turnMultiplier = isDrifting ? driftTurnMultiplier : 1f;
         float targetTurnRate = smoothedTurnInput * turnSpeed * turnMultiplier;
@@ -228,7 +239,7 @@ public class SimpleAutoDriveController : MonoBehaviour
     {
         float minimumDriftSpeed = forwardSpeed * minimumDriftSpeedRatio;
         bool shouldDrift = !GameModeSession.IsEndlessSea
-            && isGrounded
+            && isDriveSurfaceSafe
             && driftHeld
             && Mathf.Abs(smoothedTurnInput) > 0.1f
             && planarSpeed >= minimumDriftSpeed;
@@ -365,9 +376,10 @@ public class SimpleAutoDriveController : MonoBehaviour
             && surfaceMaterial.name.IndexOf("Beach", System.StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
-    private bool CheckGrounded(out Collider groundCollider)
+    private bool CheckGrounded(out Collider groundCollider, out RaycastHit groundHit)
     {
         groundCollider = null;
+        groundHit = default;
         if (vehicleColliders == null || vehicleColliders.Length == 0)
         {
             return false;
@@ -411,11 +423,12 @@ public class SimpleAutoDriveController : MonoBehaviour
             RaycastHit hit = groundHits[hitIndex];
             if (hit.collider != null
                 && !hit.collider.transform.IsChildOf(transform)
-                && Vector3.Dot(hit.normal, Vector3.up) >= 0.5f
+                && Vector3.Dot(hit.normal, Vector3.up) > 0.01f
                 && hit.distance < closestDistance)
             {
                 closestDistance = hit.distance;
                 groundCollider = hit.collider;
+                groundHit = hit;
             }
         }
 

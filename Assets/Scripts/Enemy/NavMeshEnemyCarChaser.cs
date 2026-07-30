@@ -457,9 +457,35 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
         }
 
         string objectName = collider.gameObject.name;
-        bool isDrivingSurface = objectName == "COL_Grass" || objectName == "COL_Beach"
-            || objectName.StartsWith("COL_Road");
-        return !isDrivingSurface && !objectName.StartsWith("SPAWN_");
+        return !IsDrivingSurface(collider) && !objectName.StartsWith("SPAWN_");
+    }
+
+    public static bool IsDrivingSurface(Collider collider)
+    {
+        if (collider == null)
+        {
+            return false;
+        }
+
+        if (collider is TerrainCollider)
+        {
+            return true;
+        }
+
+        for (Transform current = collider.transform; current != null; current = current.parent)
+        {
+            string objectName = current.name;
+            if (objectName == "COL_Grass" ||
+                objectName == "COL_Beach" ||
+                objectName.StartsWith("COL_Road") ||
+                objectName == "ENV_Level03_RoadNetwork_FromReference" ||
+                objectName.StartsWith("Terrain_Level03_"))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private bool IsStaticObstacleAhead()

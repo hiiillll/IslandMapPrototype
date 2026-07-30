@@ -12,6 +12,8 @@ public static class Level03SceneAudit
     private const string ScenePath = "Assets/Scenes/Level03.unity";
     private const string ReportPath = "Library/CodexLevel03SceneAudit.json";
     private const string RoadName = "ENV_Level03_RoadNetwork_FromReference";
+    private const string RoadCollisionMeshPath =
+        "Assets/Level03/GeneratedTerrainRoad/MESH_Level03_RoadCollision_Thin.asset";
     private const string MarkingName = "ENV_Level03_RoadMarkings";
     private const string FlatGrassName = "ENV_Level03_FlatGrass_FirstLevel";
     private const string OceanName = "ENV_Level03_Ocean_4000x4000";
@@ -115,11 +117,13 @@ public static class Level03SceneAudit
             errors.Add("Road mesh is missing.");
         }
 
-        bool colliderMatches = roadMesh != null && roadCollider != null &&
-                               roadCollider.sharedMesh == roadMesh;
+        Mesh roadCollisionMesh = roadCollider != null ? roadCollider.sharedMesh : null;
+        bool colliderMatches = roadCollisionMesh != null &&
+                               AssetDatabase.GetAssetPath(roadCollisionMesh) ==
+                               RoadCollisionMeshPath;
         if (!colliderMatches)
         {
-            errors.Add("Road MeshCollider does not match the rendered road mesh.");
+            errors.Add("Road MeshCollider does not use the dedicated thin collision mesh.");
         }
 
         int downward = roadMesh != null ? CountDownwardTriangles(roadMesh) : 0;

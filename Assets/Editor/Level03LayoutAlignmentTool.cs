@@ -163,11 +163,10 @@ public static class Level03LayoutAlignmentTool
             }
 
             MeshCollider roadCollider = road.GetComponent<MeshCollider>();
-            if (roadCollider != null && roadCollider.sharedMesh != roadMesh)
+            if (roadCollider == null || roadCollider.sharedMesh == null)
             {
-                roadCollider.sharedMesh = null;
-                roadCollider.sharedMesh = roadMesh;
-                EditorUtility.SetDirty(roadCollider);
+                throw new InvalidOperationException(
+                    "The rebuilt Level03 road collision mesh is missing.");
             }
 
             EditorSceneManager.MarkSceneDirty(level03);

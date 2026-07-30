@@ -85,6 +85,8 @@ public static class Level03TerrainRoadBuilder
     private const string LandMeshPath = GeneratedFolder + "/MESH_Level03_Land.asset";
     private const string FlatGrassMeshPath = GeneratedFolder + "/MESH_Level03_FlatGrass.asset";
     private const string RoadMeshPath = GeneratedFolder + "/MESH_Level03_Roads.asset";
+    private const string RoadCollisionMeshPath =
+        GeneratedFolder + "/MESH_Level03_RoadCollision_Thin.asset";
     private const string GrassMaterialPath = GeneratedFolder + "/MAT_Level03_Grass.mat";
     private const string RoadMaterialPath = GeneratedFolder + "/MAT_Level03_Road.mat";
     private const string OceanMaterialPath = GeneratedFolder + "/MAT_Level03_Ocean.mat";
@@ -101,6 +103,7 @@ public static class Level03TerrainRoadBuilder
     private const float LandWidth = 4000f;
     private const float FlatLandHeight = 0.35f;
     private const float RoadHeight = 0.40f;
+    private const float RoadCollisionHeight = 0.355f;
     private const float MaximumMountainHeight = 360f;
     private const float LandThreshold = 0.075f;
     private const float MountainStartLuminance = 0.28f;
@@ -137,9 +140,16 @@ public static class Level03TerrainRoadBuilder
             landDepth,
             heightReference);
         Mesh roadMesh = BuildRoadMesh(roadPlan, landDepth);
+        Mesh roadCollisionMesh = Level03ActivePlanSplineRoadGenerator.BuildCollision(
+            roadPlan,
+            LandWidth,
+            landDepth,
+            RoadCollisionHeight,
+            RoadThreshold);
         SaveMeshAsset(landMesh, LandMeshPath);
         SaveMeshAsset(flatGrassMesh, FlatGrassMeshPath);
         SaveMeshAsset(roadMesh, RoadMeshPath);
+        SaveMeshAsset(roadCollisionMesh, RoadCollisionMeshPath);
 
         Material grassMaterial = CreateMaterialCopy(
             SourceGrassMaterialPath,
@@ -186,7 +196,8 @@ public static class Level03TerrainRoadBuilder
             roadMesh,
             roadMaterial,
             environment.transform,
-            true);
+            false);
+        roads.AddComponent<MeshCollider>().sharedMesh = roadCollisionMesh;
         GameObject ocean = CreateOcean(oceanMaterial, environment.transform);
 
         GameObject systems = CreateRoot("SYSTEMS_Level03_Preview", scene);

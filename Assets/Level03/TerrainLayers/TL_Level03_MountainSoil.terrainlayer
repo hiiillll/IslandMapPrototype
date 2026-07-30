@@ -7,16 +7,16 @@ TerrainLayer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: TL_Level03_MountainSoil
-  m_DiffuseTexture: {fileID: 2800000, guid: 4da86c05aa86dcd47b8e1bf26581263b, type: 3}
+  m_DiffuseTexture: {fileID: 2800000, guid: a84ca9611b9b01e49a2e01780dc634d0, type: 3}
   m_NormalMapTexture: {fileID: 0}
   m_MaskMapTexture: {fileID: 0}
-  m_TileSize: {x: 58, y: 58}
+  m_TileSize: {x: 30, y: 30}
   m_TileOffset: {x: 0, y: 0}
   m_Specular: {r: 0, g: 0, b: 0, a: 0}
   m_Metallic: 0
   m_Smoothness: 0
   m_NormalScale: 1
   m_DiffuseRemapMin: {x: 0, y: 0, z: 0, w: 0}
-  m_DiffuseRemapMax: {x: 0.7, y: 0.61, z: 0.47, w: 1}
+  m_DiffuseRemapMax: {x: 0.62, y: 0.5, z: 0.38, w: 1}
   m_MaskMapRemapMin: {x: 0, y: 0, z: 0, w: 0}
   m_MaskMapRemapMax: {x: 1, y: 1, z: 1, w: 1}
