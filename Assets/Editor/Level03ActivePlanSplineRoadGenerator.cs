@@ -59,23 +59,24 @@ public static class Level03ActivePlanSplineRoadGenerator
 {
     private const float SimplificationTolerance = 2f;
     private const float SkeletonThreshold = 0.15f;
-    private const float SplineSampleSpacing = 2.5f;
+    private const int MaximumSkeletonSpurLengthPixels = 26;
+    private const float SplineSampleSpacing = 1.25f;
     private const float StandardRoadHalfWidth = 25f;
-    private const float JunctionEndpointClusterDistance = 37.5f;
-    private const float MaximumJunctionFillRadius = 43.75f;
-    private const int JunctionFillSegments = 20;
     // Edges shorter than this are medial-axis branches inside a wide painted
     // endpoint, not authored road segments. Keeping them creates round-looking
     // side lobes even when the ribbon itself uses a straight end cut.
     private const float MinimumPathLength = 18f;
     private const int ControlSmoothRadius = 2;
     private const int ControlSmoothPasses = 2;
-    private const int TangentSampleSpan = 1;
+    private const int TangentSampleSpan = 2;
     private const int CapSegments = 20;
+    private const int JunctionDiscSegments = 32;
     private const float MarkingDashLength = 18f;
     private const float MarkingGapLength = 14f;
     private const float MarkingHalfWidth = 1.35f;
     private const float MarkingHeightOffset = 0.08f;
+    private const float MarkingJunctionClearance =
+        StandardRoadHalfWidth + MarkingDashLength * 0.5f;
 
     private static readonly int[] NeighbourX = { -1, 0, 1, -1, 1, -1, 0, 1 };
     private static readonly int[] NeighbourY = { -1, -1, -1, 0, 0, 1, 1, 1 };
@@ -99,10 +100,11 @@ public static class Level03ActivePlanSplineRoadGenerator
         List<Vector3> vertices = new List<Vector3>(32000);
         List<Vector2> uvs = new List<Vector2>(32000);
         List<int> triangles = new List<int>(48000);
-        List<RoadEndpoint> roadEndpoints = new List<RoadEndpoint>();
         int generatedPaths = 0;
         int skippedPaths = 0;
         int[] generatedByQuarter = new int[4];
+        Dictionary<int, Vector2> junctionCentres =
+            new Dictionary<int, Vector2>();
 
         foreach (List<int> pixelPath in pixelPaths)
         {
@@ -120,19 +122,43 @@ public static class Level03ActivePlanSplineRoadGenerator
 
             bool closed = controls.Count > 2 &&
                           Vector2.Distance(controls[0], controls[controls.Count - 1]) <= 0.1f;
-            if (!closed)
+            int startJunctionCluster;
+            Vector2 startJunctionPixel;
+            bool startIsJunction = graph.TryGetJunctionCentre(
+                pixelPath[0],
+                out startJunctionCluster,
+                out startJunctionPixel);
+            int endJunctionCluster;
+            Vector2 endJunctionPixel;
+            bool endIsJunction = graph.TryGetJunctionCentre(
+                pixelPath[pixelPath.Count - 1],
+                out endJunctionCluster,
+                out endJunctionPixel);
+            if (!closed && startIsJunction)
             {
-                roadEndpoints.Add(new RoadEndpoint(
-                    controls[0],
-                    graph.IsTerminal(pixelPath[0])));
-                roadEndpoints.Add(new RoadEndpoint(
-                    controls[controls.Count - 1],
-                    graph.IsTerminal(pixelPath[pixelPath.Count - 1])));
+                Vector2 centre = ConvertPixelPointToWorld(
+                    startJunctionPixel,
+                    graph.Width,
+                    graph.Height,
+                    worldWidth,
+                    worldDepth);
+                controls[0] = centre;
+                junctionCentres[startJunctionCluster] = centre;
+            }
+            if (!closed && endIsJunction)
+            {
+                Vector2 centre = ConvertPixelPointToWorld(
+                    endJunctionPixel,
+                    graph.Width,
+                    graph.Height,
+                    worldWidth,
+                    worldDepth);
+                controls[controls.Count - 1] = centre;
+                junctionCentres[endJunctionCluster] = centre;
             }
 
-            // Keep authored dead ends and bridge landings as straight, width-matched
-            // cuts. Round caps from several traced paths can overlap at a graph node
-            // and create the large circular protrusions visible in close-up.
+            // Dead ends stay square. Junctions are completed later by one
+            // radius-matched disc per clustered graph node.
             bool capStart = false;
             bool capEnd = false;
             controls = Simplify(controls, SimplificationTolerance);
@@ -179,11 +205,10 @@ public static class Level03ActivePlanSplineRoadGenerator
             generatedPaths++;
         }
 
-        foreach (JunctionPatch junction in BuildJunctionPatches(roadEndpoints))
+        foreach (Vector2 centre in junctionCentres.Values)
         {
-            AddJunctionFill(
-                junction.centre,
-                junction.radius,
+            AddJunctionDisc(
+                centre,
                 roadHeight,
                 vertices,
                 uvs,
@@ -391,6 +416,41 @@ public static class Level03ActivePlanSplineRoadGenerator
 
             bool closed = controls.Count > 2 &&
                           Vector2.Distance(controls[0], controls[controls.Count - 1]) <= 0.1f;
+            bool startIsJunction = false;
+            bool endIsJunction = false;
+            if (!closed)
+            {
+                int junctionCluster;
+                Vector2 junctionPixel;
+                startIsJunction = graph.TryGetJunctionCentre(
+                    pixelPath[0],
+                    out junctionCluster,
+                    out junctionPixel);
+                if (startIsJunction)
+                {
+                    controls[0] = ConvertPixelPointToWorld(
+                        junctionPixel,
+                        graph.Width,
+                        graph.Height,
+                        worldWidth,
+                        worldDepth);
+                }
+
+                endIsJunction = graph.TryGetJunctionCentre(
+                    pixelPath[pixelPath.Count - 1],
+                    out junctionCluster,
+                    out junctionPixel);
+                if (endIsJunction)
+                {
+                    controls[controls.Count - 1] = ConvertPixelPointToWorld(
+                        junctionPixel,
+                        graph.Width,
+                        graph.Height,
+                        worldWidth,
+                        worldDepth);
+                }
+            }
+
             controls = SmoothControls(
                 Simplify(controls, SimplificationTolerance),
                 closed,
@@ -414,6 +474,8 @@ public static class Level03ActivePlanSplineRoadGenerator
             int pathDashCount = AddDashedCenterline(
                 samples,
                 closed,
+                startIsJunction ? MarkingJunctionClearance : 0f,
+                endIsJunction ? MarkingJunctionClearance : 0f,
                 roadHeight + MarkingHeightOffset,
                 vertices,
                 uvs,
@@ -444,6 +506,8 @@ public static class Level03ActivePlanSplineRoadGenerator
     private static int AddDashedCenterline(
         List<Vector2> samples,
         bool closed,
+        float startClearance,
+        float endClearance,
         float height,
         List<Vector3> vertices,
         List<Vector2> uvs,
@@ -464,14 +528,15 @@ public static class Level03ActivePlanSplineRoadGenerator
 
         float period = MarkingDashLength + MarkingGapLength;
         float halfDash = MarkingDashLength * 0.5f;
-        int intervalCount = Mathf.Max(1, Mathf.RoundToInt(totalLength / period));
-        float spacing = totalLength / intervalCount;
         int dashCount = 0;
         if (closed)
         {
-            for (int dash = 0; dash < intervalCount; dash++)
+            int closedIntervalCount =
+                Mathf.Max(1, Mathf.RoundToInt(totalLength / period));
+            float closedSpacing = totalLength / closedIntervalCount;
+            for (int dash = 0; dash < closedIntervalCount; dash++)
             {
-                float centre = (dash + 0.5f) * spacing;
+                float centre = (dash + 0.5f) * closedSpacing;
                 dashCount += AddDash(
                     samples,
                     distances,
@@ -486,14 +551,28 @@ public static class Level03ActivePlanSplineRoadGenerator
             return dashCount;
         }
 
-        for (int dash = 0; dash <= intervalCount; dash++)
+        float markedStart = Mathf.Clamp(startClearance, 0f, totalLength);
+        float markedEnd = Mathf.Clamp(
+            totalLength - endClearance,
+            markedStart,
+            totalLength);
+        float markedLength = markedEnd - markedStart;
+        if (markedLength < MarkingDashLength * 0.25f)
         {
-            float centre = dash * spacing;
+            return 0;
+        }
+
+        int intervalCount =
+            Mathf.Max(1, Mathf.RoundToInt(markedLength / period));
+        float spacing = markedLength / intervalCount;
+        for (int dash = 0; dash < intervalCount; dash++)
+        {
+            float centre = markedStart + (dash + 0.5f) * spacing;
             dashCount += AddDash(
                 samples,
                 distances,
-                Mathf.Max(0f, centre - halfDash),
-                Mathf.Min(totalLength, centre + halfDash),
+                Mathf.Max(markedStart, centre - halfDash),
+                Mathf.Min(markedEnd, centre + halfDash),
                 height,
                 vertices,
                 uvs,
@@ -581,6 +660,18 @@ public static class Level03ActivePlanSplineRoadGenerator
         }
 
         return result;
+    }
+
+    private static Vector2 ConvertPixelPointToWorld(
+        Vector2 point,
+        int imageWidth,
+        int imageHeight,
+        float worldWidth,
+        float worldDepth)
+    {
+        return new Vector2(
+            worldWidth * (point.x / (imageWidth - 1) - 0.5f),
+            worldDepth * (0.5f - point.y / (imageHeight - 1)));
     }
 
     private static float CalculateLength(List<Vector2> points)
@@ -808,63 +899,8 @@ public static class Level03ActivePlanSplineRoadGenerator
         }
     }
 
-    private static IEnumerable<JunctionPatch> BuildJunctionPatches(
-        IReadOnlyList<RoadEndpoint> endpoints)
-    {
-        bool[] assigned = new bool[endpoints.Count];
-        for (int first = 0; first < endpoints.Count; first++)
-        {
-            if (assigned[first])
-            {
-                continue;
-            }
-
-            List<int> cluster = new List<int> { first };
-            assigned[first] = true;
-            for (int clusterIndex = 0; clusterIndex < cluster.Count; clusterIndex++)
-            {
-                Vector2 clusterPoint = endpoints[cluster[clusterIndex]].position;
-                for (int candidate = 0; candidate < endpoints.Count; candidate++)
-                {
-                    if (assigned[candidate] ||
-                        Vector2.Distance(clusterPoint, endpoints[candidate].position) >
-                        JunctionEndpointClusterDistance)
-                    {
-                        continue;
-                    }
-
-                    assigned[candidate] = true;
-                    cluster.Add(candidate);
-                }
-            }
-
-            bool isJunction = cluster.Count > 1 ||
-                              cluster.Any(index => !endpoints[index].terminal);
-            if (!isJunction)
-            {
-                continue;
-            }
-
-            Vector2 centre = Vector2.zero;
-            foreach (int index in cluster)
-            {
-                centre += endpoints[index].position;
-            }
-            centre /= cluster.Count;
-
-            float endpointSpread = cluster.Max(index =>
-                Vector2.Distance(centre, endpoints[index].position));
-            yield return new JunctionPatch(
-                centre,
-                Mathf.Min(
-                    MaximumJunctionFillRadius,
-                    StandardRoadHalfWidth + endpointSpread));
-        }
-    }
-
-    private static void AddJunctionFill(
+    private static void AddJunctionDisc(
         Vector2 centre,
-        float radius,
         float roadHeight,
         List<Vector3> vertices,
         List<Vector2> uvs,
@@ -872,22 +908,25 @@ public static class Level03ActivePlanSplineRoadGenerator
     {
         int centreIndex = vertices.Count;
         AddVertex(centre, roadHeight, vertices, uvs);
-        for (int segment = 0; segment <= JunctionFillSegments; segment++)
+        int ringStart = vertices.Count;
+        for (int segment = 0; segment < JunctionDiscSegments; segment++)
         {
-            float angle = Mathf.PI * 2f * segment / JunctionFillSegments;
+            float angle = Mathf.PI * 2f * segment / JunctionDiscSegments;
             Vector2 point = centre + new Vector2(
                 Mathf.Cos(angle),
-                Mathf.Sin(angle)) * radius;
+                Mathf.Sin(angle)) * StandardRoadHalfWidth;
             AddVertex(point, roadHeight, vertices, uvs);
-            if (segment > 0)
-            {
-                AddUpwardTriangle(
-                    centreIndex,
-                    centreIndex + segment,
-                    centreIndex + segment + 1,
-                    vertices,
-                    triangles);
-            }
+        }
+
+        for (int segment = 0; segment < JunctionDiscSegments; segment++)
+        {
+            int next = (segment + 1) % JunctionDiscSegments;
+            AddUpwardTriangle(
+                centreIndex,
+                ringStart + segment,
+                ringStart + next,
+                vertices,
+                triangles);
         }
     }
 
@@ -922,30 +961,6 @@ public static class Level03ActivePlanSplineRoadGenerator
     {
         vertices.Add(new Vector3(point.x, roadHeight, point.y));
         uvs.Add(new Vector2(point.x / 24f, point.y / 24f));
-    }
-
-    private sealed class RoadEndpoint
-    {
-        public RoadEndpoint(Vector2 position, bool terminal)
-        {
-            this.position = position;
-            this.terminal = terminal;
-        }
-
-        public readonly Vector2 position;
-        public readonly bool terminal;
-    }
-
-    private sealed class JunctionPatch
-    {
-        public JunctionPatch(Vector2 centre, float radius)
-        {
-            this.centre = centre;
-            this.radius = radius;
-        }
-
-        public readonly Vector2 centre;
-        public readonly float radius;
     }
 
     private static List<Vector2> Simplify(List<Vector2> points, float tolerance)
@@ -1088,6 +1103,10 @@ public static class Level03ActivePlanSplineRoadGenerator
     {
         private readonly bool[] skeleton;
         private readonly List<int> activeIndices = new List<int>();
+        private readonly Dictionary<int, int> junctionClusterByIndex =
+            new Dictionary<int, int>();
+        private readonly List<Vector2> junctionClusterCentres =
+            new List<Vector2>();
 
         public SkeletonGraph(Texture2D roadPlan, float threshold)
         {
@@ -1095,6 +1114,7 @@ public static class Level03ActivePlanSplineRoadGenerator
             Height = roadPlan.height;
             skeleton = BuildMask(roadPlan, threshold);
             ThinSkeleton(skeleton, Width, Height);
+            PruneShortTerminalBranches(MaximumSkeletonSpurLengthPixels);
             for (int index = 0; index < skeleton.Length; index++)
             {
                 if (skeleton[index])
@@ -1103,6 +1123,7 @@ public static class Level03ActivePlanSplineRoadGenerator
                 }
             }
 
+            BuildJunctionClusters();
             int[] pixelsByQuarter = new int[4];
             foreach (int index in activeIndices)
             {
@@ -1129,6 +1150,70 @@ public static class Level03ActivePlanSplineRoadGenerator
             List<int> neighbours = new List<int>(8);
             GetNeighbours(index, neighbours);
             return neighbours.Count >= 3;
+        }
+
+        public bool TryGetJunctionCentre(
+            int index,
+            out int clusterId,
+            out Vector2 centre)
+        {
+            if (junctionClusterByIndex.TryGetValue(index, out clusterId))
+            {
+                centre = junctionClusterCentres[clusterId];
+                return true;
+            }
+
+            centre = Vector2.zero;
+            return false;
+        }
+
+        private void BuildJunctionClusters()
+        {
+            HashSet<int> junctions = new HashSet<int>();
+            List<int> neighbours = new List<int>(8);
+            foreach (int index in activeIndices)
+            {
+                GetNeighbours(index, neighbours);
+                if (neighbours.Count >= 3)
+                {
+                    junctions.Add(index);
+                }
+            }
+
+            Queue<int> pending = new Queue<int>();
+            foreach (int start in junctions)
+            {
+                if (junctionClusterByIndex.ContainsKey(start))
+                {
+                    continue;
+                }
+
+                int clusterId = junctionClusterCentres.Count;
+                pending.Enqueue(start);
+                junctionClusterByIndex[start] = clusterId;
+                Vector2 total = Vector2.zero;
+                int count = 0;
+                while (pending.Count > 0)
+                {
+                    int current = pending.Dequeue();
+                    total += new Vector2(current % Width, current / Width);
+                    count++;
+                    GetNeighbours(current, neighbours);
+                    foreach (int neighbour in neighbours)
+                    {
+                        if (!junctions.Contains(neighbour) ||
+                            junctionClusterByIndex.ContainsKey(neighbour))
+                        {
+                            continue;
+                        }
+
+                        junctionClusterByIndex[neighbour] = clusterId;
+                        pending.Enqueue(neighbour);
+                    }
+                }
+
+                junctionClusterCentres.Add(total / Mathf.Max(1, count));
+            }
         }
 
         public List<List<int>> TracePaths()
@@ -1232,6 +1317,84 @@ public static class Level03ActivePlanSplineRoadGenerator
                 iterations++;
             }
             while (changed && iterations < 128);
+        }
+
+        private void PruneShortTerminalBranches(int maximumLength)
+        {
+            int removedBranches = 0;
+            int removedPixels = 0;
+            bool removed;
+            do
+            {
+                removed = false;
+                for (int start = 0; start < skeleton.Length; start++)
+                {
+                    if (!skeleton[start])
+                    {
+                        continue;
+                    }
+
+                    List<int> neighbours = new List<int>(8);
+                    GetNeighbours(start, neighbours);
+                    if (neighbours.Count != 1)
+                    {
+                        continue;
+                    }
+
+                    List<int> branch = new List<int> { start };
+                    int previous = -1;
+                    int current = start;
+                    int endpointDegree = neighbours.Count;
+                    while (branch.Count <= maximumLength + 1)
+                    {
+                        GetNeighbours(current, neighbours);
+                        endpointDegree = neighbours.Count;
+                        if (current != start && endpointDegree != 2)
+                        {
+                            break;
+                        }
+
+                        int next = neighbours[0];
+                        if (next == previous && neighbours.Count > 1)
+                        {
+                            next = neighbours[1];
+                        }
+
+                        previous = current;
+                        current = next;
+                        branch.Add(current);
+                    }
+
+                    int edgeLength = branch.Count - 1;
+                    if (endpointDegree < 3 || edgeLength > maximumLength)
+                    {
+                        continue;
+                    }
+
+                    // Preserve the junction pixel and remove only the terminal
+                    // medial-axis spur. On the next pass its former junction
+                    // becomes degree two, so the real road is traced as one
+                    // continuous spline rather than two ribbons plus a patch.
+                    for (int index = 0; index < branch.Count - 1; index++)
+                    {
+                        if (skeleton[branch[index]])
+                        {
+                            skeleton[branch[index]] = false;
+                            removedPixels++;
+                        }
+                    }
+
+                    removedBranches++;
+                    removed = true;
+                    break;
+                }
+            }
+            while (removed);
+
+            Debug.Log(
+                $"[Level03 Active-Plan Spline Roads] Pruned {removedBranches} " +
+                $"short terminal skeleton spurs ({removedPixels} pixels, " +
+                $"maximum length {maximumLength}).");
         }
 
         private static bool CanRemove(bool[] mask, int width, int index, int phase)
@@ -1407,12 +1570,13 @@ public static class Level03ActivePlanSplineRoadRebuilder
                 worldDepth,
                 RoadHeight,
                 RoadThreshold);
-            Mesh generatedCollision = Level03ActivePlanSplineRoadGenerator.BuildCollision(
+            Mesh generatedCollision = Level03ActivePlanSplineRoadGenerator.Build(
                 roadPlan,
                 LandWidth,
                 worldDepth,
                 RoadCollisionHeight,
                 RoadThreshold);
+            generatedCollision.name = "MESH_Level03_RoadCollision_Thin";
             Mesh generatedMarkings = Level03ActivePlanSplineRoadGenerator.BuildMarkings(
                 roadPlan,
                 LandWidth,
@@ -1565,8 +1729,17 @@ public static class Level03ActivePlanSplineRoadRebuilder
         bool originalOrthographic = camera.orthographic;
         float originalOrthographicSize = camera.orthographicSize;
         float originalFieldOfView = camera.fieldOfView;
+        GameObject roadObject = GameObject.Find(RoadObjectName);
+        float previewScale = roadObject != null
+            ? Mathf.Abs(roadObject.transform.lossyScale.x)
+            : 1f;
+        if (previewScale < 0.01f)
+        {
+            previewScale = 1f;
+        }
         try
         {
+            camera.orthographicSize = 2080f * previewScale;
             RenderCameraToPng(
                 camera,
                 1600,
@@ -1575,25 +1748,48 @@ public static class Level03ActivePlanSplineRoadRebuilder
 
             // The three authored connection types that previously produced visible
             // circular bulges: west bridge, north bridge, and south Y junction.
-            RenderRoadDetail(camera, new Vector2(-430f, 190f), 250f,
+            RenderRoadDetail(
+                camera,
+                new Vector2(-430f, 190f) * previewScale,
+                250f * previewScale,
                 "CodexLevel03RoadDetail_WestBridge.png");
-            RenderRoadDetail(camera, new Vector2(1280f, 1400f), 250f,
+            RenderRoadDetail(
+                camera,
+                new Vector2(1280f, 1400f) * previewScale,
+                250f * previewScale,
                 "CodexLevel03RoadDetail_NorthBridge.png");
-            RenderRoadDetail(camera, new Vector2(-230f, -1050f), 280f,
+            RenderRoadDetail(
+                camera,
+                new Vector2(-230f, -1050f) * previewScale,
+                280f * previewScale,
                 "CodexLevel03RoadDetail_SouthJunction.png");
-            RenderRoadDetail(camera, new Vector2(342f, -1111f), 210f,
+            RenderRoadDetail(
+                camera,
+                new Vector2(342f, -1111f) * previewScale,
+                210f * previewScale,
                 "CodexLevel03RoadDetail_ApartmentSouth.png");
-            RenderRoadDetail(camera, new Vector2(800f, -248f), 210f,
+            RenderRoadDetail(
+                camera,
+                new Vector2(800f, -248f) * previewScale,
+                210f * previewScale,
                 "CodexLevel03RoadDetail_ApartmentEastLow.png");
-            RenderRoadDetail(camera, new Vector2(802f, 456f), 210f,
+            RenderRoadDetail(
+                camera,
+                new Vector2(802f, 456f) * previewScale,
+                210f * previewScale,
                 "CodexLevel03RoadDetail_ApartmentEastHigh.png");
-            RenderRoadDetail(camera, new Vector2(396f, 948f), 210f,
+            RenderRoadDetail(
+                camera,
+                new Vector2(396f, 948f) * previewScale,
+                210f * previewScale,
                 "CodexLevel03RoadDetail_ApartmentNorth.png");
 
             camera.orthographic = false;
             camera.fieldOfView = 52f;
-            camera.transform.position = new Vector3(2050f, 1350f, -2250f);
-            camera.transform.LookAt(new Vector3(0f, 100f, 30f));
+            camera.transform.position =
+                new Vector3(2050f, 1350f, -2250f) * previewScale;
+            camera.transform.LookAt(
+                new Vector3(0f, 100f, 30f) * previewScale);
             RenderCameraToPng(
                 camera,
                 1600,
