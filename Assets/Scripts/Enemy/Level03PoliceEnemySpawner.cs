@@ -7,7 +7,7 @@ public sealed class Level03PoliceEnemySpawner : MonoBehaviour
     [Header("References")]
     [SerializeField] private Transform player;
     [SerializeField] private GameObject policeCarVisualPrefab;
-    [SerializeField] private Transform spawnPoint;
+    [SerializeField] private Transform[] spawnPoints = new Transform[0];
 
     [Header("Initial Rhythm")]
     [SerializeField, Min(0f)] private float initialDelay = 1f;
@@ -30,10 +30,14 @@ public sealed class Level03PoliceEnemySpawner : MonoBehaviour
     private float currentPlayerSpeedRatio;
     private bool spawningEnabled = true;
     private PhysicMaterial drivingMaterial;
+    private int nextSpawnPointIndex;
 
     public Transform Player => player;
     public GameObject PoliceCarVisualPrefab => policeCarVisualPrefab;
-    public Transform SpawnPoint => spawnPoint;
+    public Transform SpawnPoint => spawnPoints != null && spawnPoints.Length > 0
+        ? spawnPoints[0]
+        : null;
+    public IReadOnlyList<Transform> SpawnPoints => spawnPoints;
     public float InitialSpawnInterval => initialSpawnInterval;
     public int InitialMaximumEnemies => initialMaximumEnemies;
     public float FinalSpawnInterval => finalSpawnInterval;
@@ -76,7 +80,7 @@ public sealed class Level03PoliceEnemySpawner : MonoBehaviour
             activeEnemies.Count >= currentMaximumEnemies ||
             player == null ||
             policeCarVisualPrefab == null ||
-            spawnPoint == null)
+            !HasSpawnPoint())
         {
             return;
         }
@@ -88,11 +92,12 @@ public sealed class Level03PoliceEnemySpawner : MonoBehaviour
     public void Configure(
         Transform playerTarget,
         GameObject policeCarPrefab,
-        Transform configuredSpawnPoint)
+        params Transform[] configuredSpawnPoints)
     {
         player = playerTarget;
         policeCarVisualPrefab = policeCarPrefab;
-        spawnPoint = configuredSpawnPoint;
+        spawnPoints = configuredSpawnPoints ?? new Transform[0];
+        nextSpawnPointIndex = 0;
     }
 
     public void StopSpawningAndClearEnemies()
@@ -152,6 +157,12 @@ public sealed class Level03PoliceEnemySpawner : MonoBehaviour
 
     private void SpawnEnemy()
     {
+        Transform spawnPoint = GetNextSpawnPoint();
+        if (spawnPoint == null)
+        {
+            return;
+        }
+
         int walkableArea = NavMesh.GetAreaFromName("Walkable");
         int areaMask = walkableArea >= 0 ? 1 << walkableArea : NavMesh.AllAreas;
         if (!NavMesh.SamplePosition(
@@ -193,6 +204,45 @@ public sealed class Level03PoliceEnemySpawner : MonoBehaviour
         NavMeshEnemyCarChaser chaser = enemy.AddComponent<NavMeshEnemyCarChaser>();
         chaser.Configure(player, currentPlayerSpeedRatio);
         activeEnemies.Add(enemy);
+    }
+
+    private bool HasSpawnPoint()
+    {
+        if (spawnPoints == null)
+        {
+            return false;
+        }
+
+        foreach (Transform candidate in spawnPoints)
+        {
+            if (candidate != null)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Transform GetNextSpawnPoint()
+    {
+        if (spawnPoints == null || spawnPoints.Length == 0)
+        {
+            return null;
+        }
+
+        for (int offset = 0; offset < spawnPoints.Length; offset++)
+        {
+            int index = (nextSpawnPointIndex + offset) % spawnPoints.Length;
+            Transform candidate = spawnPoints[index];
+            if (candidate == null)
+            {
+                continue;
+            }
+
+            nextSpawnPointIndex = (index + 1) % spawnPoints.Length;
+            return candidate;
+        }
+        return null;
     }
 
     private void CopyPlayerCollider(CapsuleCollider target)
@@ -302,15 +352,23 @@ public sealed class Level03PoliceEnemySpawner : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        if (spawnPoint == null)
+        if (spawnPoints == null)
         {
             return;
         }
 
         Gizmos.color = Color.cyan;
-        Gizmos.DrawSphere(spawnPoint.position, 1.2f);
-        Gizmos.DrawLine(
-            spawnPoint.position,
-            spawnPoint.position + spawnPoint.forward * 6f);
+        foreach (Transform spawnPoint in spawnPoints)
+        {
+            if (spawnPoint == null)
+            {
+                continue;
+            }
+
+            Gizmos.DrawSphere(spawnPoint.position, 1.2f);
+            Gizmos.DrawLine(
+                spawnPoint.position,
+                spawnPoint.position + spawnPoint.forward * 6f);
+        }
     }
 }

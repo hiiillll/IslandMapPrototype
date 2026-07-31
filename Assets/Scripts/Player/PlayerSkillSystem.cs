@@ -6,6 +6,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     private enum StartMenuPage
     {
         Main,
+        StoryChapters,
         EndlessModes
     }
 
@@ -103,19 +104,39 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         eBlinkIcon = Resources.Load<Texture2D>("UI/SkillIconsLine/E/SkillIcon_Blink_E");
         eFlameTrailIcon = Resources.Load<Texture2D>("UI/SkillIconsLine/E/SkillIcon_FlameTrail_E");
         eTankShellsIcon = Resources.Load<Texture2D>("UI/SkillIconsLine/E/SkillIcon_TankShell_E");
-        startMenuPage = GameModeSession.ConsumeOpenEndlessSelection()
+        bool openEndlessSelection = GameModeSession.ConsumeOpenEndlessSelection();
+        bool openStorySelection = GameModeSession.ConsumeOpenStorySelection();
+        startMenuPage = openEndlessSelection
             ? StartMenuPage.EndlessModes
-            : StartMenuPage.Main;
+            : openStorySelection
+                ? StartMenuPage.StoryChapters
+                : StartMenuPage.Main;
+        isShowingStartScreen = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name
+            == GameModeSession.IslandSceneName
+            && (!GameModeSession.IsStoryRunActive || openEndlessSelection || openStorySelection);
         if (GameModeSession.IsEndlessLand)
         {
             isShowingStartScreen = false;
+        }
+
+        if (!openEndlessSelection && GameModeSession.TryGetStorySkills(
+            out int savedQSkill,
+            out int savedESkill,
+            out bool savedQSkillUpgraded,
+            out bool savedESkillUpgraded))
+        {
+            qSkill = (SkillId)savedQSkill;
+            eSkill = (SkillId)savedESkill;
+            qSkillUpgraded = savedQSkillUpgraded;
+            eSkillUpgraded = savedESkillUpgraded;
+            isChoosingSkills = false;
         }
     }
 
     private void Start()
     {
         lastObservedLevel = progression != null ? progression.Level : 1;
-        Time.timeScale = 0f;
+        Time.timeScale = IsGameplayActive ? 1f : 0f;
     }
 
     private void Update()
@@ -362,6 +383,8 @@ public sealed class PlayerSkillSystem : MonoBehaviour
             eSkillUpgraded = true;
         }
 
+        SaveStorySkillState();
+
         pendingUpgradeChoices--;
         isChoosingUpgrade = false;
         if ((pendingUpgradeChoices > 0 && HasUpgradableSkill())
@@ -451,7 +474,27 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         }
 
         isChoosingSkills = false;
+        SaveStorySkillState();
+        if (GameModeSession.IsStoryRunActive && progression != null && progression.Level > 1)
+        {
+            pendingUpgradeChoices += progression.Level - 1;
+            lastObservedLevel = progression.Level;
+            ShowNextUpgradeChoice();
+            if (isChoosingUpgrade || isChoosingLevelFourReward)
+            {
+                return;
+            }
+        }
         Time.timeScale = 1f;
+    }
+
+    private void SaveStorySkillState()
+    {
+        GameModeSession.RecordStorySkills(
+            (int)qSkill,
+            (int)eSkill,
+            qSkillUpgraded,
+            eSkillUpgraded);
     }
 
     private void OnGUI()
@@ -495,7 +538,9 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         float panelWidth = buttonWidth + 70f;
         float panelHeight = startMenuPage == StartMenuPage.Main
             ? buttonHeight * 3f + 78f
-            : buttonHeight * 2f + 128f;
+            : startMenuPage == StartMenuPage.StoryChapters
+                ? buttonHeight * 3f + 154f
+                : buttonHeight * 2f + 128f;
         float panelX = (Screen.width - panelWidth) * 0.5f;
         float panelY = Screen.height - panelHeight - Mathf.Max(24f, Screen.height * 0.025f);
         GUI.DrawTexture(new Rect(panelX, panelY, panelWidth, panelHeight), startPanelTexture, ScaleMode.StretchToFill);
@@ -508,7 +553,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
             if (GUI.Button(storyButton, "故事模式", startButtonStyle))
             {
                 GameModeSession.SelectStory();
-                isShowingStartScreen = false;
+                startMenuPage = StartMenuPage.StoryChapters;
             }
             if (GUI.Button(endlessButton, "无尽模式", startButtonStyle))
             {
@@ -526,6 +571,18 @@ public sealed class PlayerSkillSystem : MonoBehaviour
                     garage.OpenGarage();
                 }
             }
+            return;
+        }
+
+        if (startMenuPage == StartMenuPage.StoryChapters)
+        {
+            DrawStoryChapterSelection(
+                panelX,
+                panelY,
+                panelWidth,
+                panelHeight,
+                buttonWidth,
+                buttonHeight);
             return;
         }
 
@@ -773,6 +830,82 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         if (GUI.Button(dropChoice, "提高血包掉落率\n\n敌人掉落概率 +10%\n本局持续生效", choiceStyle))
         {
             SelectLevelFourReward(false);
+        }
+    }
+
+    private void DrawStoryChapterSelection(
+        float panelX,
+        float panelY,
+        float panelWidth,
+        float panelHeight,
+        float buttonWidth,
+        float buttonHeight)
+    {
+        GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.025f, 20f, 30f)),
+            fontStyle = FontStyle.Bold
+        };
+        titleStyle.normal.textColor = Color.white;
+
+        GUI.Label(
+            new Rect(panelX + 20f, panelY + 12f, panelWidth - 40f, 42f),
+            "\u5173\u5361\u9009\u62e9",
+            titleStyle);
+
+        float buttonX = (Screen.width - buttonWidth) * 0.5f;
+        float nextY = panelY + 60f;
+        if (GameModeSession.IsStoryRunActive)
+        {
+            string chapterName = GameModeSession.ActiveChapter == StoryChapter.ChapterTwo
+                ? "\u7b2c\u4e8c\u7ae0"
+                : "\u7b2c\u4e00\u7ae0";
+            if (GUI.Button(
+                new Rect(buttonX, nextY, buttonWidth, buttonHeight),
+                $"\u7ee7\u7eed{chapterName}\u526f\u672c",
+                startButtonStyle))
+            {
+                GameModeSession.ContinueStoryRun();
+            }
+            nextY += buttonHeight + 12f;
+        }
+
+        string chapterOneLabel = GameModeSession.IsStoryRunActive
+            && GameModeSession.ActiveChapter == StoryChapter.ChapterOne
+            ? "\u91cd\u5f00\u7b2c\u4e00\u7ae0\uff08\u91cd\u9009\u6280\u80fd\uff09"
+            : "\u7b2c\u4e00\u7ae0\uff08\u5c9b\u5c7f + \u6d77\u4e0a\u9003\u751f\uff09";
+        if (GUI.Button(
+            new Rect(buttonX, nextY, buttonWidth, buttonHeight),
+            chapterOneLabel,
+            startButtonStyle))
+        {
+            GameModeSession.StartStoryChapter(StoryChapter.ChapterOne);
+        }
+        nextY += buttonHeight + 12f;
+
+        bool previousEnabled = GUI.enabled;
+        GUI.enabled = GameModeSession.IsChapterTwoUnlocked;
+        string chapterTwoLabel = GameModeSession.IsChapterTwoUnlocked
+            ? GameModeSession.IsStoryRunActive
+                && GameModeSession.ActiveChapter == StoryChapter.ChapterTwo
+                ? "\u91cd\u5f00\u7b2c\u4e8c\u7ae0\uff08\u91cd\u9009\u6280\u80fd\uff09"
+                : "\u7b2c\u4e8c\u7ae0\uff08\u5b9d\u7bb1\u64a4\u79bb\uff09"
+            : "\u7b2c\u4e8c\u7ae0\uff08\u5b8c\u6210\u7b2c\u4e00\u7ae0\u540e\u89e3\u9501\uff09";
+        if (GUI.Button(
+            new Rect(buttonX, nextY, buttonWidth, buttonHeight),
+            chapterTwoLabel,
+            startButtonStyle))
+        {
+            GameModeSession.StartStoryChapter(StoryChapter.ChapterTwo);
+        }
+        GUI.enabled = previousEnabled;
+
+        if (GUI.Button(
+            new Rect(panelX + 14f, panelY + panelHeight - 35f, 92f, 28f),
+            "\u8fd4\u56de"))
+        {
+            startMenuPage = StartMenuPage.Main;
         }
     }
 

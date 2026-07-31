@@ -72,8 +72,12 @@ public static class Level03HierarchyOrganizer
     {
         new PrefabGroup(
             "Assets/Models/Imported/Model_19/04c0ffae5a8c4056204063aa4c69582a.obj",
-            "PROP_Level03_CustomModels",
-            "PROP_Level03_CustomModel")
+            "PROP_Level03_Statues",
+            "PROP_Level03_Statue"),
+        new PrefabGroup(
+            "Assets/Models/Imported/Model_20/004fa4a26d815acdb0f6df66efd781d7.obj",
+            "PROP_Level03_ParkBenches",
+            "PROP_Level03_ParkBench")
     };
 
     private const string PlaneAssetPath =
@@ -148,9 +152,10 @@ public static class Level03HierarchyOrganizer
         MoveNamedObjects(scene, GameplayObjects, objectives);
         MoveNamedObjects(scene, AiObjects, ai);
         MoveNamedObjects(scene, SystemObjects, systems);
-        OrganizePrefabGroups(scene, buildings, BuildingPrefabGroups);
-        OrganizePrefabGroups(scene, props, PropPrefabGroups);
-        OrganizePlane(scene, objectives);
+        int organizedPrefabCount =
+            OrganizePrefabGroups(scene, buildings, BuildingPrefabGroups) +
+            OrganizePrefabGroups(scene, props, PropPrefabGroups) +
+            OrganizePlane(scene, objectives);
 
         SetChildOrder(environment, ground, roads, water);
         SetNamedChildOrder(gameplay, new[] { "PLAYER_Car", "OBJECTIVES_Level03" });
@@ -175,15 +180,16 @@ public static class Level03HierarchyOrganizer
         Validate(scene);
         Selection.activeGameObject = environment.gameObject;
         Debug.Log(
-            "[Level03 Hierarchy] Organized 103 placed prefab instances and all Level03 " +
-            "systems without changing world transforms.");
+            $"[Level03 Hierarchy] Organized {organizedPrefabCount} placed prefab " +
+            "instances and all Level03 systems without changing world transforms.");
     }
 
-    private static void OrganizePrefabGroups(
+    private static int OrganizePrefabGroups(
         Scene scene,
         Transform categoryRoot,
         IReadOnlyList<PrefabGroup> groups)
     {
+        int organizedCount = 0;
         for (int groupIndex = 0; groupIndex < groups.Count; groupIndex++)
         {
             PrefabGroup definition = groups[groupIndex];
@@ -206,11 +212,13 @@ public static class Level03HierarchyOrganizer
                 instances[index].name = $"{definition.ItemPrefix}_{index + 1:000}";
             }
 
+            organizedCount += instances.Count;
             group.SetSiblingIndex(groupIndex);
         }
+        return organizedCount;
     }
 
-    private static void OrganizePlane(Scene scene, Transform objectives)
+    private static int OrganizePlane(Scene scene, Transform objectives)
     {
         GameObject plane = Resources.FindObjectsOfTypeAll<GameObject>()
             .FirstOrDefault(candidate =>
@@ -227,6 +235,7 @@ public static class Level03HierarchyOrganizer
 
         MovePreservingWorldTransform(plane, objectives);
         plane.name = "VEH_Level03_EscapePlane";
+        return 1;
     }
 
     private static void MoveNamedObjects(Scene scene, IEnumerable<string> names, Transform parent)

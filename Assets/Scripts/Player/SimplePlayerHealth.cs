@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class SimplePlayerHealth : MonoBehaviour
 {
@@ -151,24 +150,50 @@ public class SimplePlayerHealth : MonoBehaviour
             return;
         }
 
-        const float buttonWidth = 220f;
+        const float buttonWidth = 300f;
         const float buttonHeight = 56f;
-        Rect restartButton = new Rect(
+        const float spacing = 16f;
+        float totalHeight = GameModeSession.IsStoryRunActive
+            ? buttonHeight * 2f + spacing
+            : buttonHeight;
+        Rect retryButton = new Rect(
             (Screen.width - buttonWidth) * 0.5f,
-            (Screen.height - buttonHeight) * 0.5f,
+            (Screen.height - totalHeight) * 0.5f,
             buttonWidth,
             buttonHeight);
 
-        if (!isRestarting && GUI.Button(restartButton, "重新开始"))
+        if (!isRestarting && GUI.Button(retryButton, "\u91cd\u8bd5\u672c\u5173\uff08\u4fdd\u7559\u6280\u80fd\uff09"))
         {
-            RestartLevel();
+            RetryLevel();
+        }
+
+        if (!GameModeSession.IsStoryRunActive)
+        {
+            return;
+        }
+
+        Rect restartRunButton = new Rect(
+            retryButton.x,
+            retryButton.yMax + spacing,
+            buttonWidth,
+            buttonHeight);
+        if (!isRestarting && GUI.Button(
+            restartRunButton,
+            "\u91cd\u5f00\u526f\u672c\uff08\u91cd\u9009\u6280\u80fd\uff09"))
+        {
+            RestartRun();
         }
     }
 
-    private void RestartLevel()
+    private void RetryLevel()
     {
         isRestarting = true;
-        Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        GameModeSession.RetryCurrentStoryLevel();
+    }
+
+    private void RestartRun()
+    {
+        isRestarting = true;
+        GameModeSession.RestartStoryRunWithNewSkills();
     }
 }

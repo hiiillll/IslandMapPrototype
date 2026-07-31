@@ -34,6 +34,7 @@ public sealed class PlayerProgression : MonoBehaviour
         experienceIncreasePerLevel = ExperienceIncreasePerLevel;
         Instance = this;
         ResetForNewLevel();
+        GameModeSession.ApplyStoryProgress(this);
     }
 
     public void ResetForNewLevel()
@@ -44,6 +45,27 @@ public sealed class PlayerProgression : MonoBehaviour
         destroyedEnemies = 0;
         pickupPulse = 0f;
         healthPackDropChanceBonus = 0f;
+    }
+
+    public void RestoreState(
+        int restoredLevel,
+        int restoredExperience,
+        int restoredDestroyedEnemies = 0,
+        float restoredHealthPackDropChanceBonus = 0f)
+    {
+        level = Mathf.Max(1, restoredLevel);
+        currentExperience = Mathf.Max(0, restoredExperience);
+        experienceToNextLevel = CalculateExperienceRequirement(level);
+        while (currentExperience >= experienceToNextLevel)
+        {
+            currentExperience -= experienceToNextLevel;
+            level++;
+            experienceToNextLevel = CalculateExperienceRequirement(level);
+        }
+
+        destroyedEnemies = Mathf.Max(0, restoredDestroyedEnemies);
+        pickupPulse = 0f;
+        healthPackDropChanceBonus = Mathf.Clamp01(restoredHealthPackDropChanceBonus);
     }
 
     private void Update()

@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.Video;
 
 [RequireComponent(typeof(BoxCollider))]
@@ -131,7 +130,7 @@ public sealed class DockLevelTransition : MonoBehaviour
 
         loadingNextScene = true;
         Time.timeScale = 1f;
-        SceneManager.LoadScene(nextSceneName);
+        GameModeSession.CompleteFirstLevelAndLoadSecondLevel(nextSceneName);
     }
 
     private void EnsureDockZone()

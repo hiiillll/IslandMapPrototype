@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Video;
 
@@ -15,6 +16,7 @@ public sealed class PlaneExtractionObjective : MonoBehaviour
 
     [Header("Cinematic")]
     [SerializeField] private string cinematicResourcePath = "Cinematics/Level02CompletionCG";
+    [SerializeField, Min(0f)] private float chapterTransitionDelay = 2.25f;
 
     private SphereCollider extractionZone;
     private Transform player;
@@ -26,6 +28,7 @@ public sealed class PlaneExtractionObjective : MonoBehaviour
     private bool playerInZone;
     private bool cinematicActive;
     private bool cinematicFinished;
+    private bool chapterTransitionStarted;
     private GUIStyle headingStyle;
     private GUIStyle bodyStyle;
     private GUIStyle arrowStyle;
@@ -217,6 +220,21 @@ public sealed class PlaneExtractionObjective : MonoBehaviour
         cinematicActive = false;
         cinematicFinished = true;
         Time.timeScale = 0f;
+        if (!chapterTransitionStarted)
+        {
+            chapterTransitionStarted = true;
+            StartCoroutine(StartChapterTwoAfterDelay());
+        }
+    }
+
+    private IEnumerator StartChapterTwoAfterDelay()
+    {
+        if (chapterTransitionDelay > 0f)
+        {
+            yield return new WaitForSecondsRealtime(chapterTransitionDelay);
+        }
+
+        GameModeSession.CompleteChapterOneAndStartChapterTwo();
     }
 
     private void OnGUI()

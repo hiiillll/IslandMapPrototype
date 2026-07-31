@@ -49,6 +49,12 @@ public sealed class ArcadeGameHud : MonoBehaviour
         Time.timeScale = 1f;
     }
 
+    public void ConfigureStoryHud()
+    {
+        basicHudOnly = false;
+        isPaused = false;
+    }
+
     private void Awake()
     {
         playerBody = GetComponent<Rigidbody>();
@@ -260,7 +266,7 @@ public sealed class ArcadeGameHud : MonoBehaviour
         GUI.color = previousColor;
 
         float panelWidth = Mathf.Min(Screen.width - 40f, 520f * scale);
-        float panelHeight = Mathf.Min(Screen.height - 40f, 330f * scale);
+        float panelHeight = Mathf.Min(Screen.height - 40f, 430f * scale);
         Rect panel = new Rect(
             (Screen.width - panelWidth) * 0.5f,
             (Screen.height - panelHeight) * 0.5f,
@@ -291,11 +297,17 @@ public sealed class ArcadeGameHud : MonoBehaviour
             Time.timeScale = 1f;
             AudioListener.pause = false;
         }
-        if (GUI.Button(new Rect(buttonX, panel.y + 200f * scale, buttonWidth, buttonHeight),
-            "返回主页面", pauseMenuButtonStyle))
+        if (GUI.Button(new Rect(buttonX, panel.y + 192f * scale, buttonWidth, buttonHeight),
+            "\u8fd4\u56de\u5173\u5361\u9009\u62e9", pauseMenuButtonStyle))
         {
             isPaused = false;
-            GameModeSession.ReturnToMainMenu();
+            GameModeSession.ReturnToStorySelection();
+        }
+        if (GUI.Button(new Rect(buttonX, panel.y + 272f * scale, buttonWidth, buttonHeight),
+            "\u91cd\u5f00\u526f\u672c\uff08\u91cd\u9009\u6280\u80fd\uff09", pauseMenuButtonStyle))
+        {
+            isPaused = false;
+            GameModeSession.RestartStoryRunWithNewSkills();
         }
     }
 

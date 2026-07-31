@@ -131,7 +131,7 @@ public sealed class Level03PlaneExtraction : MonoBehaviour
             yield return new WaitForSecondsRealtime(returnToMenuDelay);
         }
 
-        GameModeSession.ReturnToMainMenu();
+        GameModeSession.CompleteChapterTwoAndReturnToMenu();
     }
 
     private void OnGUI()

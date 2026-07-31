@@ -437,6 +437,11 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
         }
 
         Collider other = collision.collider;
+        if (other.GetComponentInParent<Level03KnockableGuardrail>() != null)
+        {
+            return;
+        }
+
         if (other.GetComponentInParent<SimplePlayerHealth>() != null)
         {
             Explode(true, true);

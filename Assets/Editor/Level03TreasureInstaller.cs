@@ -14,6 +14,11 @@ public static class Level03TreasureInstaller
     private const string PrefabPath = TreasureFolder + "/PF_Level03_TreasureChest.prefab";
     private const string WoodMaterialPath = TreasureFolder + "/MAT_TreasureChest_Wood.mat";
     private const string MetalMaterialPath = TreasureFolder + "/MAT_TreasureChest_Metal.mat";
+    private const string BeamMeshPath = TreasureFolder + "/MESH_TreasureBeacon.asset";
+    private const string BeamCoreMaterialPath =
+        TreasureFolder + "/MAT_TreasureBeacon_Core.mat";
+    private const string BeamGlowMaterialPath =
+        TreasureFolder + "/MAT_TreasureBeacon_Glow.mat";
     private const string ObjectiveName = "SYS_Level03_TreasureObjective";
     private const string ExtractionName = "SYS_Level03_PlaneExtraction";
     private const string PlaneAssetPath =
@@ -111,6 +116,14 @@ public static class Level03TreasureInstaller
                 $"{objective.RequiredChestCount} required.");
         }
 
+        if (chests.Any(chest =>
+                chest.GetComponent<Level03TreasureBeacon>() == null ||
+                !chest.GetComponent<Level03TreasureBeacon>().IsConfigured))
+        {
+            throw new InvalidOperationException(
+                "Every Level03 treasure chest must have a configured light beacon.");
+        }
+
         int collectedEvents = 0;
         int completedEvents = 0;
         objective.ChestCollected += (_, _) => collectedEvents++;
@@ -165,19 +178,46 @@ public static class Level03TreasureInstaller
         Collider[] prefabColliders = prefab != null
             ? prefab.GetComponentsInChildren<Collider>(true)
             : Array.Empty<Collider>();
+        Level03TreasureBeacon prefabBeacon = prefab != null
+            ? prefab.GetComponent<Level03TreasureBeacon>()
+            : null;
         if (prefab == null || prefabColliders.Length != 1 ||
             !(prefabColliders[0] is SphereCollider) ||
-            !prefabColliders[0].isTrigger)
+            !prefabColliders[0].isTrigger ||
+            prefabBeacon == null ||
+            !prefabBeacon.IsConfigured)
         {
             throw new InvalidOperationException(
-                "The treasure prefab must contain exactly one trigger and no solid colliders.");
+                "The treasure prefab must contain one trigger, no solid colliders, " +
+                "and a configured light beacon.");
         }
 
         Debug.Log(
             $"[Level03 Treasure Validation] PASS. Chests={chests.Length}; " +
             $"required={objective.RequiredChestCount}; " +
             $"collected events={collectedEvents}; completion events={completedEvents}; " +
-            "solid chest colliders=0; plane extraction range is valid.");
+            "beacons=5; solid chest colliders=0; plane extraction range is valid.");
+    }
+
+    [MenuItem("Tools/Island Map/Level03/Refresh Treasure Chest Light Beacons")]
+    public static void RefreshChestBeaconsFromMenu()
+    {
+        RefreshChestBeacons();
+    }
+
+    public static void RefreshChestBeaconsFromCommandLine()
+    {
+        RefreshChestBeacons();
+    }
+
+    private static void RefreshChestBeacons()
+    {
+        EnsureFolder(TreasureFolder);
+        BuildChestPrefab();
+        AssetDatabase.SaveAssets();
+        Debug.Log(
+            "[Level03 Treasure Beacon] Refreshed the treasure prefab with " +
+            "a pulsing core and glow column.");
     }
 
     private static void Install()
@@ -473,6 +513,13 @@ public static class Level03TreasureInstaller
             new Color(0.42f, 0.29f, 0.08f),
             0.72f,
             0.48f);
+        Mesh beamMesh = GetOrCreateBeamMesh();
+        Material beamCore = GetOrCreateBeamMaterial(
+            BeamCoreMaterialPath,
+            new Color(1.35f, 0.82f, 0.2f, 0.72f));
+        Material beamGlow = GetOrCreateBeamMaterial(
+            BeamGlowMaterialPath,
+            new Color(1f, 0.55f, 0.08f, 0.24f));
 
         GameObject root = new GameObject("PF_Level03_TreasureChest");
         SphereCollider trigger = root.AddComponent<SphereCollider>();
@@ -480,6 +527,7 @@ public static class Level03TreasureInstaller
         trigger.center = new Vector3(0f, 0.45f, 0f);
         trigger.radius = 2.7f;
         Level03TreasureChest chest = root.AddComponent<Level03TreasureChest>();
+        Level03TreasureBeacon beacon = root.AddComponent<Level03TreasureBeacon>();
 
         CreateBox(root.transform, "WoodenBase", new Vector3(0f, 0.36f, 0f),
             new Vector3(1.5f, 0.72f, 0.95f), wood);
@@ -497,11 +545,156 @@ public static class Level03TreasureInstaller
             new Vector3(0.18f, 0.42f, 1.01f), metal);
         CreateBox(root.transform, "Lock", new Vector3(0f, 0.61f, 0.51f),
             new Vector3(0.32f, 0.44f, 0.12f), metal);
+        MeshRenderer glowRenderer = CreateBeamSegment(
+            root.transform,
+            "VFX_TreasureBeam_Glow",
+            beamMesh,
+            beamGlow,
+            new Vector3(2.2f, 25f, 2.2f),
+            1);
+        MeshRenderer coreRenderer = CreateBeamSegment(
+            root.transform,
+            "VFX_TreasureBeam_Core",
+            beamMesh,
+            beamCore,
+            new Vector3(0.72f, 29f, 0.72f),
+            2);
         chest.Configure(string.Empty, null, lidPivot);
+        beacon.Configure(
+            coreRenderer.transform,
+            coreRenderer,
+            glowRenderer.transform,
+            glowRenderer);
 
         GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
         UnityEngine.Object.DestroyImmediate(root);
         return prefab;
+    }
+
+    private static MeshRenderer CreateBeamSegment(
+        Transform parent,
+        string name,
+        Mesh mesh,
+        Material material,
+        Vector3 localScale,
+        int sortingOrder)
+    {
+        GameObject beam = new GameObject(name);
+        beam.transform.SetParent(parent, false);
+        beam.transform.localPosition = new Vector3(0f, 0.8f, 0f);
+        beam.transform.localScale = localScale;
+        beam.AddComponent<MeshFilter>().sharedMesh = mesh;
+        MeshRenderer renderer = beam.AddComponent<MeshRenderer>();
+        renderer.sharedMaterial = material;
+        renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        renderer.receiveShadows = false;
+        renderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+        renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+        renderer.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
+        renderer.allowOcclusionWhenDynamic = false;
+        renderer.sortingOrder = sortingOrder;
+        return renderer;
+    }
+
+    private static Mesh GetOrCreateBeamMesh()
+    {
+        Mesh existing = AssetDatabase.LoadAssetAtPath<Mesh>(BeamMeshPath);
+        const int segments = 24;
+        float[] ringHeights = { 0f, 0.045f, 0.14f, 0.62f, 0.88f, 1f };
+        float[] ringAlpha = { 0f, 0.42f, 1f, 0.82f, 0.3f, 0f };
+        int ringVertexCount = segments + 1;
+        Vector3[] vertices = new Vector3[ringHeights.Length * ringVertexCount];
+        Vector3[] normals = new Vector3[vertices.Length];
+        Vector2[] uvs = new Vector2[vertices.Length];
+        Color[] colors = new Color[vertices.Length];
+        int[] triangles = new int[(ringHeights.Length - 1) * segments * 6];
+
+        for (int ring = 0; ring < ringHeights.Length; ring++)
+        {
+            for (int segment = 0; segment <= segments; segment++)
+            {
+                float fraction = segment / (float)segments;
+                float angle = fraction * Mathf.PI * 2f;
+                Vector3 radial = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+                int vertexIndex = ring * ringVertexCount + segment;
+                vertices[vertexIndex] = radial * 0.5f + Vector3.up * ringHeights[ring];
+                normals[vertexIndex] = radial;
+                uvs[vertexIndex] = new Vector2(fraction, ringHeights[ring]);
+                colors[vertexIndex] = new Color(1f, 1f, 1f, ringAlpha[ring]);
+            }
+        }
+
+        int triangleIndex = 0;
+        for (int ring = 0; ring < ringHeights.Length - 1; ring++)
+        {
+            for (int segment = 0; segment < segments; segment++)
+            {
+                int lower = ring * ringVertexCount + segment;
+                int upper = lower + ringVertexCount;
+                triangles[triangleIndex++] = lower;
+                triangles[triangleIndex++] = upper;
+                triangles[triangleIndex++] = lower + 1;
+                triangles[triangleIndex++] = lower + 1;
+                triangles[triangleIndex++] = upper;
+                triangles[triangleIndex++] = upper + 1;
+            }
+        }
+
+        Mesh mesh = existing != null ? existing : new Mesh();
+        mesh.name = "MESH_TreasureBeacon";
+        mesh.Clear();
+        mesh.vertices = vertices;
+        mesh.normals = normals;
+        mesh.uv = uvs;
+        mesh.colors = colors;
+        mesh.triangles = triangles;
+        mesh.RecalculateBounds();
+        if (existing == null)
+        {
+            AssetDatabase.CreateAsset(mesh, BeamMeshPath);
+        }
+        else
+        {
+            EditorUtility.SetDirty(mesh);
+        }
+        return mesh;
+    }
+
+    private static Material GetOrCreateBeamMaterial(string path, Color color)
+    {
+        Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
+        Shader shader = Shader.Find("Particles/Additive") ?? Shader.Find("Unlit/Transparent");
+        if (shader == null)
+        {
+            throw new MissingReferenceException(
+                "No transparent shader is available for the treasure beacon.");
+        }
+
+        if (material == null)
+        {
+            material = new Material(shader)
+            {
+                name = Path.GetFileNameWithoutExtension(path)
+            };
+            AssetDatabase.CreateAsset(material, path);
+        }
+        else
+        {
+            material.shader = shader;
+        }
+
+        if (material.HasProperty("_TintColor"))
+        {
+            material.SetColor("_TintColor", color);
+        }
+        if (material.HasProperty("_Color"))
+        {
+            material.SetColor("_Color", color);
+        }
+        material.renderQueue = 3000;
+        material.enableInstancing = true;
+        EditorUtility.SetDirty(material);
+        return material;
     }
 
     private static void CreateBox(
