@@ -40,6 +40,7 @@ public sealed class EndlessModeController : MonoBehaviour
     public bool IsShowingResults => showingResults;
     public int CurrentKills => progression != null ? progression.DestroyedEnemies : 0;
     public bool IsRunActive => GameModeSession.IsEndlessSea
+        || GameModeSession.IsEndlessSky
         || (skillSystem != null && skillSystem.IsGameplayActive);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -61,7 +62,11 @@ public sealed class EndlessModeController : MonoBehaviour
             return;
         }
 
-        string expectedScene = GameModeSession.IsEndlessSea ? "Level02" : "IslandMap";
+        string expectedScene = GameModeSession.IsEndlessSky
+            ? GameModeSession.ChapterTwoSecondSceneName
+            : GameModeSession.IsEndlessSea
+                ? GameModeSession.SeaSceneName
+                : GameModeSession.IslandSceneName;
         if (SceneManager.GetActiveScene().name != expectedScene)
         {
             return;
@@ -91,7 +96,11 @@ public sealed class EndlessModeController : MonoBehaviour
 
     private static string GetRecordKey(GameModeKind mode, string suffix)
     {
-        string modeName = mode == GameModeKind.EndlessSea ? "Sea" : "Land";
+        string modeName = mode == GameModeKind.EndlessSky
+            ? "Sky"
+            : mode == GameModeKind.EndlessSea
+                ? "Sea"
+                : "Land";
         return $"EndlessMode.{modeName}.{suffix}";
     }
 
@@ -151,7 +160,10 @@ public sealed class EndlessModeController : MonoBehaviour
 
         }
 
-        Time.timeScale = GameModeSession.IsEndlessSea ? 1f : Time.timeScale;
+        if (GameModeSession.IsEndlessSea || GameModeSession.IsEndlessSky)
+        {
+            Time.timeScale = 1f;
+        }
         AudioListener.pause = false;
     }
 
@@ -261,6 +273,12 @@ public sealed class EndlessModeController : MonoBehaviour
         {
             seaCamera.Shake(0.25f, 0.3f);
         }
+
+        PlaneChaseTopDownCamera skyCamera = FindObjectOfType<PlaneChaseTopDownCamera>();
+        if (skyCamera != null)
+        {
+            skyCamera.Shake(0.25f, 0.3f);
+        }
     }
 
     private void UpdateBoundaryWarning()
@@ -326,6 +344,12 @@ public sealed class EndlessModeController : MonoBehaviour
         if (seaSpawner != null)
         {
             seaSpawner.StopSpawningAndClearEnemies();
+        }
+
+        PlaneEnemySpawner skySpawner = FindObjectOfType<PlaneEnemySpawner>();
+        if (skySpawner != null)
+        {
+            skySpawner.StopSpawningAndClearEnemies();
         }
     }
 
@@ -421,8 +445,16 @@ public sealed class EndlessModeController : MonoBehaviour
         DrawScreenDim();
         Rect panel = CenteredPanel(650f, 570f);
         GUI.Box(panel, GUIContent.none);
-        string modeName = GameModeSession.IsEndlessSea ? "海上逃生" : "陆地追逐";
-        string killName = GameModeSession.IsEndlessSea ? "击沉船只" : "击毁车辆";
+        string modeName = GameModeSession.IsEndlessSky
+            ? "空中追击"
+            : GameModeSession.IsEndlessSea
+                ? "海上逃生"
+                : "陆地追逐";
+        string killName = GameModeSession.IsEndlessSky
+            ? "击落敌机"
+            : GameModeSession.IsEndlessSea
+                ? "击沉船只"
+                : "击毁车辆";
         GUI.Label(new Rect(panel.x + 30f, panel.y + 28f, panel.width - 60f, 64f), $"{modeName} · 本局结束", titleStyle);
         GUI.Label(new Rect(panel.x + 65f, panel.y + 112f, panel.width - 130f, 46f),
             $"生存时间：{FormatResultTime(resultTimeMilliseconds)}{(newTimeRecord ? "  新纪录！" : string.Empty)}", headingStyle);

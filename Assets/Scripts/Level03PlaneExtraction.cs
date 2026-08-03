@@ -1,16 +1,26 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Video;
 
 public sealed class Level03PlaneExtraction : MonoBehaviour
 {
     [SerializeField] private Level03TreasureObjective treasureObjective;
     [SerializeField] private Transform planeRoot;
     [SerializeField, Min(1f)] private float interactionRadius = 32f;
+
+    [Header("Cinematic")]
+    [SerializeField] private string cinematicResourcePath = "Cinematics/Level03CompletionCG";
     [SerializeField, Min(0f)] private float returnToMenuDelay = 2.25f;
 
     private SimpleAutoDriveController playerController;
+    private VideoPlayer videoPlayer;
+    private AudioSource videoAudio;
+    private RenderTexture cinematicTexture;
     private bool evacuationComplete;
+    private bool cinematicActive;
+    private bool cinematicFinished;
+    private bool levelTransitionStarted;
     private GUIStyle headingStyle;
     private GUIStyle promptStyle;
 
@@ -121,7 +131,80 @@ public sealed class Level03PlaneExtraction : MonoBehaviour
         EvacuationCompleted?.Invoke();
         Time.timeScale = 0f;
         AudioListener.pause = true;
-        StartCoroutine(StartSecondLevelAfterDelay());
+        StartCinematic();
+    }
+
+    private void StartCinematic()
+    {
+        cinematicActive = true;
+        VideoClip cinematicClip = Resources.Load<VideoClip>(cinematicResourcePath);
+        if (cinematicClip == null)
+        {
+            Debug.LogError(
+                $"Level03 completion cinematic was not found at Resources/{cinematicResourcePath}.",
+                this);
+            FinishCinematic(null);
+            return;
+        }
+
+        cinematicTexture = new RenderTexture(
+            Mathf.Max(1280, Screen.width),
+            Mathf.Max(720, Screen.height),
+            0,
+            RenderTextureFormat.ARGB32);
+        cinematicTexture.Create();
+
+        videoPlayer = gameObject.AddComponent<VideoPlayer>();
+        videoPlayer.playOnAwake = false;
+        videoPlayer.source = VideoSource.VideoClip;
+        videoPlayer.clip = cinematicClip;
+        videoPlayer.renderMode = VideoRenderMode.RenderTexture;
+        videoPlayer.targetTexture = cinematicTexture;
+        videoPlayer.isLooping = false;
+        videoPlayer.waitForFirstFrame = true;
+        videoPlayer.skipOnDrop = true;
+        videoPlayer.timeUpdateMode = VideoTimeUpdateMode.UnscaledGameTime;
+        if (cinematicClip.audioTrackCount > 0)
+        {
+            videoAudio = gameObject.AddComponent<AudioSource>();
+            videoAudio.playOnAwake = false;
+            videoAudio.spatialBlend = 0f;
+            videoAudio.ignoreListenerPause = true;
+            videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
+            videoPlayer.controlledAudioTrackCount = 1;
+            videoPlayer.EnableAudioTrack(0, true);
+            videoPlayer.SetTargetAudioSource(0, videoAudio);
+        }
+        else
+        {
+            videoPlayer.audioOutputMode = VideoAudioOutputMode.None;
+        }
+
+        videoPlayer.loopPointReached += FinishCinematic;
+        videoPlayer.errorReceived += OnCinematicError;
+        videoPlayer.Play();
+    }
+
+    private void OnCinematicError(VideoPlayer source, string message)
+    {
+        Debug.LogError($"Level03 completion cinematic failed to play: {message}", this);
+        FinishCinematic(source);
+    }
+
+    private void FinishCinematic(VideoPlayer source)
+    {
+        if (cinematicFinished)
+        {
+            return;
+        }
+
+        cinematicActive = false;
+        cinematicFinished = true;
+        if (!levelTransitionStarted)
+        {
+            levelTransitionStarted = true;
+            StartCoroutine(StartSecondLevelAfterDelay());
+        }
     }
 
     private IEnumerator StartSecondLevelAfterDelay()
@@ -136,6 +219,28 @@ public sealed class Level03PlaneExtraction : MonoBehaviour
 
     private void OnGUI()
     {
+        if (cinematicActive || cinematicFinished)
+        {
+            GUI.depth = -1200;
+            if (cinematicTexture != null)
+            {
+                GUI.DrawTexture(
+                    new Rect(0f, 0f, Screen.width, Screen.height),
+                    cinematicTexture,
+                    ScaleMode.ScaleAndCrop);
+            }
+            else
+            {
+                GUI.Box(new Rect(0f, 0f, Screen.width, Screen.height), GUIContent.none);
+            }
+
+            if (cinematicFinished)
+            {
+                DrawCompletionPanel();
+            }
+            return;
+        }
+
         if (evacuationComplete)
         {
             DrawCompletionPanel();
@@ -219,6 +324,16 @@ public sealed class Level03PlaneExtraction : MonoBehaviour
 
         Time.timeScale = 1f;
         AudioListener.pause = false;
+        if (videoPlayer != null)
+        {
+            videoPlayer.loopPointReached -= FinishCinematic;
+            videoPlayer.errorReceived -= OnCinematicError;
+        }
+        if (cinematicTexture != null)
+        {
+            cinematicTexture.Release();
+            Destroy(cinematicTexture);
+        }
     }
 
     private void OnDrawGizmosSelected()

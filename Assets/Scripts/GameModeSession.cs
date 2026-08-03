@@ -5,7 +5,8 @@ public enum GameModeKind
 {
     Story,
     EndlessLand,
-    EndlessSea
+    EndlessSea,
+    EndlessSky
 }
 
 public enum StoryChapter
@@ -50,6 +51,7 @@ public static class GameModeSession
     public static bool IsEndless => CurrentMode != GameModeKind.Story;
     public static bool IsEndlessLand => CurrentMode == GameModeKind.EndlessLand;
     public static bool IsEndlessSea => CurrentMode == GameModeKind.EndlessSea;
+    public static bool IsEndlessSky => CurrentMode == GameModeKind.EndlessSky;
     public static bool IsStoryRunActive => CurrentMode == GameModeKind.Story && storyRunActive;
     public static StoryChapter ActiveChapter => activeChapter;
     public static bool IsChapterTwoUnlocked => chapterTwoUnlocked;
@@ -287,9 +289,21 @@ public static class GameModeSession
         LoadScene(SeaSceneName);
     }
 
+    public static void StartEndlessSky()
+    {
+        CurrentMode = GameModeKind.EndlessSky;
+        openEndlessSelection = false;
+        openStorySelection = false;
+        LoadScene(ChapterTwoSecondSceneName);
+    }
+
     public static void RetryCurrentMode()
     {
-        string sceneName = IsEndlessSea ? SeaSceneName : IslandSceneName;
+        string sceneName = IsEndlessSky
+            ? ChapterTwoSecondSceneName
+            : IsEndlessSea
+                ? SeaSceneName
+                : IslandSceneName;
         LoadScene(sceneName);
     }
 

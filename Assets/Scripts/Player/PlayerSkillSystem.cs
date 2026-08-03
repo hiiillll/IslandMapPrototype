@@ -607,7 +607,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
             ? buttonHeight * 3f + 78f
             : startMenuPage == StartMenuPage.StoryChapters
                 ? buttonHeight * 3f + 154f
-                : buttonHeight * 2f + 128f;
+                : buttonHeight * 3f + 170f;
         float panelX = (Screen.width - panelWidth) * 0.5f;
         float panelY = Screen.height - panelHeight - Mathf.Max(24f, Screen.height * 0.025f);
         GUI.DrawTexture(new Rect(panelX, panelY, panelWidth, panelHeight), startPanelTexture, ScaleMode.StretchToFill);
@@ -662,8 +662,10 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         modeDescriptionStyle.normal.textColor = Color.white;
         int landTime = EndlessModeController.GetBestTimeMilliseconds(GameModeKind.EndlessLand);
         int seaTime = EndlessModeController.GetBestTimeMilliseconds(GameModeKind.EndlessSea);
+        int skyTime = EndlessModeController.GetBestTimeMilliseconds(GameModeKind.EndlessSky);
         Rect landButton = new Rect((Screen.width - buttonWidth) * 0.5f, panelY + 18f, buttonWidth, buttonHeight);
         Rect seaButton = new Rect(landButton.x, landButton.yMax + 42f, buttonWidth, buttonHeight);
+        Rect skyButton = new Rect(seaButton.x, seaButton.yMax + 42f, buttonWidth, buttonHeight);
         if (GUI.Button(landButton, "陆地追逐", startButtonStyle))
         {
             GameModeSession.StartEndlessLand();
@@ -678,6 +680,13 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         }
         GUI.Label(new Rect(seaButton.x - 120f, seaButton.yMax, seaButton.width + 240f, 32f),
             $"纯驾驶生存 · 最佳 {EndlessModeController.FormatResultTime(seaTime)} · 击杀 {EndlessModeController.GetBestKills(GameModeKind.EndlessSea)}",
+            modeDescriptionStyle);
+        if (GUI.Button(skyButton, "空中追击", startButtonStyle))
+        {
+            GameModeSession.StartEndlessSky();
+        }
+        GUI.Label(new Rect(skyButton.x - 120f, skyButton.yMax, skyButton.width + 240f, 32f),
+            $"纯驾驶生存 · 最佳 {EndlessModeController.FormatResultTime(skyTime)} · 击落 {EndlessModeController.GetBestKills(GameModeKind.EndlessSky)}",
             modeDescriptionStyle);
         if (GUI.Button(new Rect(panelX + 14f, panelY + panelHeight - 35f, 92f, 28f), "返回"))
         {
