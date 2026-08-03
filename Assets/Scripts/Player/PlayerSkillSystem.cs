@@ -68,6 +68,12 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     private Texture2D eBlinkIcon;
     private Texture2D eFlameTrailIcon;
     private Texture2D eTankShellsIcon;
+    private AudioSource skillAudioSource;
+    private AudioClip hornBlastAudio;
+    private AudioClip gravityTrapAudio;
+    private AudioClip blinkAudio;
+    private AudioClip flameTrailAudio;
+    private AudioClip tankShellsAudio;
     private StartMenuPage startMenuPage;
 
     public bool IsGameplayActive => !isShowingStartScreen
@@ -104,6 +110,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         eBlinkIcon = Resources.Load<Texture2D>("UI/SkillIconsLine/E/SkillIcon_Blink_E");
         eFlameTrailIcon = Resources.Load<Texture2D>("UI/SkillIconsLine/E/SkillIcon_FlameTrail_E");
         eTankShellsIcon = Resources.Load<Texture2D>("UI/SkillIconsLine/E/SkillIcon_TankShell_E");
+        InitializeSkillAudio();
         bool openEndlessSelection = GameModeSession.ConsumeOpenEndlessSelection();
         bool openStorySelection = GameModeSession.ConsumeOpenStorySelection();
         startMenuPage = openEndlessSelection
@@ -180,6 +187,8 @@ public sealed class PlayerSkillSystem : MonoBehaviour
 
     private void ActivateSkill(SkillId skill)
     {
+        PlaySkillAudio(skill);
+
         switch (skill)
         {
             case SkillId.HornBlast:
@@ -214,6 +223,56 @@ public sealed class PlayerSkillSystem : MonoBehaviour
                     GetSkillValue(skill, 3.5f, 10f),
                     GetSkillValue(skill, 1.7f, 3f));
                 break;
+        }
+    }
+
+    private void InitializeSkillAudio()
+    {
+        skillAudioSource = gameObject.AddComponent<AudioSource>();
+        skillAudioSource.playOnAwake = false;
+        skillAudioSource.loop = false;
+        skillAudioSource.spatialBlend = 0f;
+        skillAudioSource.dopplerLevel = 0f;
+        skillAudioSource.volume = 1f;
+
+        hornBlastAudio = Resources.Load<AudioClip>("Audio/Skills/SFX_Skill_HornBlast");
+        gravityTrapAudio = Resources.Load<AudioClip>("Audio/Skills/SFX_Skill_GravityTrap");
+        blinkAudio = Resources.Load<AudioClip>("Audio/Skills/SFX_Skill_Blink");
+        flameTrailAudio = Resources.Load<AudioClip>("Audio/Skills/SFX_Skill_FlameTrail");
+        tankShellsAudio = Resources.Load<AudioClip>("Audio/Skills/SFX_Skill_TankShells");
+    }
+
+    private void PlaySkillAudio(SkillId skill)
+    {
+        AudioClip clip = null;
+        float volumeScale = 0.5f;
+        switch (skill)
+        {
+            case SkillId.HornBlast:
+                clip = hornBlastAudio;
+                volumeScale = 0.24f;
+                break;
+            case SkillId.GravityTrap:
+                clip = gravityTrapAudio;
+                volumeScale = 0.45f;
+                break;
+            case SkillId.Blink:
+                clip = blinkAudio;
+                volumeScale = 0.5f;
+                break;
+            case SkillId.FlameTrail:
+                clip = flameTrailAudio;
+                volumeScale = 0.35f;
+                break;
+            case SkillId.TankShells:
+                clip = tankShellsAudio;
+                volumeScale = 0.6f;
+                break;
+        }
+
+        if (skillAudioSource != null && clip != null)
+        {
+            skillAudioSource.PlayOneShot(clip, volumeScale);
         }
     }
 
@@ -298,45 +357,60 @@ public sealed class PlayerSkillSystem : MonoBehaviour
             return;
         }
 
-        if (GameModeSession.IsEndlessLand)
-        {
-            int skillUpgradeLevels = 0;
-            int healthUpgradeLevels = 0;
-            for (int gainedIndex = 1; gainedIndex <= levelsGained; gainedIndex++)
-            {
-                int reachedLevel = previousLevel + gainedIndex;
-                if (reachedLevel <= 3)
-                {
-                    skillUpgradeLevels++;
-                }
-                else if (reachedLevel == 4)
-                {
-                    pendingLevelFourRewardChoices++;
-                }
-                else
-                {
-                    healthUpgradeLevels++;
-                }
-            }
-
-            pendingUpgradeChoices += Mathf.Min(skillUpgradeLevels, 2);
-            if (healthUpgradeLevels > 0 && health != null)
-            {
-                health.IncreaseMaxHealth(healthUpgradeLevels, healthUpgradeLevels);
-                if (EndlessModeController.Instance != null)
-                {
-                    EndlessModeController.Instance.ShowMaxHealthUpgrade();
-                }
-            }
-        }
-        else if (HasUpgradableSkill())
-        {
-            pendingUpgradeChoices += levelsGained;
-        }
+        QueueLevelRewards(previousLevel, levelsGained);
 
         if (!isChoosingUpgrade && !isChoosingLevelFourReward)
         {
             ShowNextUpgradeChoice();
+        }
+    }
+
+    private void QueueLevelRewards(int previousLevel, int levelsGained)
+    {
+        int skillUpgradeLevels = 0;
+        int healthUpgradeLevels = 0;
+        for (int gainedIndex = 1; gainedIndex <= levelsGained; gainedIndex++)
+        {
+            int reachedLevel = previousLevel + gainedIndex;
+            if (reachedLevel <= 3)
+            {
+                skillUpgradeLevels++;
+            }
+            else if (reachedLevel == 4)
+            {
+                pendingLevelFourRewardChoices++;
+            }
+            else
+            {
+                healthUpgradeLevels++;
+            }
+        }
+
+        pendingUpgradeChoices += Mathf.Min(skillUpgradeLevels, 2);
+        if (healthUpgradeLevels > 0)
+        {
+            GrantMaxHealthReward(healthUpgradeLevels);
+        }
+    }
+
+    private void GrantMaxHealthReward(int amount)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        if (progression != null)
+        {
+            progression.IncreaseMaxHealthBonus(amount);
+        }
+        if (health != null)
+        {
+            health.IncreaseMaxHealth(amount, amount);
+        }
+        if (EndlessModeController.Instance != null)
+        {
+            EndlessModeController.Instance.ShowMaxHealthUpgrade();
         }
     }
 
@@ -407,14 +481,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
 
         if (increaseMaxHealth)
         {
-            if (health != null)
-            {
-                health.IncreaseMaxHealth(1, 1);
-            }
-            if (EndlessModeController.Instance != null)
-            {
-                EndlessModeController.Instance.ShowMaxHealthUpgrade();
-            }
+            GrantMaxHealthReward(1);
         }
         else
         {
@@ -477,7 +544,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         SaveStorySkillState();
         if (GameModeSession.IsStoryRunActive && progression != null && progression.Level > 1)
         {
-            pendingUpgradeChoices += progression.Level - 1;
+            pendingUpgradeChoices += Mathf.Min(progression.Level - 1, 2);
             lastObservedLevel = progression.Level;
             ShowNextUpgradeChoice();
             if (isChoosingUpgrade || isChoosingLevelFourReward)
@@ -889,7 +956,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         string chapterTwoLabel = GameModeSession.IsChapterTwoUnlocked
             ? GameModeSession.IsStoryRunActive
                 && GameModeSession.ActiveChapter == StoryChapter.ChapterTwo
-                ? "\u91cd\u5f00\u7b2c\u4e8c\u7ae0\uff08\u91cd\u9009\u6280\u80fd\uff09"
+                ? "\u91cd\u5f00\u7b2c\u4e8c\u7ae0\uff08\u7ee7\u627f\u6280\u80fd\uff09"
                 : "\u7b2c\u4e8c\u7ae0\uff08\u5b9d\u7bb1\u64a4\u79bb\uff09"
             : "\u7b2c\u4e8c\u7ae0\uff08\u5b8c\u6210\u7b2c\u4e00\u7ae0\u540e\u89e3\u9501\uff09";
         if (GUI.Button(

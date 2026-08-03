@@ -22,7 +22,7 @@ public static class Level03TreasureInstaller
     private const string ObjectiveName = "SYS_Level03_TreasureObjective";
     private const string ExtractionName = "SYS_Level03_PlaneExtraction";
     private const string PlaneAssetPath =
-        "Assets/Resources/Level02/PlaneObjective/a20e928798d90a32b7b6c4b41a481066.obj";
+        "Assets/Level04/Models/Player/7e82465a5265349baef858b3f34b69a2.obj";
     private const string ReportPath = "Library/CodexLevel03TreasureInstallReport.json";
     private const int TotalChestCount = 5;
     private const int RequiredChestCount = 4;
@@ -471,7 +471,7 @@ public static class Level03TreasureInstaller
         if (plane == null)
         {
             throw new MissingReferenceException(
-                "Place the Level02 plane model in Level03 before installing extraction.");
+                "Place the Level04 player plane model in Level03 before installing extraction.");
         }
 
         GameObject existing = FindSceneObject(scene, ExtractionName);
@@ -484,7 +484,7 @@ public static class Level03TreasureInstaller
         SceneManager.MoveGameObjectToScene(extractionObject, scene);
         Level03PlaneExtraction extraction =
             extractionObject.AddComponent<Level03PlaneExtraction>();
-        extraction.Configure(objective, plane.transform, 16f);
+        extraction.Configure(objective, plane.transform, 32f);
         EditorUtility.SetDirty(extraction);
     }
 

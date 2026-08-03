@@ -38,6 +38,22 @@ After changing the environment layout, rebuild navigation from:
 
 Enemy cars do not use `NavMeshAgent` for movement. Navigation supplies route corners, and `NavMeshEnemyCarChaser` follows visible look-ahead points using Rigidbody velocity and rotation.
 
+## AI sound effects
+
+The editor can generate sound effects through the 302.AI ElevenLabs endpoint without storing an API key in the project.
+
+1. Create a fresh 302.AI API key and store it in the Windows user environment:
+
+   ```powershell
+   [Environment]::SetEnvironmentVariable("AI302_API_KEY", "YOUR_NEW_KEY", "User")
+   ```
+
+2. Restart Unity so the editor can read the environment variable.
+3. Open `Tools > Island Map > Generate Sound Effect (302.AI)`.
+4. Generate the sound. The default output directory is `Assets/Audio/Generated`.
+
+The generator calls `POST https://api.302.ai/elevenlabs/sound-generation`. It is editor-only so the API key is not included in player builds.
+
 ## Project structure
 
 - `Assets/Scenes/IslandMap.unity`: main gameplay scene.

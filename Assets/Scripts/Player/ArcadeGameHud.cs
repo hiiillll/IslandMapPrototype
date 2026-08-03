@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public sealed class ArcadeGameHud : MonoBehaviour
 {
@@ -192,11 +193,15 @@ public sealed class ArcadeGameHud : MonoBehaviour
             timerLayout.size.y * scale);
         GUI.DrawTexture(panel, timerFrameTexture, ScaleMode.StretchToFill, true);
         bool endlessMode = GameModeSession.IsEndless && EndlessModeController.Instance != null;
-        int displaySeconds = endlessMode
-            ? Mathf.FloorToInt(EndlessModeController.Instance.ElapsedTime)
-            : survivalController != null
-                ? Mathf.CeilToInt(survivalController.RemainingTime)
-                : 0;
+        bool isLevelThree = SceneManager.GetActiveScene().name
+            == GameModeSession.ChapterTwoSceneName;
+        int displaySeconds = isLevelThree
+            ? Mathf.FloorToInt(Time.timeSinceLevelLoad)
+            : endlessMode
+                ? Mathf.FloorToInt(EndlessModeController.Instance.ElapsedTime)
+                : survivalController != null
+                    ? Mathf.CeilToInt(survivalController.RemainingTime)
+                    : 0;
         GUIStyle timerTitleStyle = new GUIStyle(italicHeadingStyle)
         {
             fontSize = Mathf.RoundToInt(20f * scale)
@@ -207,7 +212,7 @@ public sealed class ArcadeGameHud : MonoBehaviour
         };
         GUI.Label(
             new Rect(panel.x, panel.y + 32f * scale, panel.width, 24f * scale),
-            "存活时间",
+            isLevelThree ? "\u672c\u5173\u7528\u65f6" : "\u5b58\u6d3b\u65f6\u95f4",
             timerTitleStyle);
         GUI.Label(
             new Rect(panel.x, panel.y + 62f * scale, panel.width, 52f * scale),

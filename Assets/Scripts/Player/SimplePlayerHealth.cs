@@ -10,6 +10,7 @@ public class SimplePlayerHealth : MonoBehaviour
     [SerializeField] private float defeatHeight = -10f;
 
     private int currentHealth;
+    private int baseMaxHealth;
     private float nextDamageTime;
     private bool isRestarting;
 
@@ -19,6 +20,19 @@ public class SimplePlayerHealth : MonoBehaviour
     private void Awake()
     {
         damageCooldown = DamageInvincibilityDuration;
+        baseMaxHealth = Mathf.Max(1, maxHealth);
+        currentHealth = maxHealth;
+    }
+
+    private void Start()
+    {
+        PlayerProgression progression = GetComponent<PlayerProgression>();
+        if (progression == null || progression.MaxHealthBonus <= 0)
+        {
+            return;
+        }
+
+        maxHealth = baseMaxHealth + progression.MaxHealthBonus;
         currentHealth = maxHealth;
     }
 
@@ -118,6 +132,19 @@ public class SimplePlayerHealth : MonoBehaviour
         if (boatCamera != null)
         {
             boatCamera.Shake(0.22f, 0.55f);
+            return;
+        }
+
+        PlaneChaseTopDownCamera planeCamera = Camera.main != null
+            ? Camera.main.GetComponent<PlaneChaseTopDownCamera>()
+            : null;
+        if (planeCamera == null)
+        {
+            planeCamera = FindObjectOfType<PlaneChaseTopDownCamera>();
+        }
+        if (planeCamera != null)
+        {
+            planeCamera.Shake(0.22f, 0.55f);
         }
     }
 

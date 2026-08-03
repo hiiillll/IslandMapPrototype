@@ -20,9 +20,13 @@ public static class GameModeSession
     public const string IslandSceneName = "IslandMap";
     public const string SeaSceneName = "Level02";
     public const string ChapterTwoSceneName = "Level03";
+    public const string ChapterTwoSecondSceneName = "Level04";
 
     private const string ChapterTwoUnlockedKey = "Story.ChapterTwoUnlocked";
     private const string FirstLevelKeyPrefix = "Story.FirstLevel.";
+    private const string StorySkillKeyPrefix = "Story.LastSkills.";
+    private const int MinimumStorySkillId = 1;
+    private const int MaximumStorySkillId = 5;
 
     private static bool openEndlessSelection;
     private static bool openStorySelection;
@@ -100,7 +104,14 @@ public static class GameModeSession
         currentProgress = chapterStartProgress;
         openStorySelection = false;
         openEndlessSelection = false;
-        ClearStorySkills();
+        if (chapter == StoryChapter.ChapterOne)
+        {
+            ClearStorySkills();
+        }
+        else if (!hasStorySkills)
+        {
+            LoadPersistentStorySkills();
+        }
         LoadScene(activeStoryScene);
     }
 
@@ -122,9 +133,13 @@ public static class GameModeSession
             return;
         }
 
+        CurrentMode = GameModeKind.Story;
+        activeChapter = StoryChapter.ChapterOne;
+        activeStoryScene = IslandSceneName;
+        chapterStartProgress = PlayerProgressState.LevelOne;
         currentProgress = chapterStartProgress;
-        activeStoryScene = GetChapterStartScene(activeChapter);
         openStorySelection = false;
+        openEndlessSelection = false;
         ClearStorySkills();
         LoadScene(activeStoryScene);
     }
@@ -158,6 +173,10 @@ public static class GameModeSession
         qSkillUpgraded = isQSkillUpgraded;
         eSkillUpgraded = isESkillUpgraded;
         hasStorySkills = qSkill > 0 && eSkill > 0;
+        if (hasStorySkills)
+        {
+            SavePersistentStorySkills();
+        }
     }
 
     public static bool TryGetStorySkills(
@@ -181,7 +200,8 @@ public static class GameModeSession
                 currentProgress.level,
                 currentProgress.experience,
                 currentProgress.destroyedEnemies,
-                currentProgress.healthPackDropChanceBonus);
+                currentProgress.healthPackDropChanceBonus,
+                currentProgress.maxHealthBonus);
         }
     }
 
@@ -219,7 +239,25 @@ public static class GameModeSession
         chapterStartProgress = GetFirstLevelCompletionProgress();
         currentProgress = chapterStartProgress;
         openStorySelection = false;
-        ClearStorySkills();
+        LoadScene(activeStoryScene);
+    }
+
+    public static void CompleteChapterTwoFirstLevelAndLoadSecondLevel()
+    {
+        if (!IsStoryRunActive)
+        {
+            CurrentMode = GameModeKind.Story;
+            storyRunActive = true;
+            activeChapter = StoryChapter.ChapterTwo;
+            chapterStartProgress = GetFirstLevelCompletionProgress();
+            currentProgress = chapterStartProgress;
+        }
+
+        CaptureCurrentPlayerProgress();
+        currentProgress = currentProgress.ForNewLevel();
+        activeStoryScene = ChapterTwoSecondSceneName;
+        openStorySelection = false;
+        openEndlessSelection = false;
         LoadScene(activeStoryScene);
     }
 
@@ -317,7 +355,8 @@ public static class GameModeSession
             progression.Level,
             progression.CurrentExperience,
             progression.DestroyedEnemies,
-            progression.HealthPackDropChanceBonus);
+            progression.HealthPackDropChanceBonus,
+            progression.MaxHealthBonus);
     }
 
     private static string GetChapterStartScene(StoryChapter chapter)
@@ -344,6 +383,7 @@ public static class GameModeSession
     private static void LoadPersistentStoryProgress()
     {
         chapterTwoUnlocked = PlayerPrefs.GetInt(ChapterTwoUnlockedKey, 0) == 1;
+        LoadPersistentStorySkills();
         hasFirstLevelCompletionProgress = PlayerPrefs.HasKey(FirstLevelKeyPrefix + "Level");
         if (!hasFirstLevelCompletionProgress)
         {
@@ -355,13 +395,50 @@ public static class GameModeSession
             PlayerPrefs.GetInt(FirstLevelKeyPrefix + "Level", 1),
             PlayerPrefs.GetInt(FirstLevelKeyPrefix + "Experience", 0),
             0,
-            0f);
+            PlayerPrefs.GetFloat(FirstLevelKeyPrefix + "HealthPackBonus", 0f),
+            PlayerPrefs.GetInt(FirstLevelKeyPrefix + "MaxHealthBonus", 0));
     }
 
     private static void SaveFirstLevelCompletionProgress()
     {
         PlayerPrefs.SetInt(FirstLevelKeyPrefix + "Level", firstLevelCompletionProgress.level);
         PlayerPrefs.SetInt(FirstLevelKeyPrefix + "Experience", firstLevelCompletionProgress.experience);
+        PlayerPrefs.SetFloat(
+            FirstLevelKeyPrefix + "HealthPackBonus",
+            firstLevelCompletionProgress.healthPackDropChanceBonus);
+        PlayerPrefs.SetInt(
+            FirstLevelKeyPrefix + "MaxHealthBonus",
+            firstLevelCompletionProgress.maxHealthBonus);
+        PlayerPrefs.Save();
+    }
+
+    private static void LoadPersistentStorySkills()
+    {
+        int savedQSkill = PlayerPrefs.GetInt(StorySkillKeyPrefix + "Q", 0);
+        int savedESkill = PlayerPrefs.GetInt(StorySkillKeyPrefix + "E", 0);
+        bool validSkills = savedQSkill >= MinimumStorySkillId
+            && savedQSkill <= MaximumStorySkillId
+            && savedESkill >= MinimumStorySkillId
+            && savedESkill <= MaximumStorySkillId
+            && savedQSkill != savedESkill;
+        if (!validSkills)
+        {
+            return;
+        }
+
+        qSkill = savedQSkill;
+        eSkill = savedESkill;
+        qSkillUpgraded = PlayerPrefs.GetInt(StorySkillKeyPrefix + "QUpgraded", 0) == 1;
+        eSkillUpgraded = PlayerPrefs.GetInt(StorySkillKeyPrefix + "EUpgraded", 0) == 1;
+        hasStorySkills = true;
+    }
+
+    private static void SavePersistentStorySkills()
+    {
+        PlayerPrefs.SetInt(StorySkillKeyPrefix + "Q", qSkill);
+        PlayerPrefs.SetInt(StorySkillKeyPrefix + "E", eSkill);
+        PlayerPrefs.SetInt(StorySkillKeyPrefix + "QUpgraded", qSkillUpgraded ? 1 : 0);
+        PlayerPrefs.SetInt(StorySkillKeyPrefix + "EUpgraded", eSkillUpgraded ? 1 : 0);
         PlayerPrefs.Save();
     }
 
@@ -379,28 +456,36 @@ public static class GameModeSession
 
     private readonly struct PlayerProgressState
     {
-        public static readonly PlayerProgressState LevelOne = new PlayerProgressState(1, 0, 0, 0f);
+        public static readonly PlayerProgressState LevelOne = new PlayerProgressState(1, 0, 0, 0f, 0);
 
         public readonly int level;
         public readonly int experience;
         public readonly int destroyedEnemies;
         public readonly float healthPackDropChanceBonus;
+        public readonly int maxHealthBonus;
 
         public PlayerProgressState(
             int playerLevel,
             int playerExperience,
             int enemiesDestroyed,
-            float healthPackBonus)
+            float healthPackBonus,
+            int playerMaxHealthBonus)
         {
             level = Mathf.Max(1, playerLevel);
             experience = Mathf.Max(0, playerExperience);
             destroyedEnemies = Mathf.Max(0, enemiesDestroyed);
             healthPackDropChanceBonus = Mathf.Clamp01(healthPackBonus);
+            maxHealthBonus = Mathf.Max(0, playerMaxHealthBonus);
         }
 
         public PlayerProgressState ForNewLevel()
         {
-            return new PlayerProgressState(level, experience, 0, healthPackDropChanceBonus);
+            return new PlayerProgressState(
+                level,
+                experience,
+                0,
+                healthPackDropChanceBonus,
+                maxHealthBonus);
         }
     }
 }

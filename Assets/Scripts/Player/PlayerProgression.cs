@@ -15,6 +15,7 @@ public sealed class PlayerProgression : MonoBehaviour
     private int destroyedEnemies;
     private float pickupPulse;
     private float healthPackDropChanceBonus;
+    private int maxHealthBonus;
 
     public static PlayerProgression Instance { get; private set; }
 
@@ -23,6 +24,7 @@ public sealed class PlayerProgression : MonoBehaviour
     public int ExperienceToNextLevel => experienceToNextLevel;
     public int DestroyedEnemies => destroyedEnemies;
     public float HealthPackDropChanceBonus => healthPackDropChanceBonus;
+    public int MaxHealthBonus => maxHealthBonus;
     public float ExperienceProgress => experienceToNextLevel > 0
         ? Mathf.Clamp01((float)currentExperience / experienceToNextLevel)
         : 0f;
@@ -45,13 +47,15 @@ public sealed class PlayerProgression : MonoBehaviour
         destroyedEnemies = 0;
         pickupPulse = 0f;
         healthPackDropChanceBonus = 0f;
+        maxHealthBonus = 0;
     }
 
     public void RestoreState(
         int restoredLevel,
         int restoredExperience,
         int restoredDestroyedEnemies = 0,
-        float restoredHealthPackDropChanceBonus = 0f)
+        float restoredHealthPackDropChanceBonus = 0f,
+        int restoredMaxHealthBonus = 0)
     {
         level = Mathf.Max(1, restoredLevel);
         currentExperience = Mathf.Max(0, restoredExperience);
@@ -66,6 +70,7 @@ public sealed class PlayerProgression : MonoBehaviour
         destroyedEnemies = Mathf.Max(0, restoredDestroyedEnemies);
         pickupPulse = 0f;
         healthPackDropChanceBonus = Mathf.Clamp01(restoredHealthPackDropChanceBonus);
+        maxHealthBonus = Mathf.Max(0, restoredMaxHealthBonus);
     }
 
     private void Update()
@@ -99,6 +104,11 @@ public sealed class PlayerProgression : MonoBehaviour
     {
         healthPackDropChanceBonus = Mathf.Clamp01(
             healthPackDropChanceBonus + Mathf.Max(0f, amount));
+    }
+
+    public void IncreaseMaxHealthBonus(int amount)
+    {
+        maxHealthBonus += Mathf.Max(0, amount);
     }
 
     private int CalculateExperienceRequirement(int targetLevel)

@@ -6,7 +6,7 @@ public sealed class Level03PlaneExtraction : MonoBehaviour
 {
     [SerializeField] private Level03TreasureObjective treasureObjective;
     [SerializeField] private Transform planeRoot;
-    [SerializeField, Min(1f)] private float interactionRadius = 16f;
+    [SerializeField, Min(1f)] private float interactionRadius = 32f;
     [SerializeField, Min(0f)] private float returnToMenuDelay = 2.25f;
 
     private SimpleAutoDriveController playerController;
@@ -52,7 +52,7 @@ public sealed class Level03PlaneExtraction : MonoBehaviour
     public void Configure(
         Level03TreasureObjective objective,
         Transform configuredPlaneRoot,
-        float configuredInteractionRadius = 16f)
+        float configuredInteractionRadius = 32f)
     {
         treasureObjective = objective;
         planeRoot = configuredPlaneRoot;
@@ -121,17 +121,17 @@ public sealed class Level03PlaneExtraction : MonoBehaviour
         EvacuationCompleted?.Invoke();
         Time.timeScale = 0f;
         AudioListener.pause = true;
-        StartCoroutine(ReturnToMainMenuAfterDelay());
+        StartCoroutine(StartSecondLevelAfterDelay());
     }
 
-    private IEnumerator ReturnToMainMenuAfterDelay()
+    private IEnumerator StartSecondLevelAfterDelay()
     {
         if (returnToMenuDelay > 0f)
         {
             yield return new WaitForSecondsRealtime(returnToMenuDelay);
         }
 
-        GameModeSession.CompleteChapterTwoAndReturnToMenu();
+        GameModeSession.CompleteChapterTwoFirstLevelAndLoadSecondLevel();
     }
 
     private void OnGUI()
@@ -183,7 +183,7 @@ public sealed class Level03PlaneExtraction : MonoBehaviour
             headingStyle);
         GUI.Label(
             new Rect(panel.x + 20f, panel.y + 82f, panel.width - 40f, 42f),
-            "\u7b2c\u4e09\u5173\u5df2\u901a\u5173",
+            "\u5373\u5c06\u8fdb\u5165\u7b2c\u4e8c\u7ae0\u7b2c\u4e8c\u5173",
             promptStyle);
     }
 
