@@ -58,9 +58,9 @@ public static class FirstRoundLightingInstaller
         sun.color = level03
             ? new Color(1f, 0.97f, 0.9f, 1f)
             : new Color(1f, 0.965f, 0.89f, 1f);
-        sun.intensity = level03 ? 1.28f : 1.26f;
+        sun.intensity = level03 ? 1.2f : 1.18f;
         sun.shadows = LightShadows.Soft;
-        sun.shadowStrength = level03 ? 0.62f : 0.7f;
+        sun.shadowStrength = level03 ? 0.7f : 0.72f;
         sun.shadowBias = 0.045f;
         sun.shadowNormalBias = 0.32f;
         sun.useColorTemperature = true;
@@ -68,7 +68,7 @@ public static class FirstRoundLightingInstaller
         RenderSettings.sun = sun;
 
         RenderSettings.ambientMode = AmbientMode.Trilight;
-        RenderSettings.ambientIntensity = level03 ? 0.85f : 0.82f;
+        RenderSettings.ambientIntensity = level03 ? 0.76f : 0.74f;
         RenderSettings.ambientSkyColor = level03
             ? new Color(0.58f, 0.7f, 0.84f, 1f)
             : new Color(0.51f, 0.66f, 0.8f, 1f);
@@ -84,8 +84,8 @@ public static class FirstRoundLightingInstaller
         RenderSettings.fogColor = level03
             ? new Color(0.58f, 0.68f, 0.76f, 1f)
             : new Color(0.6f, 0.7f, 0.76f, 1f);
-        RenderSettings.fogStartDistance = level03 ? 120f : 210f;
-        RenderSettings.fogEndDistance = level03 ? 550f : 800f;
+        RenderSettings.fogStartDistance = level03 ? 180f : 250f;
+        RenderSettings.fogEndDistance = level03 ? 700f : 900f;
         RenderSettings.fogDensity = level03 ? 0.006f : 0.003f;
         DynamicGI.UpdateEnvironment();
     }
@@ -147,10 +147,10 @@ public static class FirstRoundLightingInstaller
         grading.enabled.value = true;
         grading.gradingMode.Override(GradingMode.HighDefinitionRange);
         grading.tonemapper.Override(Tonemapper.Neutral);
-        grading.postExposure.Override(level03 ? 0.55f : 0.5f);
-        grading.contrast.Override(level03 ? 7f : 6f);
-        grading.saturation.Override(level03 ? 10f : 3f);
-        grading.temperature.Override(level03 ? -6f : -1f);
+        grading.postExposure.Override(level03 ? 0.2f : 0.18f);
+        grading.contrast.Override(10f);
+        grading.saturation.Override(12f);
+        grading.temperature.Override(level03 ? -3f : -2f);
         grading.tint.Override(0f);
         grading.colorFilter.Override(level03
             ? new Color(0.96f, 0.99f, 1f, 1f)
@@ -166,10 +166,10 @@ public static class FirstRoundLightingInstaller
 
         Bloom bloom = GetOrAdd<Bloom>(profile);
         bloom.enabled.value = true;
-        bloom.intensity.Override(level03 ? 0.55f : 0.3f);
-        bloom.threshold.Override(level03 ? 0.9f : 1f);
-        bloom.softKnee.Override(level03 ? 0.8f : 0.65f);
-        bloom.diffusion.Override(level03 ? 6f : 5f);
+        bloom.intensity.Override(level03 ? 0.2f : 0.18f);
+        bloom.threshold.Override(1.1f);
+        bloom.softKnee.Override(0.55f);
+        bloom.diffusion.Override(4f);
         bloom.color.Override(new Color(0.82f, 0.94f, 1f, 1f));
         bloom.fastMode.Override(true);
 

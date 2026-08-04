@@ -18,12 +18,12 @@ RenderSettings:
   m_FogColor: {r: 0.58, g: 0.68, b: 0.76, a: 1}
   m_FogMode: 1
   m_FogDensity: 0.006
-  m_LinearFogStart: 120
-  m_LinearFogEnd: 550
+  m_LinearFogStart: 180
+  m_LinearFogEnd: 700
   m_AmbientSkyColor: {r: 0.58, g: 0.7, b: 0.84, a: 1}
   m_AmbientEquatorColor: {r: 0.64, g: 0.69, b: 0.7, a: 1}
   m_AmbientGroundColor: {r: 0.36, g: 0.39, b: 0.37, a: 1}
-  m_AmbientIntensity: 0.85
+  m_AmbientIntensity: 0.76
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
   m_SkyboxMaterial: {fileID: 2100000, guid: 03f2d732979c8164dbea53a1a675f824, type: 2}
@@ -190,7 +190,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -1148,7 +1148,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -1673,7 +1673,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -1839,7 +1839,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -4628,7 +4628,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -4843,7 +4843,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -5527,7 +5527,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -5864,7 +5864,7 @@ Light:
   m_Type: 1
   m_Shape: 0
   m_Color: {r: 1, g: 0.97, b: 0.9, a: 1}
-  m_Intensity: 1.28
+  m_Intensity: 1.2
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -5873,7 +5873,7 @@ Light:
     m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
-    m_Strength: 0.62
+    m_Strength: 0.7
     m_Bias: 0.045
     m_NormalBias: 0.32
     m_NearPlane: 0.2
@@ -6704,7 +6704,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -10112,7 +10112,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -11012,7 +11012,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -12408,7 +12408,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -12899,7 +12899,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -14103,7 +14103,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -14375,7 +14375,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -14488,7 +14488,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -18931,7 +18931,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
@@ -19170,7 +19170,7 @@ Terrain:
   m_TreeBillboardDistance: 50
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_DetailObjectDistance: 60
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 2
   m_SplatMapDistance: 2000
