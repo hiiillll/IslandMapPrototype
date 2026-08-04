@@ -10,10 +10,10 @@ public sealed class Level03TreasureBeacon : MonoBehaviour
     [SerializeField] private Renderer coreRenderer;
     [SerializeField] private Transform glowTransform;
     [SerializeField] private Renderer glowRenderer;
-    [SerializeField] private Color coreColor = new Color(1.35f, 0.82f, 0.2f, 0.72f);
-    [SerializeField] private Color glowColor = new Color(1f, 0.55f, 0.08f, 0.24f);
-    [SerializeField, Min(0f)] private float pulseSpeed = 1.15f;
-    [SerializeField, Range(0f, 0.3f)] private float radiusPulse = 0.055f;
+    [SerializeField] private Color coreColor = new Color(1.4f, 0.86f, 0.24f, 0.34f);
+    [SerializeField] private Color glowColor = new Color(1f, 0.58f, 0.1f, 0.12f);
+    [SerializeField, Min(0f)] private float pulseSpeed = 0.72f;
+    [SerializeField, Range(0f, 0.3f)] private float radiusPulse = 0.035f;
 
     private MaterialPropertyBlock coreProperties;
     private MaterialPropertyBlock glowProperties;

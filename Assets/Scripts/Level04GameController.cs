@@ -3,6 +3,7 @@ using UnityEngine;
 
 public sealed class Level04GameController : MonoBehaviour
 {
+    [SerializeField, Min(1)] private int targetFrameRate = 100;
     [SerializeField, Min(1f)] private float difficultyRampDuration = 50f;
     [SerializeField, Min(0f)] private float playerStartSpeed = 36f;
     [SerializeField, Min(0f)] private float playerSpeedIncreasePerSecond = 0.12f;
@@ -18,6 +19,9 @@ public sealed class Level04GameController : MonoBehaviour
     private bool hasFailed;
     private bool completionCleanupHandled;
     private bool completionTransitionStarted;
+    private int previousTargetFrameRate;
+    private int previousVSyncCount;
+    private bool frameRateOverrideApplied;
     private GUIStyle completionHeadingStyle;
     private GUIStyle completionBodyStyle;
 
@@ -36,10 +40,28 @@ public sealed class Level04GameController : MonoBehaviour
 
     private void Awake()
     {
+        previousTargetFrameRate = Application.targetFrameRate;
+        previousVSyncCount = QualitySettings.vSyncCount;
+        QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = Mathf.Max(1, targetFrameRate);
+        frameRateOverrideApplied = true;
+
         Time.timeScale = 1f;
         hasFailed = false;
         completionCleanupHandled = false;
         completionTransitionStarted = false;
+    }
+
+    private void OnDestroy()
+    {
+        if (!frameRateOverrideApplied)
+        {
+            return;
+        }
+
+        Application.targetFrameRate = previousTargetFrameRate;
+        QualitySettings.vSyncCount = previousVSyncCount;
+        frameRateOverrideApplied = false;
     }
 
     private void Update()

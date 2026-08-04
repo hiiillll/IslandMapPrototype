@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using UnityEngine;
 using UnityEngine.Video;
 
@@ -11,7 +10,6 @@ public sealed class Level03PlaneExtraction : MonoBehaviour
 
     [Header("Cinematic")]
     [SerializeField] private string cinematicResourcePath = "Cinematics/Level03CompletionCG";
-    [SerializeField, Min(0f)] private float returnToMenuDelay = 2.25f;
 
     private SimpleAutoDriveController playerController;
     private VideoPlayer videoPlayer;
@@ -21,7 +19,6 @@ public sealed class Level03PlaneExtraction : MonoBehaviour
     private bool cinematicActive;
     private bool cinematicFinished;
     private bool levelTransitionStarted;
-    private GUIStyle headingStyle;
     private GUIStyle promptStyle;
 
     public event Action EvacuationCompleted;
@@ -200,26 +197,18 @@ public sealed class Level03PlaneExtraction : MonoBehaviour
 
         cinematicActive = false;
         cinematicFinished = true;
-        if (!levelTransitionStarted)
+        if (levelTransitionStarted)
         {
-            levelTransitionStarted = true;
-            StartCoroutine(StartSecondLevelAfterDelay());
-        }
-    }
-
-    private IEnumerator StartSecondLevelAfterDelay()
-    {
-        if (returnToMenuDelay > 0f)
-        {
-            yield return new WaitForSecondsRealtime(returnToMenuDelay);
+            return;
         }
 
+        levelTransitionStarted = true;
         GameModeSession.CompleteChapterTwoFirstLevelAndLoadSecondLevel();
     }
 
     private void OnGUI()
     {
-        if (cinematicActive || cinematicFinished)
+        if (cinematicActive)
         {
             GUI.depth = -1200;
             if (cinematicTexture != null)
@@ -233,17 +222,6 @@ public sealed class Level03PlaneExtraction : MonoBehaviour
             {
                 GUI.Box(new Rect(0f, 0f, Screen.width, Screen.height), GUIContent.none);
             }
-
-            if (cinematicFinished)
-            {
-                DrawCompletionPanel();
-            }
-            return;
-        }
-
-        if (evacuationComplete)
-        {
-            DrawCompletionPanel();
             return;
         }
 
@@ -270,42 +248,13 @@ public sealed class Level03PlaneExtraction : MonoBehaviour
             promptStyle);
     }
 
-    private void DrawCompletionPanel()
-    {
-        EnsureStyles();
-        GUI.depth = -1200;
-        const float width = 520f;
-        const float height = 150f;
-        Rect panel = new Rect(
-            (Screen.width - width) * 0.5f,
-            (Screen.height - height) * 0.5f,
-            width,
-            height);
-        GUI.Box(panel, GUIContent.none);
-        GUI.Label(
-            new Rect(panel.x + 20f, panel.y + 20f, panel.width - 40f, 58f),
-            "\u64a4\u79bb\u6210\u529f",
-            headingStyle);
-        GUI.Label(
-            new Rect(panel.x + 20f, panel.y + 82f, panel.width - 40f, 42f),
-            "\u5373\u5c06\u8fdb\u5165\u7b2c\u4e8c\u7ae0\u7b2c\u4e8c\u5173",
-            promptStyle);
-    }
-
     private void EnsureStyles()
     {
-        if (headingStyle != null)
+        if (promptStyle != null)
         {
             return;
         }
 
-        headingStyle = new GUIStyle(GUI.skin.label)
-        {
-            alignment = TextAnchor.MiddleCenter,
-            fontSize = 34,
-            fontStyle = FontStyle.Bold,
-            normal = { textColor = new Color(1f, 0.78f, 0.12f) }
-        };
         promptStyle = new GUIStyle(GUI.skin.label)
         {
             alignment = TextAnchor.MiddleCenter,

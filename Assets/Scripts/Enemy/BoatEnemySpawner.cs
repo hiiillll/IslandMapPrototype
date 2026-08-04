@@ -18,10 +18,12 @@ public sealed class BoatEnemySpawner : MonoBehaviour
     [SerializeField, Min(0f)] private float spawnCollisionGrace = 0.15f;
     [SerializeField, Min(1)] private int maximumActiveEnemies = 12;
     [SerializeField, Range(0f, 180f)] private float forwardSpawnExclusionHalfAngle = 20f;
+    [SerializeField, Range(0.1f, 1f)] private float horizontalColliderScale = 0.9f;
 
     [Header("Story Enemy Tracking")]
     [SerializeField, Min(0f)] private float enemyMaximumTurnRate = 145f;
     [SerializeField, Min(0f)] private float enemyTurnAcceleration = 420f;
+    [SerializeField, Range(0f, 1f)] private float enemyMaximumPredictionTime = 0.3f;
 
     private float spawnTimer;
     private bool spawningEnabled = true;
@@ -117,7 +119,12 @@ public sealed class BoatEnemySpawner : MonoBehaviour
 
         GameObject enemy = new GameObject($"ENEMY_Boat_{activeEnemies.Count + 1:00}");
         enemy.transform.position = spawnPosition;
-        enemy.transform.rotation = Quaternion.identity;
+        Vector3 initialDirection = Vector3.ProjectOnPlane(
+            player.position - spawnPosition,
+            Vector3.up);
+        enemy.transform.rotation = initialDirection.sqrMagnitude > 0.001f
+            ? Quaternion.LookRotation(initialDirection.normalized, Vector3.up)
+            : Quaternion.identity;
 
         GameObject visual = Instantiate(enemyVisualPrefab, enemy.transform);
         visual.name = "Visual_Model17";
@@ -129,7 +136,11 @@ public sealed class BoatEnemySpawner : MonoBehaviour
         Bounds localBounds = CalculateLocalBounds(enemy);
         BoxCollider enemyCollider = enemy.AddComponent<BoxCollider>();
         enemyCollider.center = localBounds.center;
-        enemyCollider.size = localBounds.size;
+        Vector3 colliderSize = localBounds.size;
+        float horizontalScale = Mathf.Clamp(horizontalColliderScale, 0.1f, 1f);
+        colliderSize.x *= horizontalScale;
+        colliderSize.z *= horizontalScale;
+        enemyCollider.size = colliderSize;
         enemyCollider.isTrigger = true;
 
         Rigidbody enemyBody = enemy.AddComponent<Rigidbody>();
@@ -140,7 +151,8 @@ public sealed class BoatEnemySpawner : MonoBehaviour
             player,
             difficultyController,
             enemyMaximumTurnRate,
-            enemyTurnAcceleration);
+            enemyTurnAcceleration,
+            enemyMaximumPredictionTime);
         enemy.AddComponent<BoatWakeTrail>();
         activeEnemies.Add(enemy);
         StartCoroutine(TemporarilyDisableCollision(enemyCollider));

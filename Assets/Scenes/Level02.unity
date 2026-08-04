@@ -819,8 +819,10 @@ MonoBehaviour:
   spawnCollisionGrace: 0.15
   maximumActiveEnemies: 12
   forwardSpawnExclusionHalfAngle: 20
+  horizontalColliderScale: 0.9
   enemyMaximumTurnRate: 145
   enemyTurnAcceleration: 420
+  enemyMaximumPredictionTime: 0
 --- !u!1 &1638315203
 GameObject:
   m_ObjectHideFlags: 0

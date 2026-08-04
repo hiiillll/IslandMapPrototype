@@ -156,6 +156,8 @@ public class SimplePlayerHealth : MonoBehaviour
 
     private void StopPlayer()
     {
+        GameModeSession.RestoreStoryLevelEntryProgress(GetComponent<PlayerProgression>());
+
         SimpleAutoDriveController controller = GetComponent<SimpleAutoDriveController>();
         if (controller != null)
         {

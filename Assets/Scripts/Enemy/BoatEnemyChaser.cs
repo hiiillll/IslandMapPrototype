@@ -7,9 +7,11 @@ public sealed class BoatEnemyChaser : MonoBehaviour
     [SerializeField, Min(0f)] private float rotationSpeed = 5f;
     [SerializeField, Min(0f)] private float maximumTurnRate = 145f;
     [SerializeField, Min(0f)] private float turnAcceleration = 420f;
+    [SerializeField, Range(0f, 1f)] private float maximumPredictionTime = 0.3f;
     [SerializeField, Range(0f, 1f)] private float healthPackDropChance = 0.1f;
 
     private Transform player;
+    private Rigidbody playerBody;
     private Rigidbody body;
     private BoatChaseDifficultyController difficultyController;
     private float currentTurnRate;
@@ -19,12 +21,15 @@ public sealed class BoatEnemyChaser : MonoBehaviour
         Transform playerTarget,
         BoatChaseDifficultyController difficulty,
         float newMaximumTurnRate,
-        float newTurnAcceleration)
+        float newTurnAcceleration,
+        float newMaximumPredictionTime)
     {
         player = playerTarget;
+        playerBody = player != null ? player.GetComponentInParent<Rigidbody>() : null;
         difficultyController = difficulty;
         maximumTurnRate = Mathf.Max(0f, newMaximumTurnRate);
         turnAcceleration = Mathf.Max(0f, newTurnAcceleration);
+        maximumPredictionTime = Mathf.Clamp01(newMaximumPredictionTime);
     }
 
     private void Awake()
@@ -58,7 +63,10 @@ public sealed class BoatEnemyChaser : MonoBehaviour
             return;
         }
 
-        Vector3 direction = player.position - body.position;
+        Vector3 targetPosition = GameModeSession.IsEndlessSea
+            ? player.position
+            : CalculatePredictedTargetPosition();
+        Vector3 direction = targetPosition - body.position;
         direction.y = 0f;
         if (direction.sqrMagnitude < 0.001f)
         {
@@ -103,6 +111,20 @@ public sealed class BoatEnemyChaser : MonoBehaviour
         }
 
         return body.rotation * Quaternion.Euler(0f, turnDegrees, 0f);
+    }
+
+    private Vector3 CalculatePredictedTargetPosition()
+    {
+        Vector3 targetPosition = player.position;
+        if (playerBody == null || maximumPredictionTime <= 0f)
+        {
+            return targetPosition;
+        }
+
+        Vector3 playerVelocity = Vector3.ProjectOnPlane(playerBody.velocity, Vector3.up);
+        float distanceToPlayer = Vector3.Distance(body.position, player.position);
+        float predictionStrength = Mathf.InverseLerp(12f, 60f, distanceToPlayer);
+        return targetPosition + playerVelocity * (maximumPredictionTime * predictionStrength);
     }
 
     private Quaternion CalculateEndlessRotation(Vector3 direction)
@@ -199,6 +221,10 @@ public sealed class BoatEnemyChaser : MonoBehaviour
         {
             GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
             player = playerObject != null ? playerObject.transform : null;
+        }
+        if (playerBody == null && player != null)
+        {
+            playerBody = player.GetComponentInParent<Rigidbody>();
         }
         if (difficultyController == null)
         {

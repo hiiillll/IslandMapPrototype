@@ -516,10 +516,16 @@ public static class Level03TreasureInstaller
         Mesh beamMesh = GetOrCreateBeamMesh();
         Material beamCore = GetOrCreateBeamMaterial(
             BeamCoreMaterialPath,
-            new Color(1.35f, 0.82f, 0.2f, 0.72f));
+            new Color(1.4f, 0.86f, 0.24f, 0.34f),
+            0.5f,
+            0.24f,
+            1.35f);
         Material beamGlow = GetOrCreateBeamMaterial(
             BeamGlowMaterialPath,
-            new Color(1f, 0.55f, 0.08f, 0.24f));
+            new Color(1f, 0.58f, 0.1f, 0.12f),
+            0.38f,
+            0.42f,
+            2.1f);
 
         GameObject root = new GameObject("PF_Level03_TreasureChest");
         SphereCollider trigger = root.AddComponent<SphereCollider>();
@@ -550,14 +556,14 @@ public static class Level03TreasureInstaller
             "VFX_TreasureBeam_Glow",
             beamMesh,
             beamGlow,
-            new Vector3(2.2f, 25f, 2.2f),
+            new Vector3(3.4f, 650f, 3.4f),
             1);
         MeshRenderer coreRenderer = CreateBeamSegment(
             root.transform,
             "VFX_TreasureBeam_Core",
             beamMesh,
             beamCore,
-            new Vector3(0.72f, 29f, 0.72f),
+            new Vector3(1.15f, 720f, 1.15f),
             2);
         chest.Configure(string.Empty, null, lidPivot);
         beacon.Configure(
@@ -600,8 +606,9 @@ public static class Level03TreasureInstaller
     {
         Mesh existing = AssetDatabase.LoadAssetAtPath<Mesh>(BeamMeshPath);
         const int segments = 24;
-        float[] ringHeights = { 0f, 0.045f, 0.14f, 0.62f, 0.88f, 1f };
-        float[] ringAlpha = { 0f, 0.42f, 1f, 0.82f, 0.3f, 0f };
+        float[] ringHeights = { 0f, 0.018f, 0.055f, 0.2f, 0.62f, 0.88f, 1f };
+        float[] ringRadii = { 0.24f, 0.5f, 0.53f, 0.51f, 0.46f, 0.34f, 0.16f };
+        float[] ringAlpha = { 0f, 0.36f, 1f, 0.9f, 0.68f, 0.24f, 0f };
         int ringVertexCount = segments + 1;
         Vector3[] vertices = new Vector3[ringHeights.Length * ringVertexCount];
         Vector3[] normals = new Vector3[vertices.Length];
@@ -617,7 +624,7 @@ public static class Level03TreasureInstaller
                 float angle = fraction * Mathf.PI * 2f;
                 Vector3 radial = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
                 int vertexIndex = ring * ringVertexCount + segment;
-                vertices[vertexIndex] = radial * 0.5f + Vector3.up * ringHeights[ring];
+                vertices[vertexIndex] = radial * ringRadii[ring] + Vector3.up * ringHeights[ring];
                 normals[vertexIndex] = radial;
                 uvs[vertexIndex] = new Vector2(fraction, ringHeights[ring]);
                 colors[vertexIndex] = new Color(1f, 1f, 1f, ringAlpha[ring]);
@@ -660,14 +667,19 @@ public static class Level03TreasureInstaller
         return mesh;
     }
 
-    private static Material GetOrCreateBeamMaterial(string path, Color color)
+    private static Material GetOrCreateBeamMaterial(
+        string path,
+        Color color,
+        float flowSpeed,
+        float flowStrength,
+        float edgeSoftness)
     {
         Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
-        Shader shader = Shader.Find("Particles/Additive") ?? Shader.Find("Unlit/Transparent");
+        Shader shader = Shader.Find("IslandMap/TreasureBeacon");
         if (shader == null)
         {
             throw new MissingReferenceException(
-                "No transparent shader is available for the treasure beacon.");
+                "The IslandMap/TreasureBeacon shader is unavailable.");
         }
 
         if (material == null)
@@ -691,6 +703,9 @@ public static class Level03TreasureInstaller
         {
             material.SetColor("_Color", color);
         }
+        material.SetFloat("_FlowSpeed", flowSpeed);
+        material.SetFloat("_FlowStrength", flowStrength);
+        material.SetFloat("_EdgeSoftness", edgeSoftness);
         material.renderQueue = 3000;
         material.enableInstancing = true;
         EditorUtility.SetDirty(material);

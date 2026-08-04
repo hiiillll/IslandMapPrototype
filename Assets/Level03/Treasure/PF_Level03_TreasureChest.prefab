@@ -194,7 +194,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0.8, z: 0}
-  m_LocalScale: {x: 2.2, y: 25, z: 2.2}
+  m_LocalScale: {x: 3.4, y: 650, z: 3.4}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8203760520812419776}
@@ -559,7 +559,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0.8, z: 0}
-  m_LocalScale: {x: 0.72, y: 29, z: 0.72}
+  m_LocalScale: {x: 1.15, y: 720, z: 1.15}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8203760520812419776}
@@ -709,10 +709,10 @@ MonoBehaviour:
   coreRenderer: {fileID: 6408039099510440061}
   glowTransform: {fileID: 5552465562885875970}
   glowRenderer: {fileID: 7998265775070205564}
-  coreColor: {r: 1.35, g: 0.82, b: 0.2, a: 0.72}
-  glowColor: {r: 1, g: 0.55, b: 0.08, a: 0.24}
-  pulseSpeed: 1.15
-  radiusPulse: 0.055
+  coreColor: {r: 1.4, g: 0.86, b: 0.24, a: 0.34}
+  glowColor: {r: 1, g: 0.58, b: 0.1, a: 0.12}
+  pulseSpeed: 0.72
+  radiusPulse: 0.035
 --- !u!1 &8407278984772076517
 GameObject:
   m_ObjectHideFlags: 0

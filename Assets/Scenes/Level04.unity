@@ -842,8 +842,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72d63291c3bd49a4da5059e531b16163, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  targetFrameRate: 100
   difficultyRampDuration: 50
-  playerStartSpeed: 36
+  playerStartSpeed: 40
   playerSpeedIncreasePerSecond: 0.12
   enemySpeedAdvantage: 1.5
   initialSpawnInterval: 2.5

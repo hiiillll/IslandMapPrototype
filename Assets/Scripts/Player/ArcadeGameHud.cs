@@ -8,6 +8,7 @@ public sealed class ArcadeGameHud : MonoBehaviour
     private PlayerProgression progression;
     private PlayerSkillSystem skillSystem;
     private SurvivalGameController survivalController;
+    private Level03TreasureObjective treasureObjective;
     private ArcadeHudLayoutSettings layoutSettings;
 
     [Header("HUD Layout (reference: 1920 x 1080)")]
@@ -35,6 +36,7 @@ public sealed class ArcadeGameHud : MonoBehaviour
     private Texture2D killFrameTexture;
     private Texture2D pauseButtonTexture;
     private Texture2D experienceFrameTexture;
+    private Texture2D treasureIconTexture;
     private GUIStyle largeNumberStyle;
     private GUIStyle headingStyle;
     private GUIStyle bodyStyle;
@@ -42,6 +44,8 @@ public sealed class ArcadeGameHud : MonoBehaviour
     private GUIStyle italicNumberStyle;
     private GUIStyle italicHeadingStyle;
     private bool isPaused;
+    private int lastTreasureCount = -1;
+    private float treasureFlashUntil;
 
     public void ConfigureBasicHudOnly()
     {
@@ -87,6 +91,7 @@ public sealed class ArcadeGameHud : MonoBehaviour
         killFrameTexture = LoadHudTexture("kill_frame") ?? redPanelTexture;
         pauseButtonTexture = LoadHudTexture("pause_button") ?? redPanelTexture;
         experienceFrameTexture = LoadHudTexture("xp_frame") ?? bluePanelTexture;
+        treasureIconTexture = CreateTreasureChestTexture();
     }
 
     private void OnGUI()
@@ -125,6 +130,7 @@ public sealed class ArcadeGameHud : MonoBehaviour
         DrawTimerPanel(scale);
         DrawKillPanel(scale);
         DrawPauseButton(scale);
+        DrawTreasureProgress(scale);
         if (!basicHudOnly)
         {
             DrawExperienceBar(scale);
@@ -313,6 +319,144 @@ public sealed class ArcadeGameHud : MonoBehaviour
         {
             isPaused = false;
             GameModeSession.RestartStoryRunWithNewSkills();
+        }
+    }
+
+    private void DrawTreasureProgress(float scale)
+    {
+        if (treasureObjective == null)
+        {
+            treasureObjective = FindObjectOfType<Level03TreasureObjective>();
+        }
+        if (treasureObjective == null)
+        {
+            return;
+        }
+
+        int required = Mathf.Max(1, treasureObjective.RequiredChestCount);
+        int collected = Mathf.Clamp(treasureObjective.CollectedCount, 0, required);
+        if (lastTreasureCount != collected)
+        {
+            if (lastTreasureCount >= 0)
+            {
+                treasureFlashUntil = Time.unscaledTime + 0.7f;
+            }
+            lastTreasureCount = collected;
+        }
+
+        bool isComplete = treasureObjective.IsComplete;
+        float panelWidth = 330f * scale;
+        float panelHeight = 98f * scale;
+        float topHudBottom = Mathf.Max(
+            timerLayout.offset.y + timerLayout.size.y,
+            Mathf.Max(
+                killLayout.offset.y + killLayout.size.y,
+                pauseLayout.offset.y + pauseLayout.size.y));
+        Rect panel = new Rect(
+            Screen.width - panelWidth - 18f * scale,
+            (topHudBottom + 18f) * scale,
+            panelWidth,
+            panelHeight);
+
+        float flash = Mathf.Clamp01((treasureFlashUntil - Time.unscaledTime) / 0.7f);
+        Color accent = isComplete
+            ? new Color(0.08f, 0.88f, 0.7f)
+            : new Color(1f, 0.5f, 0.06f);
+        accent = Color.Lerp(accent, Color.white, flash * 0.35f);
+        DrawSolidRect(panel, new Color(0.012f, 0.02f, 0.034f, 0.9f));
+        DrawSolidRect(
+            new Rect(panel.x, panel.y, panel.width, 3f * scale),
+            accent);
+        DrawSolidRect(
+            new Rect(panel.x, panel.y, 3f * scale, panel.height),
+            new Color(accent.r, accent.g, accent.b, 0.82f));
+
+        Rect iconBackdrop = new Rect(
+            panel.x + 14f * scale,
+            panel.y + 18f * scale,
+            54f * scale,
+            54f * scale);
+        DrawSolidRect(
+            iconBackdrop,
+            isComplete
+                ? new Color(0.025f, 0.2f, 0.17f, 0.86f)
+                : new Color(0.22f, 0.1f, 0.018f, 0.86f));
+        Rect iconRect = new Rect(
+            iconBackdrop.x + 7f * scale,
+            iconBackdrop.y + 7f * scale,
+            iconBackdrop.width - 14f * scale,
+            iconBackdrop.height - 14f * scale);
+        GUI.DrawTexture(iconRect, treasureIconTexture, ScaleMode.ScaleToFit, true);
+
+        GUIStyle titleStyle = new GUIStyle(italicHeadingStyle)
+        {
+            alignment = TextAnchor.MiddleLeft,
+            fontSize = Mathf.RoundToInt((isComplete ? 24f : 19f) * scale)
+        };
+        titleStyle.normal.textColor = isComplete ? accent : Color.white;
+        GUI.Label(
+            new Rect(
+                panel.x + 82f * scale,
+                panel.y + 12f * scale,
+                166f * scale,
+                34f * scale),
+            isComplete
+                ? "\u524d\u5f80\u98de\u673a\u573a"
+                : "\u5b9d\u7bb1\u8fdb\u5ea6",
+            titleStyle);
+
+        GUIStyle countStyle = new GUIStyle(italicNumberStyle)
+        {
+            alignment = TextAnchor.MiddleRight,
+            fontSize = Mathf.RoundToInt(30f * scale)
+        };
+        countStyle.normal.textColor = Color.white;
+        GUI.Label(
+            new Rect(
+                panel.x + panel.width - 78f * scale,
+                panel.y + 13f * scale,
+                60f * scale,
+                32f * scale),
+            $"{collected}/{required}",
+            countStyle);
+
+        GUIStyle objectiveStyle = new GUIStyle(smallStyle)
+        {
+            alignment = TextAnchor.MiddleLeft,
+            fontSize = Mathf.RoundToInt(14f * scale)
+        };
+        objectiveStyle.normal.textColor = new Color(0.7f, 0.78f, 0.86f);
+        GUI.Label(
+            new Rect(
+                panel.x + 82f * scale,
+                panel.y + 43f * scale,
+                panel.width - 100f * scale,
+                24f * scale),
+            isComplete
+                ? "\u64a4\u79bb\u70b9\u5df2\u89e3\u9501"
+                : "\u627e\u5230\u5149\u67f1\u4e0b\u7684\u5b9d\u7bb1",
+            objectiveStyle);
+
+        float barX = panel.x + 82f * scale;
+        float barY = panel.y + 73f * scale;
+        float barWidth = panel.width - 100f * scale;
+        float barHeight = 7f * scale;
+        DrawSolidRect(
+            new Rect(barX, barY, barWidth, barHeight),
+            new Color(0.025f, 0.04f, 0.065f, 1f));
+        DrawSolidRect(
+            new Rect(
+                barX,
+                barY,
+                barWidth * (collected / (float)required),
+                barHeight),
+            accent);
+        for (int index = 1; index < required; index++)
+        {
+            float tickX = barX + barWidth * index / required;
+            DrawSolidRect(
+                new Rect(tickX - scale, barY, 2f * scale, barHeight),
+                new Color(0.012f, 0.02f, 0.034f, 0.95f));
         }
     }
 
@@ -712,6 +856,58 @@ public sealed class ArcadeGameHud : MonoBehaviour
         return texture;
     }
 
+    private static Texture2D CreateTreasureChestTexture()
+    {
+        const int size = 96;
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        {
+            name = "HUD_TreasureChest",
+            wrapMode = TextureWrapMode.Clamp,
+            filterMode = FilterMode.Bilinear,
+            hideFlags = HideFlags.HideAndDontSave
+        };
+        Color[] pixels = new Color[size * size];
+        Color dark = new Color(0.13f, 0.055f, 0.012f, 1f);
+        Color wood = new Color(0.72f, 0.22f, 0.02f, 1f);
+        Color woodLight = new Color(0.96f, 0.42f, 0.045f, 1f);
+        Color metal = new Color(1f, 0.72f, 0.14f, 1f);
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                bool body = x >= 11 && x <= 84 && y >= 12 && y <= 54;
+                float lidHalfWidth = 38f - Mathf.Max(0f, y - 54f) * 0.32f;
+                bool lid = y >= 53 && y <= 81 && Mathf.Abs(x - 47.5f) <= lidHalfWidth;
+                if (!body && !lid)
+                {
+                    pixels[y * size + x] = Color.clear;
+                    continue;
+                }
+
+                bool outerBorder = x <= 14 || x >= 81 || y <= 15 || y >= 78;
+                Color pixel = outerBorder
+                    ? dark
+                    : Color.Lerp(wood, woodLight, Mathf.Clamp01(y / 95f));
+                bool horizontalBand = y >= 49 && y <= 56;
+                if (horizontalBand)
+                {
+                    pixel = metal;
+                }
+                if (x >= 40 && x <= 55 && y >= 32 && y <= 47)
+                {
+                    bool lockBorder = x <= 42 || x >= 53 || y <= 34 || y >= 45;
+                    pixel = lockBorder ? dark : metal;
+                }
+                pixels[y * size + x] = pixel;
+            }
+        }
+
+        texture.SetPixels(pixels);
+        texture.Apply();
+        return texture;
+    }
+
     private static Texture2D CreateSolidTexture(Color color)
     {
         Texture2D texture = new Texture2D(1, 1, TextureFormat.RGBA32, false)
@@ -736,5 +932,6 @@ public sealed class ArcadeGameHud : MonoBehaviour
         Destroy(bluePanelTexture);
         Destroy(speedometerTexture);
         Destroy(solidTexture);
+        Destroy(treasureIconTexture);
     }
 }

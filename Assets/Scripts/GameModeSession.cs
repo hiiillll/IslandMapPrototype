@@ -154,7 +154,7 @@ public static class GameModeSession
             return;
         }
 
-        CaptureCurrentPlayerProgress();
+        RestoreStoryLevelEntryProgress(PlayerProgression.Instance);
         activeStoryScene = SceneManager.GetActiveScene().name;
         LoadScene(activeStoryScene);
     }
@@ -195,6 +195,11 @@ public static class GameModeSession
     }
 
     public static void ApplyStoryProgress(PlayerProgression progression)
+    {
+        RestoreStoryLevelEntryProgress(progression);
+    }
+
+    public static void RestoreStoryLevelEntryProgress(PlayerProgression progression)
     {
         if (progression != null && IsStoryRunActive)
         {

@@ -51,18 +51,10 @@ public sealed class BoatChaseController : MonoBehaviour
         body = GetComponent<Rigidbody>();
         health = GetComponent<SimplePlayerHealth>();
         difficultyController = FindObjectOfType<BoatChaseDifficultyController>();
-        if (!GameModeSession.IsEndless)
+        ArcadeGameHud hud = GetComponent<ArcadeGameHud>();
+        if (hud != null)
         {
-            if (GetComponent<PlayerSkillSystem>() == null)
-            {
-                gameObject.AddComponent<PlayerSkillSystem>();
-            }
-
-            ArcadeGameHud hud = GetComponent<ArcadeGameHud>();
-            if (hud != null)
-            {
-                hud.ConfigureStoryHud();
-            }
+            hud.ConfigureBasicHudOnly();
         }
         body.useGravity = false;
         body.interpolation = RigidbodyInterpolation.Interpolate;

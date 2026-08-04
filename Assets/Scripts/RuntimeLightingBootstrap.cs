@@ -7,6 +7,8 @@ public sealed class RuntimeLightingBootstrap : MonoBehaviour
 {
     private const float ReflectionVolumeSize = 10000f;
     private const int ReflectionResolution = 128;
+    private const float IslandMapReflectionIntensity = 0.6f;
+    private const float Level03ReflectionIntensity = 0.65f;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void RegisterSceneLightingRefresh()
@@ -53,7 +55,7 @@ public sealed class RuntimeLightingBootstrap : MonoBehaviour
         probe.cullingMask = 0;
         probe.resolution = ReflectionResolution;
         probe.hdr = true;
-        probe.intensity = 1f;
+        probe.intensity = GetSceneReflectionIntensity();
         probe.importance = 1000;
         probe.boxProjection = false;
         probe.blendDistance = 0f;
@@ -71,8 +73,23 @@ public sealed class RuntimeLightingBootstrap : MonoBehaviour
         RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
         RenderSettings.defaultReflectionResolution = ReflectionResolution;
         RenderSettings.reflectionBounces = 1;
-        RenderSettings.reflectionIntensity = 1f;
+        RenderSettings.reflectionIntensity = GetSceneReflectionIntensity();
         DynamicGI.UpdateEnvironment();
+    }
+
+    private static float GetSceneReflectionIntensity()
+    {
+        string sceneName = SceneManager.GetActiveScene().name;
+        if (sceneName == "IslandMap")
+        {
+            return IslandMapReflectionIntensity;
+        }
+        if (sceneName == "Level03")
+        {
+            return Level03ReflectionIntensity;
+        }
+
+        return 1f;
     }
 
     private static Light FindMainDirectionalLight()
