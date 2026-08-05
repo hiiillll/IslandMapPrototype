@@ -31,6 +31,33 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     private const float UnupgradedFlameTrailCooldown = 12f;
     private const float UnupgradedTankShellCooldown = 10f;
     private const float HealthPackDropChanceUpgrade = 0.1f;
+    private const string StartBrandXKey = "Menu.Layout.BrandX";
+    private const string StartBrandYKey = "Menu.Layout.BrandY";
+    private const string StartBrandScaleKey = "Menu.Layout.BrandScale";
+    private const string StartButtonsXKey = "Menu.Layout.ButtonsX";
+    private const string StartButtonsYKey = "Menu.Layout.ButtonsY";
+    private const float DefaultStartBrandX = 0.14f;
+    private const float DefaultStartBrandY = 0.05f;
+    private const float DefaultStartBrandScale = 1f;
+    private const float DefaultStartButtonsX = 0.13f;
+    private const float DefaultStartButtonsY = 0.72f;
+
+    [Header("Start Menu Layout")]
+    [InspectorName("标题位置 X")]
+    [Range(0.1f, 0.9f)]
+    [SerializeField] private float startBrandX = DefaultStartBrandX;
+    [InspectorName("标题位置 Y")]
+    [Range(0.02f, 0.5f)]
+    [SerializeField] private float startBrandY = DefaultStartBrandY;
+    [InspectorName("标题大小")]
+    [Range(0.7f, 1.8f)]
+    [SerializeField] private float startBrandScale = DefaultStartBrandScale;
+    [InspectorName("菜单位置 X")]
+    [Range(0.1f, 0.9f)]
+    [SerializeField] private float startButtonsX = DefaultStartButtonsX;
+    [InspectorName("菜单位置 Y")]
+    [Range(0.2f, 0.8f)]
+    [SerializeField] private float startButtonsY = DefaultStartButtonsY;
 
     private SkillId qSkill;
     private SkillId eSkill;
@@ -49,15 +76,36 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     private SimplePlayerHealth health;
     private PlayerProgression progression;
     private Texture2D coverTexture;
+    private Texture2D logoTexture;
     private Texture2D startButtonNormalTexture;
     private Texture2D startButtonHoverTexture;
+    private Texture2D startButtonPrimaryTexture;
+    private Texture2D startButtonActiveTexture;
+    private Texture2D startAccentCyanTexture;
+    private Texture2D startAccentOrangeTexture;
+    private Texture2D startDividerTexture;
     private Texture2D startPanelTexture;
     private GUIStyle startButtonStyle;
+    private GUIStyle startMenuTextButtonStyle;
+    private GUIStyle startPrimaryButtonStyle;
+    private GUIStyle startCompactButtonStyle;
+    private GUIStyle startCompactPrimaryButtonStyle;
+    private GUIStyle startTitleStyle;
+    private GUIStyle startKickerStyle;
+    private GUIStyle startMetaStyle;
+    private GUIStyle startBackButtonStyle;
+    private GUIStyle startBrandTitleStyle;
+    private GUIStyle startBrandSubtitleStyle;
+    private GUIStyle startLevelNumberStyle;
+    private GUIStyle startLevelTitleStyle;
+    private GUIStyle startLevelMetaStyle;
+    private GUIStyle startLevelButtonStyle;
     private Texture2D hornBlastCard;
     private Texture2D gravityTrapCard;
     private Texture2D blinkCard;
     private Texture2D flameTrailCard;
     private Texture2D tankShellsCard;
+    private Texture2D startMenuTextTexture;
     private Texture2D qHornBlastIcon;
     private Texture2D qGravityTrapIcon;
     private Texture2D qBlinkIcon;
@@ -75,6 +123,9 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     private AudioClip flameTrailAudio;
     private AudioClip tankShellsAudio;
     private StartMenuPage startMenuPage;
+    private bool showStartLayoutEditor;
+    private string startLayoutStatus;
+    private float startLayoutStatusUntil;
 
     public bool IsGameplayActive => !isShowingStartScreen
         && !isChoosingSkills
@@ -91,10 +142,20 @@ public sealed class PlayerSkillSystem : MonoBehaviour
 
     private void Awake()
     {
+        LoadStartMenuLayout();
         body = GetComponent<Rigidbody>();
         health = GetComponent<SimplePlayerHealth>();
         progression = GetComponent<PlayerProgression>();
-        coverTexture = Resources.Load<Texture2D>("UI/GameCover_FloridaDay");
+        coverTexture = Resources.Load<Texture2D>("UI/SpeedEscape_MenuCover_V1");
+        if (coverTexture == null)
+        {
+            coverTexture = Resources.Load<Texture2D>("UI/GameCover_MenuV2");
+        }
+        if (coverTexture == null)
+        {
+            coverTexture = Resources.Load<Texture2D>("UI/GameCover_FloridaDay");
+        }
+        logoTexture = Resources.Load<Texture2D>("UI/SpeedEscape_Logo");
         hornBlastCard = Resources.Load<Texture2D>("SkillCards/CARD-00_HornBlast");
         gravityTrapCard = Resources.Load<Texture2D>("SkillCards/CARD-07_GravityTrap");
         blinkCard = Resources.Load<Texture2D>("SkillCards/CARD-08_Blink");
@@ -136,6 +197,10 @@ public sealed class PlayerSkillSystem : MonoBehaviour
             eSkill = (SkillId)savedESkill;
             qSkillUpgraded = savedQSkillUpgraded;
             eSkillUpgraded = savedESkillUpgraded;
+            isChoosingSkills = false;
+        }
+        else if (!openEndlessSelection && GameModeSession.ShouldSkipStorySkillSelection)
+        {
             isChoosingSkills = false;
         }
     }
@@ -600,33 +665,36 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         }
 
         EnsureStartScreenStyles();
-        float buttonWidth = Mathf.Clamp(Screen.width * 0.22f, 280f, 430f);
-        float buttonHeight = Mathf.Clamp(Screen.height * 0.072f, 58f, 78f);
-        float panelWidth = buttonWidth + 70f;
-        float panelHeight = startMenuPage == StartMenuPage.Main
-            ? buttonHeight * 3f + 78f
-            : startMenuPage == StartMenuPage.StoryChapters
-                ? buttonHeight * 3f + 154f
-                : buttonHeight * 3f + 170f;
-        float panelX = (Screen.width - panelWidth) * 0.5f;
-        float panelY = Screen.height - panelHeight - Mathf.Max(24f, Screen.height * 0.025f);
-        GUI.DrawTexture(new Rect(panelX, panelY, panelWidth, panelHeight), startPanelTexture, ScaleMode.StretchToFill);
+        DrawStartBrand();
 
         if (startMenuPage == StartMenuPage.Main)
         {
-            Rect storyButton = new Rect((Screen.width - buttonWidth) * 0.5f, panelY + 18f, buttonWidth, buttonHeight);
-            Rect endlessButton = new Rect(storyButton.x, storyButton.yMax + 12f, buttonWidth, buttonHeight);
-            Rect garageButton = new Rect(endlessButton.x, endlessButton.yMax + 12f, buttonWidth, buttonHeight);
-            if (GUI.Button(storyButton, "故事模式", startButtonStyle))
+            float menuWidth = Mathf.Clamp(Screen.width * 0.27f, 330f, 500f);
+            float rowHeight = Mathf.Clamp(Screen.height * 0.06f, 52f, 70f);
+            float rowSpacing = Mathf.Clamp(Screen.height * 0.01f, 8f, 14f);
+            float panelHeight = rowHeight * 3f + rowSpacing * 2f;
+            float menuX = Mathf.Clamp(
+                Screen.width * startButtonsX - menuWidth * 0.5f,
+                20f,
+                Screen.width - menuWidth - 20f);
+            float menuY = Mathf.Clamp(
+                Screen.height * startButtonsY,
+                80f,
+                Screen.height - panelHeight - 36f);
+
+            Rect storyButton = new Rect(menuX, menuY, menuWidth, rowHeight);
+            Rect endlessButton = new Rect(storyButton.x, storyButton.yMax + rowSpacing, storyButton.width, rowHeight);
+            Rect garageButton = new Rect(endlessButton.x, endlessButton.yMax + rowSpacing, endlessButton.width, rowHeight);
+            if (DrawStartMenuTextButton(storyButton, "故事模式"))
             {
                 GameModeSession.SelectStory();
                 startMenuPage = StartMenuPage.StoryChapters;
             }
-            if (GUI.Button(endlessButton, "无尽模式", startButtonStyle))
+            if (DrawStartMenuTextButton(endlessButton, "无尽模式"))
             {
                 startMenuPage = StartMenuPage.EndlessModes;
             }
-            if (GUI.Button(garageButton, "车库", startButtonStyle))
+            if (DrawStartMenuTextButton(garageButton, "车库"))
             {
                 VehicleGarageSystem garage = VehicleGarageSystem.Instance;
                 if (garage == null)
@@ -638,57 +706,54 @@ public sealed class PlayerSkillSystem : MonoBehaviour
                     garage.OpenGarage();
                 }
             }
+            DrawStartMenuLayoutEditor();
             return;
         }
 
         if (startMenuPage == StartMenuPage.StoryChapters)
         {
-            DrawStoryChapterSelection(
-                panelX,
-                panelY,
-                panelWidth,
-                panelHeight,
-                buttonWidth,
-                buttonHeight);
+            DrawStoryLevelSelection();
             return;
         }
 
-        GUIStyle modeDescriptionStyle = new GUIStyle(GUI.skin.label)
-        {
-            alignment = TextAnchor.MiddleCenter,
-            fontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.021f, 16f, 23f)),
-            fontStyle = FontStyle.Bold
-        };
-        modeDescriptionStyle.normal.textColor = Color.white;
-        int landTime = EndlessModeController.GetBestTimeMilliseconds(GameModeKind.EndlessLand);
-        int seaTime = EndlessModeController.GetBestTimeMilliseconds(GameModeKind.EndlessSea);
-        int skyTime = EndlessModeController.GetBestTimeMilliseconds(GameModeKind.EndlessSky);
-        Rect landButton = new Rect((Screen.width - buttonWidth) * 0.5f, panelY + 18f, buttonWidth, buttonHeight);
-        Rect seaButton = new Rect(landButton.x, landButton.yMax + 42f, buttonWidth, buttonHeight);
-        Rect skyButton = new Rect(seaButton.x, seaButton.yMax + 42f, buttonWidth, buttonHeight);
-        if (GUI.Button(landButton, "陆地追逐", startButtonStyle))
+        DrawEndlessModeTextMenu();
+        return;
+    }
+
+    private void DrawEndlessModeTextMenu()
+    {
+        float menuWidth = Mathf.Clamp(Screen.width * 0.27f, 330f, 500f);
+        float rowHeight = Mathf.Clamp(Screen.height * 0.06f, 52f, 70f);
+        float rowSpacing = Mathf.Clamp(Screen.height * 0.01f, 8f, 14f);
+        float menuHeight = rowHeight * 4f + rowSpacing * 3f;
+        float menuX = Mathf.Clamp(
+            Screen.width * startButtonsX - menuWidth * 0.5f,
+            20f,
+            Screen.width - menuWidth - 20f);
+        float menuY = Mathf.Clamp(
+            Screen.height - menuHeight - 42f,
+            160f,
+            Screen.height - menuHeight - 24f);
+
+        Rect land = new Rect(menuX, menuY, menuWidth, rowHeight);
+        Rect sea = new Rect(menuX, land.yMax + rowSpacing, menuWidth, rowHeight);
+        Rect sky = new Rect(menuX, sea.yMax + rowSpacing, menuWidth, rowHeight);
+        Rect back = new Rect(menuX, sky.yMax + rowSpacing, menuWidth, rowHeight);
+
+        if (DrawStartMenuTextButton(land, "陆地追逐"))
         {
             GameModeSession.StartEndlessLand();
             isShowingStartScreen = false;
         }
-        GUI.Label(new Rect(landButton.x - 120f, landButton.yMax, landButton.width + 240f, 32f),
-            $"技能成长 · 最佳 {EndlessModeController.FormatResultTime(landTime)} · 击杀 {EndlessModeController.GetBestKills(GameModeKind.EndlessLand)}",
-            modeDescriptionStyle);
-        if (GUI.Button(seaButton, "海上逃生", startButtonStyle))
+        if (DrawStartMenuTextButton(sea, "海上逃生"))
         {
             GameModeSession.StartEndlessSea();
         }
-        GUI.Label(new Rect(seaButton.x - 120f, seaButton.yMax, seaButton.width + 240f, 32f),
-            $"纯驾驶生存 · 最佳 {EndlessModeController.FormatResultTime(seaTime)} · 击杀 {EndlessModeController.GetBestKills(GameModeKind.EndlessSea)}",
-            modeDescriptionStyle);
-        if (GUI.Button(skyButton, "空中追击", startButtonStyle))
+        if (DrawStartMenuTextButton(sky, "空中追击"))
         {
             GameModeSession.StartEndlessSky();
         }
-        GUI.Label(new Rect(skyButton.x - 120f, skyButton.yMax, skyButton.width + 240f, 32f),
-            $"纯驾驶生存 · 最佳 {EndlessModeController.FormatResultTime(skyTime)} · 击落 {EndlessModeController.GetBestKills(GameModeKind.EndlessSky)}",
-            modeDescriptionStyle);
-        if (GUI.Button(new Rect(panelX + 14f, panelY + panelHeight - 35f, 92f, 28f), "返回"))
+        if (DrawStartMenuTextButton(back, "返回"))
         {
             startMenuPage = StartMenuPage.Main;
         }
@@ -698,31 +763,478 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     {
         if (startButtonNormalTexture == null)
         {
-            startButtonNormalTexture = CreateSolidTexture(new Color(0.03f, 0.12f, 0.24f, 0.94f));
+            startButtonNormalTexture = CreateSolidTexture(new Color(0.025f, 0.03f, 0.032f, 0.62f));
         }
         if (startButtonHoverTexture == null)
         {
-            startButtonHoverTexture = CreateSolidTexture(new Color(0.02f, 0.45f, 0.82f, 0.98f));
+            startButtonHoverTexture = CreateSolidTexture(new Color(0.34f, 0.12f, 0.035f, 0.84f));
+        }
+        if (startButtonPrimaryTexture == null)
+        {
+            startButtonPrimaryTexture = CreateSolidTexture(new Color(0.56f, 0.2f, 0.045f, 0.94f));
+        }
+        if (startButtonActiveTexture == null)
+        {
+            startButtonActiveTexture = CreateSolidTexture(new Color(0.5f, 0.2f, 0.055f, 1f));
+        }
+        if (startMenuTextTexture == null)
+        {
+            startMenuTextTexture = CreateSolidTexture(Color.clear);
+        }
+        if (startAccentCyanTexture == null)
+        {
+            startAccentCyanTexture = CreateSolidTexture(new Color(0.2f, 0.78f, 0.86f, 1f));
+        }
+        if (startAccentOrangeTexture == null)
+        {
+            startAccentOrangeTexture = CreateSolidTexture(new Color(1f, 0.34f, 0.07f, 1f));
+        }
+        if (startDividerTexture == null)
+        {
+            startDividerTexture = CreateSolidTexture(new Color(0.82f, 0.86f, 0.86f, 0.32f));
         }
         if (startPanelTexture == null)
         {
-            startPanelTexture = CreateSolidTexture(new Color(0f, 0.02f, 0.06f, 0.68f));
+            startPanelTexture = CreateSolidTexture(new Color(0.015f, 0.018f, 0.02f, 0.58f));
         }
         if (startButtonStyle == null)
         {
             startButtonStyle = new GUIStyle(GUI.skin.button)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.038f, 28f, 44f)),
-                fontStyle = FontStyle.Bold
+                fontStyle = FontStyle.Normal,
+                padding = new RectOffset(18, 18, 0, 0)
             };
             startButtonStyle.normal.background = startButtonNormalTexture;
             startButtonStyle.hover.background = startButtonHoverTexture;
-            startButtonStyle.active.background = startButtonHoverTexture;
-            startButtonStyle.normal.textColor = Color.white;
+            startButtonStyle.active.background = startButtonActiveTexture;
+            startButtonStyle.focused.background = startButtonNormalTexture;
+            startButtonStyle.normal.textColor = new Color(0.9f, 0.94f, 0.96f, 1f);
             startButtonStyle.hover.textColor = Color.white;
             startButtonStyle.active.textColor = Color.white;
+            startButtonStyle.focused.textColor = new Color(0.9f, 0.94f, 0.96f, 1f);
+
+            startMenuTextButtonStyle = new GUIStyle(GUI.skin.button)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                fontStyle = FontStyle.Bold,
+                padding = new RectOffset(0, 0, 0, 0),
+                border = new RectOffset(0, 0, 0, 0),
+                margin = new RectOffset(0, 0, 0, 0)
+            };
+            startMenuTextButtonStyle.normal.background = startMenuTextTexture;
+            startMenuTextButtonStyle.hover.background = startMenuTextTexture;
+            startMenuTextButtonStyle.active.background = startMenuTextTexture;
+            startMenuTextButtonStyle.focused.background = startMenuTextTexture;
+            startMenuTextButtonStyle.normal.textColor = new Color(1f, 1f, 1f, 0.94f);
+            startMenuTextButtonStyle.hover.textColor = Color.white;
+            startMenuTextButtonStyle.active.textColor = Color.white;
+            startMenuTextButtonStyle.focused.textColor = Color.white;
+
+            startPrimaryButtonStyle = new GUIStyle(startButtonStyle);
+            startPrimaryButtonStyle.normal.background = startButtonPrimaryTexture;
+
+            startCompactButtonStyle = new GUIStyle(startButtonStyle);
+            startCompactButtonStyle.alignment = TextAnchor.MiddleLeft;
+            startCompactButtonStyle.padding = new RectOffset(24, 180, 0, 0);
+            startCompactPrimaryButtonStyle = new GUIStyle(startPrimaryButtonStyle);
+            startCompactPrimaryButtonStyle.alignment = TextAnchor.MiddleLeft;
+            startCompactPrimaryButtonStyle.padding = new RectOffset(24, 180, 0, 0);
+
+            startTitleStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold
+            };
+            startTitleStyle.normal.textColor = new Color(0.94f, 0.97f, 0.98f, 1f);
+
+            startKickerStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold
+            };
+            startKickerStyle.normal.textColor = new Color(0.12f, 0.78f, 0.9f, 1f);
+
+            startMetaStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleRight,
+                fontStyle = FontStyle.Bold,
+                clipping = TextClipping.Clip
+            };
+            startMetaStyle.normal.textColor = new Color(0.56f, 0.82f, 0.86f, 1f);
+
+            startBackButtonStyle = new GUIStyle(GUI.skin.button)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold
+            };
+            startBackButtonStyle.normal.background = startButtonNormalTexture;
+            startBackButtonStyle.hover.background = startButtonHoverTexture;
+            startBackButtonStyle.active.background = startButtonActiveTexture;
+            startBackButtonStyle.normal.textColor = new Color(0.78f, 0.84f, 0.86f, 1f);
+            startBackButtonStyle.hover.textColor = Color.white;
+            startBackButtonStyle.active.textColor = Color.white;
+
+            startBrandTitleStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold
+            };
+            startBrandTitleStyle.normal.textColor = new Color(1f, 0.98f, 0.94f, 1f);
+
+            startBrandSubtitleStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold
+            };
+            startBrandSubtitleStyle.normal.textColor = new Color(0.84f, 0.91f, 0.92f, 0.96f);
+
+            startLevelButtonStyle = new GUIStyle(GUI.skin.button);
+            startLevelButtonStyle.normal.background = startButtonNormalTexture;
+            startLevelButtonStyle.hover.background = startButtonHoverTexture;
+            startLevelButtonStyle.active.background = startButtonActiveTexture;
+            startLevelButtonStyle.normal.textColor = Color.clear;
+            startLevelButtonStyle.hover.textColor = Color.clear;
+            startLevelButtonStyle.active.textColor = Color.clear;
+
+            startLevelNumberStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.UpperLeft,
+                fontStyle = FontStyle.Bold
+            };
+            startLevelNumberStyle.normal.textColor = new Color(1f, 0.42f, 0.09f, 1f);
+
+            startLevelTitleStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                fontStyle = FontStyle.Bold
+            };
+            startLevelTitleStyle.normal.textColor = new Color(0.95f, 0.97f, 0.96f, 1f);
+
+            startLevelMetaStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.LowerLeft,
+                fontStyle = FontStyle.Normal,
+                clipping = TextClipping.Clip
+            };
+            startLevelMetaStyle.normal.textColor = new Color(0.68f, 0.75f, 0.76f, 1f);
         }
+
+        int buttonFontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.023f, 19f, 25f));
+        startButtonStyle.fontSize = buttonFontSize;
+        startMenuTextButtonStyle.fontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.029f, 24f, 36f));
+        startPrimaryButtonStyle.fontSize = buttonFontSize;
+        startCompactButtonStyle.fontSize = Mathf.Max(18, buttonFontSize - 3);
+        startCompactPrimaryButtonStyle.fontSize = startCompactButtonStyle.fontSize;
+        startTitleStyle.fontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.036f, 26f, 38f));
+        startKickerStyle.fontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.014f, 12f, 16f));
+        startMetaStyle.fontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.016f, 12f, 17f));
+        startBackButtonStyle.fontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.026f, 20f, 28f));
+        startBrandTitleStyle.fontSize = Mathf.RoundToInt(
+            Mathf.Clamp(Screen.height * 0.078f, 56f, 88f) * startBrandScale);
+        startBrandSubtitleStyle.fontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.0165f, 14f, 19f));
+        startLevelNumberStyle.fontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.02f, 16f, 22f));
+        startLevelTitleStyle.fontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.03f, 22f, 32f));
+        startLevelMetaStyle.fontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.015f, 12f, 16f));
+    }
+
+    private void DrawStartBrand()
+    {
+        if (logoTexture != null)
+        {
+            float logoWidth = Mathf.Clamp(
+                Screen.width * 0.25f * Mathf.Max(0.8f, startBrandScale),
+                360f,
+                Mathf.Min(Screen.width - 40f, 900f));
+            float logoX = Mathf.Clamp(
+                Screen.width * startBrandX - logoWidth * 0.5f,
+                20f,
+                Screen.width - logoWidth - 20f);
+            float logoY = Mathf.Clamp(Screen.height * startBrandY, 20f, Screen.height - 150f);
+            float logoHeight = logoWidth * logoTexture.height / (float)Mathf.Max(1, logoTexture.width);
+            GUI.DrawTexture(new Rect(logoX, logoY, logoWidth, logoHeight), logoTexture, ScaleMode.ScaleToFit, true);
+            return;
+        }
+
+        float titleWidth = Mathf.Clamp(
+            Screen.width * 0.52f * Mathf.Max(1f, startBrandScale),
+            420f,
+            Mathf.Min(Screen.width - 40f, 1200f));
+        float titleX = Mathf.Clamp(
+            Screen.width * startBrandX - titleWidth * 0.5f,
+            20f,
+            Screen.width - titleWidth - 20f);
+        float titleY = Mathf.Clamp(
+            Screen.height * startBrandY,
+            20f,
+            Screen.height - 150f);
+        float titleHeight = Mathf.Clamp(
+            Mathf.Clamp(Screen.height * 0.12f, 86f, 128f) * startBrandScale,
+            86f,
+            180f);
+        Rect titleRect = new Rect(titleX, titleY, titleWidth, titleHeight);
+        Color titleColor = startBrandTitleStyle.normal.textColor;
+        startBrandTitleStyle.normal.textColor = new Color(0f, 0f, 0f, 0.5f);
+        GUI.Label(new Rect(titleRect.x + 3f, titleRect.y + 4f, titleRect.width, titleRect.height), "佛罗里达的一天", startBrandTitleStyle);
+        startBrandTitleStyle.normal.textColor = titleColor;
+        GUI.Label(titleRect, "佛罗里达的一天", startBrandTitleStyle);
+        GUI.DrawTexture(
+            new Rect(titleRect.center.x - 45f, titleRect.yMax - 6f, 90f, 3f),
+            startAccentOrangeTexture);
+        GUI.Label(
+            new Rect(titleRect.x, titleRect.yMax + 2f, titleRect.width, 26f),
+            "A  D A Y   I N   F L O R I D A",
+            startBrandSubtitleStyle);
+    }
+
+    private bool DrawStartMenuTextButton(Rect rect, string label)
+    {
+        bool hovered = rect.Contains(Event.current.mousePosition);
+        string displayLabel = hovered ? ">  " + label : label;
+        return GUI.Button(rect, displayLabel, startMenuTextButtonStyle);
+    }
+
+    public void SetStartMenuLayout(float brandX, float brandY, float buttonsX, float buttonsY)
+    {
+        SetStartMenuLayout(brandX, brandY, buttonsX, buttonsY, startBrandScale);
+    }
+
+    public void SetStartMenuLayout(
+        float brandX,
+        float brandY,
+        float buttonsX,
+        float buttonsY,
+        float brandScale)
+    {
+        startBrandX = Mathf.Clamp(brandX, 0.1f, 0.9f);
+        startBrandY = Mathf.Clamp(brandY, 0.02f, 0.5f);
+        startButtonsX = Mathf.Clamp(buttonsX, 0.1f, 0.9f);
+        startButtonsY = Mathf.Clamp(buttonsY, 0.2f, 0.8f);
+        startBrandScale = Mathf.Clamp(brandScale, 0.7f, 1.8f);
+    }
+
+    private void LoadStartMenuLayout()
+    {
+        SetStartMenuLayout(
+            PlayerPrefs.GetFloat(StartBrandXKey, DefaultStartBrandX),
+            PlayerPrefs.GetFloat(StartBrandYKey, DefaultStartBrandY),
+            PlayerPrefs.GetFloat(StartButtonsXKey, DefaultStartButtonsX),
+            PlayerPrefs.GetFloat(StartButtonsYKey, DefaultStartButtonsY),
+            PlayerPrefs.GetFloat(StartBrandScaleKey, DefaultStartBrandScale));
+    }
+
+    private void SaveStartMenuLayout()
+    {
+        PlayerPrefs.SetFloat(StartBrandXKey, startBrandX);
+        PlayerPrefs.SetFloat(StartBrandYKey, startBrandY);
+        PlayerPrefs.SetFloat(StartBrandScaleKey, startBrandScale);
+        PlayerPrefs.SetFloat(StartButtonsXKey, startButtonsX);
+        PlayerPrefs.SetFloat(StartButtonsYKey, startButtonsY);
+        PlayerPrefs.Save();
+        startLayoutStatus = "位置参数已保存";
+        startLayoutStatusUntil = Time.unscaledTime + 2f;
+    }
+
+    private void ResetStartMenuLayout()
+    {
+        SetStartMenuLayout(
+            DefaultStartBrandX,
+            DefaultStartBrandY,
+            DefaultStartButtonsX,
+            DefaultStartButtonsY,
+            DefaultStartBrandScale);
+        PlayerPrefs.DeleteKey(StartBrandXKey);
+        PlayerPrefs.DeleteKey(StartBrandYKey);
+        PlayerPrefs.DeleteKey(StartBrandScaleKey);
+        PlayerPrefs.DeleteKey(StartButtonsXKey);
+        PlayerPrefs.DeleteKey(StartButtonsYKey);
+        PlayerPrefs.Save();
+        startLayoutStatus = "已恢复默认位置";
+        startLayoutStatusUntil = Time.unscaledTime + 2f;
+    }
+
+    private void DrawStartMenuLayoutEditor()
+    {
+        float scale = Mathf.Clamp(Screen.height / 1080f, 0.67f, 1.2f);
+        Rect toggleRect = new Rect(
+            Screen.width - 118f * scale,
+            28f * scale,
+            90f * scale,
+            42f * scale);
+        if (GUI.Button(toggleRect, "调整", startBackButtonStyle))
+        {
+            showStartLayoutEditor = !showStartLayoutEditor;
+        }
+        if (!showStartLayoutEditor)
+        {
+            return;
+        }
+
+        Rect panelRect = new Rect(
+            Screen.width - 340f * scale,
+            84f * scale,
+            312f * scale,
+            338f * scale);
+        GUI.DrawTexture(panelRect, startPanelTexture);
+        GUI.DrawTexture(
+            new Rect(panelRect.x, panelRect.y, panelRect.width, 2f * scale),
+            startAccentOrangeTexture);
+        GUI.Label(
+            new Rect(panelRect.x + 16f * scale, panelRect.y + 10f * scale,
+                panelRect.width - 32f * scale, 30f * scale),
+            "开始菜单位置",
+            startTitleStyle);
+
+        float rowX = panelRect.x + 18f * scale;
+        float rowWidth = panelRect.width - 36f * scale;
+        float rowY = panelRect.y + 50f * scale;
+        float nextBrandX = DrawStartLayoutSlider(
+            rowX, rowY, rowWidth, "标题 X", startBrandX, 0.1f, 0.9f, scale);
+        rowY += 46f * scale;
+        float nextBrandY = DrawStartLayoutSlider(
+            rowX, rowY, rowWidth, "标题 Y", startBrandY, 0.02f, 0.5f, scale);
+        rowY += 46f * scale;
+        float nextBrandScale = DrawStartLayoutSlider(
+            rowX, rowY, rowWidth, "标题大小", startBrandScale, 0.7f, 1.8f, scale);
+        rowY += 46f * scale;
+        float nextButtonsX = DrawStartLayoutSlider(
+            rowX, rowY, rowWidth, "菜单 X", startButtonsX, 0.1f, 0.9f, scale);
+        rowY += 46f * scale;
+        float nextButtonsY = DrawStartLayoutSlider(
+            rowX, rowY, rowWidth, "菜单 Y", startButtonsY, 0.2f, 0.8f, scale);
+
+        if (!Mathf.Approximately(nextBrandX, startBrandX)
+            || !Mathf.Approximately(nextBrandY, startBrandY)
+            || !Mathf.Approximately(nextBrandScale, startBrandScale)
+            || !Mathf.Approximately(nextButtonsX, startButtonsX)
+            || !Mathf.Approximately(nextButtonsY, startButtonsY))
+        {
+            SetStartMenuLayout(
+                nextBrandX,
+                nextBrandY,
+                nextButtonsX,
+                nextButtonsY,
+                nextBrandScale);
+        }
+
+        float buttonY = panelRect.yMax - 46f * scale;
+        float buttonGap = 10f * scale;
+        float buttonWidth = (rowWidth - buttonGap) * 0.5f;
+        if (GUI.Button(
+            new Rect(rowX, buttonY, buttonWidth, 32f * scale),
+            "保存",
+            startPrimaryButtonStyle))
+        {
+            SaveStartMenuLayout();
+        }
+        if (GUI.Button(
+            new Rect(rowX + buttonWidth + buttonGap, buttonY, buttonWidth, 32f * scale),
+            "重置",
+            startButtonStyle))
+        {
+            ResetStartMenuLayout();
+        }
+        if (!string.IsNullOrEmpty(startLayoutStatus)
+            && Time.unscaledTime < startLayoutStatusUntil)
+        {
+            GUI.Label(
+                new Rect(panelRect.x, panelRect.yMax + 4f * scale, panelRect.width, 22f * scale),
+                startLayoutStatus,
+                startKickerStyle);
+        }
+    }
+
+    private float DrawStartLayoutSlider(
+        float x,
+        float y,
+        float width,
+        string label,
+        float value,
+        float minimum,
+        float maximum,
+        float scale)
+    {
+        GUI.Label(
+            new Rect(x, y, width, 20f * scale),
+            $"{label}    {value:0.00}",
+            startMetaStyle);
+        return GUI.HorizontalSlider(
+            new Rect(x, y + 24f * scale, width, 14f * scale),
+            value,
+            minimum,
+            maximum);
+    }
+
+    private void DrawStartMenuHeader(Rect contentRect, string kicker, string title)
+    {
+        GUI.Label(new Rect(contentRect.x, contentRect.y, contentRect.width, 34f), title, startTitleStyle);
+        GUI.Label(new Rect(contentRect.x, contentRect.y + 31f, contentRect.width, 22f), kicker, startKickerStyle);
+    }
+
+    private bool DrawStartMenuButton(Rect rect, string label, bool primary, bool compact)
+    {
+        GUIStyle style = compact
+            ? primary ? startCompactPrimaryButtonStyle : startCompactButtonStyle
+            : primary ? startPrimaryButtonStyle : startButtonStyle;
+        bool wasClicked = GUI.Button(rect, label, style);
+        bool isHovered = rect.Contains(Event.current.mousePosition) && GUI.enabled;
+        GUI.DrawTexture(
+            new Rect(rect.x, rect.yMax - 1f, rect.width, 1f),
+            isHovered ? startAccentOrangeTexture : startDividerTexture);
+        if (primary || isHovered)
+        {
+            GUI.DrawTexture(new Rect(rect.x, rect.y, 4f, rect.height), startAccentOrangeTexture);
+        }
+        return wasClicked;
+    }
+
+    private void DrawStartMenuMeta(Rect rect, string text)
+    {
+        GUI.Label(new Rect(rect.x + rect.width * 0.42f, rect.y, rect.width * 0.45f, rect.height), text, startMetaStyle);
+    }
+
+    private void DrawStartMenuBackButton(float menuX, float menuY, float menuWidth)
+    {
+        Rect backRect = new Rect(
+            menuX + 8f,
+            menuY,
+            Mathf.Clamp(menuWidth * 0.12f, 44f, 52f),
+            Mathf.Clamp(Screen.height * 0.042f, 38f, 46f));
+        if (GUI.Button(backRect, new GUIContent("←", "返回"), startBackButtonStyle))
+        {
+            startMenuPage = StartMenuPage.Main;
+        }
+    }
+
+    private bool DrawStartLevelCard(
+        Rect rect,
+        int levelNumber,
+        string chapter,
+        string title,
+        string description)
+    {
+        bool isHovered = rect.Contains(Event.current.mousePosition);
+        bool wasClicked = GUI.Button(rect, GUIContent.none, startLevelButtonStyle);
+        GUI.DrawTexture(
+            new Rect(rect.x, rect.y, isHovered ? 6f : 3f, rect.height),
+            isHovered ? startAccentOrangeTexture : startDividerTexture);
+        GUI.Label(
+            new Rect(rect.x + 22f, rect.y + 14f, 54f, 30f),
+            levelNumber.ToString("00"),
+            startLevelNumberStyle);
+        GUI.Label(
+            new Rect(rect.xMax - 116f, rect.y + 14f, 92f, 26f),
+            chapter,
+            startKickerStyle);
+        GUI.Label(
+            new Rect(rect.x + 82f, rect.y + 28f, rect.width - 112f, 48f),
+            title,
+            startLevelTitleStyle);
+        GUI.Label(
+            new Rect(rect.x + 24f, rect.yMax - 42f, rect.width - 48f, 26f),
+            description,
+            startLevelMetaStyle);
+        return wasClicked;
     }
 
     private static Texture2D CreateSolidTexture(Color color)
@@ -746,9 +1258,33 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         {
             Destroy(startButtonHoverTexture);
         }
+        if (startButtonPrimaryTexture != null)
+        {
+            Destroy(startButtonPrimaryTexture);
+        }
+        if (startButtonActiveTexture != null)
+        {
+            Destroy(startButtonActiveTexture);
+        }
+        if (startAccentCyanTexture != null)
+        {
+            Destroy(startAccentCyanTexture);
+        }
+        if (startAccentOrangeTexture != null)
+        {
+            Destroy(startAccentOrangeTexture);
+        }
+        if (startDividerTexture != null)
+        {
+            Destroy(startDividerTexture);
+        }
         if (startPanelTexture != null)
         {
             Destroy(startPanelTexture);
+        }
+        if (startMenuTextTexture != null)
+        {
+            Destroy(startMenuTextTexture);
         }
     }
 
@@ -909,77 +1445,115 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         }
     }
 
-    private void DrawStoryChapterSelection(
-        float panelX,
-        float panelY,
-        float panelWidth,
-        float panelHeight,
-        float buttonWidth,
-        float buttonHeight)
+    private void DrawStoryLevelSelection()
     {
-        GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
-        {
-            alignment = TextAnchor.MiddleCenter,
-            fontSize = Mathf.RoundToInt(Mathf.Clamp(Screen.height * 0.025f, 20f, 30f)),
-            fontStyle = FontStyle.Bold
-        };
-        titleStyle.normal.textColor = Color.white;
+        DrawStoryLevelSelectionTextMenu();
+    }
 
-        GUI.Label(
-            new Rect(panelX + 20f, panelY + 12f, panelWidth - 40f, 42f),
-            "\u5173\u5361\u9009\u62e9",
-            titleStyle);
+    private void DrawStoryLevelSelectionCards()
+    {
+        float gridWidth = Mathf.Min(Screen.width - 64f, Mathf.Clamp(Screen.width * 0.6f, 720f, 980f));
+        float gap = Mathf.Clamp(Screen.width * 0.012f, 12f, 18f);
+        float cardWidth = (gridWidth - gap) * 0.5f;
+        float cardHeight = Mathf.Clamp(Screen.height * 0.135f, 112f, 146f);
+        float headerHeight = 70f;
+        float panelWidth = gridWidth + 44f;
+        float panelHeight = headerHeight + cardHeight * 2f + gap + 68f;
+        float panelX = (Screen.width - panelWidth) * 0.5f;
+        float panelY = Mathf.Clamp(Screen.height * 0.29f, 205f, Screen.height - panelHeight - 24f);
+        Rect panelRect = new Rect(panelX, panelY, panelWidth, panelHeight);
+        GUI.DrawTexture(panelRect, startPanelTexture);
+        DrawStartMenuHeader(
+            new Rect(panelRect.x + 22f, panelRect.y + 12f, panelRect.width - 44f, 54f),
+            "直接选择并开始",
+            "选择关卡");
 
-        float buttonX = (Screen.width - buttonWidth) * 0.5f;
-        float nextY = panelY + 60f;
-        if (GameModeSession.IsStoryRunActive)
+        float gridX = panelRect.x + 22f;
+        float gridY = panelRect.y + headerHeight;
+        Rect levelOne = new Rect(gridX, gridY, cardWidth, cardHeight);
+        Rect levelTwo = new Rect(levelOne.xMax + gap, gridY, cardWidth, cardHeight);
+        Rect levelThree = new Rect(gridX, levelOne.yMax + gap, cardWidth, cardHeight);
+        Rect levelFour = new Rect(levelThree.xMax + gap, levelThree.y, cardWidth, cardHeight);
+        if (DrawStartLevelCard(
+            levelOne,
+            1,
+            "第一章",
+            "岛屿追逐",
+            "从海岛公路开始逃亡 · 重新选择技能"))
         {
-            string chapterName = GameModeSession.ActiveChapter == StoryChapter.ChapterTwo
-                ? "\u7b2c\u4e8c\u7ae0"
-                : "\u7b2c\u4e00\u7ae0";
-            if (GUI.Button(
-                new Rect(buttonX, nextY, buttonWidth, buttonHeight),
-                $"\u7ee7\u7eed{chapterName}\u526f\u672c",
-                startButtonStyle))
-            {
-                GameModeSession.ContinueStoryRun();
-            }
-            nextY += buttonHeight + 12f;
+            GameModeSession.StartStoryLevel(1);
         }
-
-        string chapterOneLabel = GameModeSession.IsStoryRunActive
-            && GameModeSession.ActiveChapter == StoryChapter.ChapterOne
-            ? "\u91cd\u5f00\u7b2c\u4e00\u7ae0\uff08\u91cd\u9009\u6280\u80fd\uff09"
-            : "\u7b2c\u4e00\u7ae0\uff08\u5c9b\u5c7f + \u6d77\u4e0a\u9003\u751f\uff09";
-        if (GUI.Button(
-            new Rect(buttonX, nextY, buttonWidth, buttonHeight),
-            chapterOneLabel,
-            startButtonStyle))
+        if (DrawStartLevelCard(
+            levelTwo,
+            2,
+            "第一章",
+            "海上逃生",
+            "驾驶快艇穿越海面追击 · 继承技能"))
         {
-            GameModeSession.StartStoryChapter(StoryChapter.ChapterOne);
+            GameModeSession.StartStoryLevel(2);
         }
-        nextY += buttonHeight + 12f;
-
-        bool previousEnabled = GUI.enabled;
-        GUI.enabled = GameModeSession.IsChapterTwoUnlocked;
-        string chapterTwoLabel = GameModeSession.IsChapterTwoUnlocked
-            ? GameModeSession.IsStoryRunActive
-                && GameModeSession.ActiveChapter == StoryChapter.ChapterTwo
-                ? "\u91cd\u5f00\u7b2c\u4e8c\u7ae0\uff08\u7ee7\u627f\u6280\u80fd\uff09"
-                : "\u7b2c\u4e8c\u7ae0\uff08\u5b9d\u7bb1\u64a4\u79bb\uff09"
-            : "\u7b2c\u4e8c\u7ae0\uff08\u5b8c\u6210\u7b2c\u4e00\u7ae0\u540e\u89e3\u9501\uff09";
-        if (GUI.Button(
-            new Rect(buttonX, nextY, buttonWidth, buttonHeight),
-            chapterTwoLabel,
-            startButtonStyle))
+        if (DrawStartLevelCard(
+            levelThree,
+            3,
+            "第二章",
+            "宝箱撤离",
+            "夺取宝箱并冲向机场 · 继承第一关技能"))
         {
-            GameModeSession.StartStoryChapter(StoryChapter.ChapterTwo);
+            GameModeSession.StartStoryLevel(3);
         }
-        GUI.enabled = previousEnabled;
+        if (DrawStartLevelCard(
+            levelFour,
+            4,
+            "第二章",
+            "空中追击",
+            "驾驶飞机穿越云海 · 无技能选择"))
+        {
+            GameModeSession.StartStoryLevel(4);
+        }
+        DrawStartMenuBackButton(
+            panelRect.x + 18f,
+            levelThree.yMax + gap + 8f,
+            panelRect.width);
+    }
 
-        if (GUI.Button(
-            new Rect(panelX + 14f, panelY + panelHeight - 35f, 92f, 28f),
-            "\u8fd4\u56de"))
+    private void DrawStoryLevelSelectionTextMenu()
+    {
+        float menuWidth = Mathf.Clamp(Screen.width * 0.27f, 330f, 500f);
+        float rowHeight = Mathf.Clamp(Screen.height * 0.06f, 52f, 70f);
+        float rowSpacing = Mathf.Clamp(Screen.height * 0.01f, 8f, 14f);
+        float menuHeight = rowHeight * 5f + rowSpacing * 4f;
+        float menuX = Mathf.Clamp(
+            Screen.width * startButtonsX - menuWidth * 0.5f,
+            20f,
+            Screen.width - menuWidth - 20f);
+        float menuY = Mathf.Clamp(
+            Screen.height - menuHeight - 42f,
+            120f,
+            Screen.height - menuHeight - 24f);
+
+        Rect levelOne = new Rect(menuX, menuY, menuWidth, rowHeight);
+        Rect levelTwo = new Rect(menuX, levelOne.yMax + rowSpacing, menuWidth, rowHeight);
+        Rect levelThree = new Rect(menuX, levelTwo.yMax + rowSpacing, menuWidth, rowHeight);
+        Rect levelFour = new Rect(menuX, levelThree.yMax + rowSpacing, menuWidth, rowHeight);
+        Rect back = new Rect(menuX, levelFour.yMax + rowSpacing, menuWidth, rowHeight);
+
+        if (DrawStartMenuTextButton(levelOne, "第一关  岛屿追逐"))
+        {
+            GameModeSession.StartStoryLevel(1);
+        }
+        if (DrawStartMenuTextButton(levelTwo, "第二关  海上逃生"))
+        {
+            GameModeSession.StartStoryLevel(2);
+        }
+        if (DrawStartMenuTextButton(levelThree, "第三关  宝箱撤离"))
+        {
+            GameModeSession.StartStoryLevel(3);
+        }
+        if (DrawStartMenuTextButton(levelFour, "第四关  空中追击"))
+        {
+            GameModeSession.StartStoryLevel(4);
+        }
+        if (DrawStartMenuTextButton(back, "返回"))
         {
             startMenuPage = StartMenuPage.Main;
         }

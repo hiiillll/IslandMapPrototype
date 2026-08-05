@@ -32,6 +32,7 @@ public static class GameModeSession
     private static bool openEndlessSelection;
     private static bool openStorySelection;
     private static bool storyRunActive;
+    private static bool skipInitialStorySkillSelection;
     private static StoryChapter activeChapter;
     private static string activeStoryScene = IslandSceneName;
 
@@ -56,6 +57,7 @@ public static class GameModeSession
     public static StoryChapter ActiveChapter => activeChapter;
     public static bool IsChapterTwoUnlocked => chapterTwoUnlocked;
     public static bool HasSelectedStorySkills => IsStoryRunActive && hasStorySkills;
+    public static bool ShouldSkipStorySkillSelection => IsStoryRunActive && skipInitialStorySkillSelection;
 
     public static bool ShouldShowStartMenu
     {
@@ -74,6 +76,7 @@ public static class GameModeSession
         openEndlessSelection = false;
         openStorySelection = false;
         storyRunActive = false;
+        skipInitialStorySkillSelection = false;
         activeChapter = StoryChapter.None;
         activeStoryScene = IslandSceneName;
         ClearStorySkills();
@@ -107,6 +110,39 @@ public static class GameModeSession
         openStorySelection = false;
         openEndlessSelection = false;
         if (chapter == StoryChapter.ChapterOne)
+        {
+            ClearStorySkills();
+        }
+        else if (!hasStorySkills)
+        {
+            LoadPersistentStorySkills();
+        }
+        LoadScene(activeStoryScene);
+    }
+
+    public static void StartStoryLevel(int levelNumber)
+    {
+        int selectedLevel = Mathf.Clamp(levelNumber, 1, 4);
+        CurrentMode = GameModeKind.Story;
+        storyRunActive = true;
+        activeChapter = selectedLevel <= 2
+            ? StoryChapter.ChapterOne
+            : StoryChapter.ChapterTwo;
+        activeStoryScene = selectedLevel == 1
+            ? IslandSceneName
+            : selectedLevel == 2
+                ? SeaSceneName
+                : selectedLevel == 3
+                    ? ChapterTwoSceneName
+                    : ChapterTwoSecondSceneName;
+        chapterStartProgress = selectedLevel == 1
+            ? PlayerProgressState.LevelOne
+            : GetFirstLevelCompletionProgress();
+        currentProgress = chapterStartProgress;
+        skipInitialStorySkillSelection = selectedLevel > 1;
+        openStorySelection = false;
+        openEndlessSelection = false;
+        if (selectedLevel == 1)
         {
             ClearStorySkills();
         }
