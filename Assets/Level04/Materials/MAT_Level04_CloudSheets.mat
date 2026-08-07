@@ -33,12 +33,12 @@ Material:
     - _DetailBlend: 0.38
     - _EdgeFadeX: 0.15
     - _EdgeFadeY: 0.13
-    - _GradientStrength: 0.72
+    - _GradientStrength: 1.08
     - _SecondaryScale: 1.95
     - _Softness: 0.21
-    - _VerticalShade: 0.08
+    - _VerticalShade: 0.22
     m_Colors:
     - _DriftA: {r: 0.0015, g: 0.00045, b: 0, a: 0}
     - _DriftB: {r: -0.0007, g: 0.001, b: 0, a: 0}
-    - _Tint: {r: 0.69, g: 0.78, b: 0.88, a: 0.38}
+    - _Tint: {r: 0.73, g: 0.71, b: 0.73, a: 0.42}
   m_BuildTextureStacks: []

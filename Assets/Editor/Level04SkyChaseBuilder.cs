@@ -146,6 +146,7 @@ public static class Level04SkyChaseBuilder
         gameController.Configure(health, spawner, survivalController);
 
         ConfigureRenderSettings();
+        Level04CoverSkyInstaller.ApplyToLoadedScene(scene);
         EditorSceneManager.MarkSceneDirty(scene);
         if (!EditorSceneManager.SaveScene(scene, ScenePath))
         {
@@ -388,7 +389,7 @@ public static class Level04SkyChaseBuilder
             PrimitiveType.Cube,
             "ENV_CloudSea",
             parent,
-            new Vector3(0f, -4f, 0f),
+            new Vector3(0f, -28f, 0f),
             new Vector3(WorldSize, 1f, WorldSize),
             material);
         floor.isStatic = true;
@@ -471,7 +472,7 @@ public static class Level04SkyChaseBuilder
             0f,
             0.06f);
         material.mainTexture = texture;
-        material.mainTextureScale = new Vector2(10f, 10f);
+        material.mainTextureScale = new Vector2(3.5f, 3.5f);
         EditorUtility.SetDirty(material);
         return material;
     }

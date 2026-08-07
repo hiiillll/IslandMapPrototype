@@ -468,9 +468,9 @@ public sealed class EndlessModeController : MonoBehaviour
         {
             GameModeSession.RetryCurrentMode();
         }
-        if (GUI.Button(new Rect(panel.x + panel.width - 300f, panel.y + 380f, 210f, 62f), "返回模式选择", buttonStyle))
+        if (GUI.Button(new Rect(panel.x + panel.width - 300f, panel.y + 380f, 210f, 62f), "返回主界面", buttonStyle))
         {
-            GameModeSession.ReturnToEndlessSelection();
+            GameModeSession.ReturnToMainMenu();
         }
     }
 

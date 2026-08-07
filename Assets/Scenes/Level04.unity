@@ -15,18 +15,18 @@ RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 9
   m_Fog: 1
-  m_FogColor: {r: 0.24, g: 0.38, b: 0.5, a: 1}
+  m_FogColor: {r: 0.36, g: 0.36, b: 0.41, a: 1}
   m_FogMode: 1
   m_FogDensity: 0.01
-  m_LinearFogStart: 130
-  m_LinearFogEnd: 360
-  m_AmbientSkyColor: {r: 0.2, g: 0.34, b: 0.48, a: 1}
-  m_AmbientEquatorColor: {r: 0.3, g: 0.42, b: 0.5, a: 1}
-  m_AmbientGroundColor: {r: 0.08, g: 0.12, b: 0.17, a: 1}
-  m_AmbientIntensity: 1
+  m_LinearFogStart: 680
+  m_LinearFogEnd: 2600
+  m_AmbientSkyColor: {r: 0.34, g: 0.37, b: 0.45, a: 1}
+  m_AmbientEquatorColor: {r: 0.45, g: 0.4, b: 0.38, a: 1}
+  m_AmbientGroundColor: {r: 0.16, g: 0.18, b: 0.23, a: 1}
+  m_AmbientIntensity: 1.08
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 2100000, guid: 03f2d732979c8164dbea53a1a675f824, type: 2}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 89003245647b944459f5cca1a8e024de, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -35,9 +35,9 @@ RenderSettings:
   m_DefaultReflectionMode: 0
   m_DefaultReflectionResolution: 128
   m_ReflectionBounces: 1
-  m_ReflectionIntensity: 1
+  m_ReflectionIntensity: 0.82
   m_CustomReflection: {fileID: 0}
-  m_Sun: {fileID: 0}
+  m_Sun: {fileID: 461277230}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -149,8 +149,8 @@ Transform:
   m_GameObject: {fileID: 338568834}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -4, z: 0}
-  m_LocalScale: {x: 8000, y: 1, z: 8000}
+  m_LocalPosition: {x: 0, y: -36, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1189767978}
@@ -204,7 +204,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 338568834}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 4300000, guid: 3c09db0669de2cf428f3a8074b7bdced, type: 2}
 --- !u!1 &461277228
 GameObject:
   m_ObjectHideFlags: 0
@@ -230,7 +230,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 461277228}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.37912473, y: -0.22269028, z: 0.09452642, w: 0.89316195}
+  m_LocalRotation: {x: 0.007630724, y: 0.94025195, z: -0.021118615, w: 0.3397383}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -248,8 +248,8 @@ Light:
   serializedVersion: 10
   m_Type: 1
   m_Shape: 0
-  m_Color: {r: 0.78, g: 0.86, b: 0.96, a: 1}
-  m_Intensity: 0.82
+  m_Color: {r: 1, g: 0.64, b: 0.38, a: 1}
+  m_Intensity: 1.08
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -534,7 +534,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.3, g: 0.66, b: 0.88, a: 1}
+  m_BackGroundColor: {r: 0.12, g: 0.16, b: 0.23, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -556,7 +556,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.1
-  far clip plane: 500
+  far clip plane: 6000
   field of view: 60
   orthographic: 1
   orthographic size: 36
@@ -850,6 +850,7 @@ MonoBehaviour:
   initialSpawnInterval: 2.5
   spawnIntervalShortenPerSecond: 0.04
   minimumSpawnInterval: 0.55
+  chapterCompletionDelay: 2.25
   playerHealth: {fileID: 1486993541}
   enemySpawner: {fileID: 679961790}
   survivalController: {fileID: 1577009520}
@@ -997,11 +998,11 @@ MonoBehaviour:
   target: {fileID: 1486993548}
   deckCloudMaterial: {fileID: 2100000, guid: 6d0165946d554f94493a02f201697e87, type: 2}
   horizonCloudMaterial: {fileID: 2100000, guid: 9dc9fd43c256d884d9f11c856447a7d2, type: 2}
-  deckCardCount: 18
-  horizonCardCount: 8
-  fieldRadius: 280
+  deckCardCount: 30
+  horizonCardCount: 0
+  fieldRadius: 360
   minimumInitialDistance: 42
-  horizonRadius: 235
+  horizonRadius: 340
   randomSeed: 4042026
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

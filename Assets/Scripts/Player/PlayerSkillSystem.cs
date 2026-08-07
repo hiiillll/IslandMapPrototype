@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Video;
 
 public sealed class PlayerSkillSystem : MonoBehaviour
 {
@@ -77,6 +78,10 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     private PlayerProgression progression;
     private Texture2D coverTexture;
     private Texture2D logoTexture;
+    private VideoPlayer openingCinematicPlayer;
+    private AudioSource openingCinematicAudio;
+    private RenderTexture openingCinematicTexture;
+    private bool isShowingOpeningCinematic;
     private Texture2D startButtonNormalTexture;
     private Texture2D startButtonHoverTexture;
     private Texture2D startButtonPrimaryTexture;
@@ -87,6 +92,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     private Texture2D startPanelTexture;
     private GUIStyle startButtonStyle;
     private GUIStyle startMenuTextButtonStyle;
+    private GUIStyle openingCinematicPromptStyle;
     private GUIStyle startPrimaryButtonStyle;
     private GUIStyle startCompactButtonStyle;
     private GUIStyle startCompactPrimaryButtonStyle;
@@ -186,8 +192,18 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         {
             isShowingStartScreen = false;
         }
+        if (isShowingStartScreen
+            && startMenuPage == StartMenuPage.Main
+            && GameModeSession.ConsumeOpeningCinematic())
+        {
+            InitializeOpeningCinematic();
+        }
 
-        if (!openEndlessSelection && GameModeSession.TryGetStorySkills(
+        if (GameModeSession.IsEndlessLand)
+        {
+            ResetSkillsForEndlessLand();
+        }
+        else if (!openEndlessSelection && GameModeSession.TryGetStorySkills(
             out int savedQSkill,
             out int savedESkill,
             out bool savedQSkillUpgraded,
@@ -211,8 +227,103 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         Time.timeScale = IsGameplayActive ? 1f : 0f;
     }
 
+    private void InitializeOpeningCinematic()
+    {
+        VideoClip clip = Resources.Load<VideoClip>("Cinematics/OpeningCG");
+        if (clip == null)
+        {
+            Debug.LogWarning("Opening cinematic was not found at Resources/Cinematics/OpeningCG.", this);
+            return;
+        }
+
+        int width = clip.width > 0 ? (int)clip.width : 1920;
+        int height = clip.height > 0 ? (int)clip.height : 1080;
+        openingCinematicTexture = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32)
+        {
+            name = "RT_OpeningCinematic"
+        };
+        openingCinematicTexture.Create();
+
+        openingCinematicPlayer = gameObject.AddComponent<VideoPlayer>();
+        openingCinematicPlayer.playOnAwake = false;
+        openingCinematicPlayer.isLooping = true;
+        openingCinematicPlayer.waitForFirstFrame = true;
+        openingCinematicPlayer.skipOnDrop = true;
+        openingCinematicPlayer.source = VideoSource.VideoClip;
+        openingCinematicPlayer.clip = clip;
+        openingCinematicPlayer.renderMode = VideoRenderMode.RenderTexture;
+        openingCinematicPlayer.targetTexture = openingCinematicTexture;
+        openingCinematicPlayer.errorReceived += OnOpeningCinematicError;
+
+        if (clip.audioTrackCount > 0)
+        {
+            openingCinematicAudio = gameObject.AddComponent<AudioSource>();
+            openingCinematicAudio.playOnAwake = false;
+            openingCinematicAudio.loop = true;
+            openingCinematicAudio.spatialBlend = 0f;
+            openingCinematicPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
+            openingCinematicPlayer.EnableAudioTrack(0, true);
+            openingCinematicPlayer.SetTargetAudioSource(0, openingCinematicAudio);
+        }
+        else
+        {
+            openingCinematicPlayer.audioOutputMode = VideoAudioOutputMode.None;
+        }
+
+        isShowingOpeningCinematic = true;
+        openingCinematicPlayer.Play();
+    }
+
+    private void OnOpeningCinematicError(VideoPlayer source, string message)
+    {
+        Debug.LogError($"Opening cinematic failed to play: {message}", this);
+        DismissOpeningCinematic();
+    }
+
+    private void DismissOpeningCinematic()
+    {
+        if (!isShowingOpeningCinematic)
+        {
+            return;
+        }
+
+        isShowingOpeningCinematic = false;
+        if (openingCinematicPlayer != null)
+        {
+            openingCinematicPlayer.Stop();
+        }
+        if (openingCinematicAudio != null)
+        {
+            openingCinematicAudio.Stop();
+        }
+    }
+
+    private void ResetSkillsForEndlessLand()
+    {
+        qSkill = SkillId.None;
+        eSkill = SkillId.None;
+        qReadyTime = 0f;
+        eReadyTime = 0f;
+        qSkillUpgraded = false;
+        eSkillUpgraded = false;
+        pendingUpgradeChoices = 0;
+        pendingLevelFourRewardChoices = 0;
+        isChoosingUpgrade = false;
+        isChoosingLevelFourReward = false;
+        isChoosingSkills = true;
+    }
+
     private void Update()
     {
+        if (isShowingOpeningCinematic)
+        {
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                DismissOpeningCinematic();
+            }
+            return;
+        }
+
         QueueSkillUpgradesForLevelChanges();
         if (isShowingStartScreen || isChoosingSkills || isChoosingUpgrade || isChoosingLevelFourReward
             || (health != null && health.CurrentHealth <= 0))
@@ -606,7 +717,10 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         }
 
         isChoosingSkills = false;
-        SaveStorySkillState();
+        if (!GameModeSession.IsEndless)
+        {
+            SaveStorySkillState();
+        }
         if (GameModeSession.IsStoryRunActive && progression != null && progression.Level > 1)
         {
             pendingUpgradeChoices += Mathf.Min(progression.Level - 1, 2);
@@ -639,7 +753,14 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         GUI.depth = -1000;
         if (isShowingStartScreen)
         {
-            DrawStartScreen();
+            if (isShowingOpeningCinematic)
+            {
+                DrawOpeningCinematic();
+            }
+            else
+            {
+                DrawStartScreen();
+            }
         }
         else if (isChoosingSkills)
         {
@@ -653,6 +774,58 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         {
             DrawLevelFourRewardSelection();
         }
+    }
+
+    private void DrawOpeningCinematic()
+    {
+        Rect screenRect = new Rect(0f, 0f, Screen.width, Screen.height);
+        GUI.DrawTexture(screenRect, Texture2D.blackTexture, ScaleMode.StretchToFill);
+        if (openingCinematicTexture != null)
+        {
+            GUI.DrawTexture(screenRect, openingCinematicTexture, ScaleMode.ScaleAndCrop, false);
+        }
+
+        float margin = Mathf.Clamp(Screen.height * 0.045f, 28f, 64f);
+        float logoWidth = Mathf.Clamp(Screen.width * 0.22f, 300f, 560f);
+        float logoHeight = logoTexture != null
+            ? logoWidth * logoTexture.height / Mathf.Max(1f, logoTexture.width)
+            : 0f;
+        float promptHeight = Mathf.Clamp(Screen.height * 0.045f, 38f, 58f);
+        float logoX = Screen.width - margin - logoWidth;
+        float promptY = Screen.height - margin - promptHeight;
+        float logoY = promptY - logoHeight - Mathf.Clamp(Screen.height * 0.018f, 12f, 24f);
+
+        if (logoTexture != null)
+        {
+            GUI.DrawTexture(
+                new Rect(logoX, logoY, logoWidth, logoHeight),
+                logoTexture,
+                ScaleMode.ScaleToFit,
+                true);
+        }
+
+        if (openingCinematicPromptStyle == null)
+        {
+            openingCinematicPromptStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold
+            };
+            openingCinematicPromptStyle.normal.textColor = Color.white;
+        }
+        openingCinematicPromptStyle.fontSize = Mathf.RoundToInt(
+            Mathf.Clamp(Screen.height * 0.024f, 20f, 32f));
+
+        Rect promptRect = new Rect(logoX, promptY, logoWidth, promptHeight);
+        Color previousColor = GUI.color;
+        GUI.color = new Color(0f, 0f, 0f, 0.72f);
+        GUI.Label(
+            new Rect(promptRect.x + 2f, promptRect.y + 3f, promptRect.width, promptRect.height),
+            "点击 SPACE 开始游戏",
+            openingCinematicPromptStyle);
+        GUI.color = new Color(1f, 1f, 1f, 0.82f + Mathf.PingPong(Time.unscaledTime * 0.45f, 0.18f));
+        GUI.Label(promptRect, "点击 SPACE 开始游戏", openingCinematicPromptStyle);
+        GUI.color = previousColor;
     }
 
     private void DrawStartScreen()
@@ -743,7 +916,10 @@ public sealed class PlayerSkillSystem : MonoBehaviour
         if (DrawStartMenuTextButton(land, "陆地追逐"))
         {
             GameModeSession.StartEndlessLand();
+            ResetSkillsForEndlessLand();
             isShowingStartScreen = false;
+            Time.timeScale = 0f;
+            AudioListener.pause = false;
         }
         if (DrawStartMenuTextButton(sea, "海上逃生"))
         {
@@ -1250,6 +1426,17 @@ public sealed class PlayerSkillSystem : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (openingCinematicPlayer != null)
+        {
+            openingCinematicPlayer.errorReceived -= OnOpeningCinematicError;
+            openingCinematicPlayer.Stop();
+        }
+        if (openingCinematicTexture != null)
+        {
+            openingCinematicTexture.Release();
+            Destroy(openingCinematicTexture);
+            openingCinematicTexture = null;
+        }
         if (startButtonNormalTexture != null)
         {
             Destroy(startButtonNormalTexture);

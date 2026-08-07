@@ -8,7 +8,7 @@ public sealed class PlaneCloudField : MonoBehaviour
     [SerializeField] private Material deckCloudMaterial;
     [SerializeField] private Material horizonCloudMaterial;
     [SerializeField, Min(1)] private int deckCardCount = 18;
-    [SerializeField, Min(3)] private int horizonCardCount = 8;
+    [SerializeField, Min(0)] private int horizonCardCount = 8;
     [SerializeField, Min(10f)] private float fieldRadius = 280f;
     [SerializeField, Min(0f)] private float minimumInitialDistance = 42f;
     [SerializeField, Min(10f)] private float horizonRadius = 235f;
@@ -143,9 +143,14 @@ public sealed class PlaneCloudField : MonoBehaviour
         renderer.receiveShadows = false;
         renderer.sortingOrder = isHorizon ? -2 : -1;
         MaterialPropertyBlock properties = new MaterialPropertyBlock();
-        float alpha = isHorizon ? NextFloat(0.28f, 0.42f) : NextFloat(0.2f, 0.36f);
-        float tone = NextFloat(0.88f, 1.04f);
-        properties.SetColor("_Tint", new Color(0.68f * tone, 0.77f * tone, 0.87f * tone, alpha));
+        float alpha = isHorizon ? NextFloat(0.62f, 0.82f) : NextFloat(0.22f, 0.38f);
+        float tone = NextFloat(0.9f, 1.06f);
+        Color baseTint = isHorizon
+            ? new Color(0.82f, 0.75f, 0.72f, alpha)
+            : new Color(0.76f, 0.76f, 0.78f, alpha);
+        properties.SetColor(
+            "_Tint",
+            new Color(baseTint.r * tone, baseTint.g * tone, baseTint.b * tone, alpha));
         float textureScaleX = isHorizon ? NextFloat(0.84f, 1.16f) : NextFloat(0.72f, 1.34f);
         float textureScaleY = isHorizon ? NextFloat(0.9f, 1.08f) : NextFloat(0.72f, 1.28f);
         properties.SetVector(
@@ -157,8 +162,8 @@ public sealed class PlaneCloudField : MonoBehaviour
         if (isHorizon)
         {
             cardObject.transform.localScale = new Vector3(
-                NextFloat(105f, 145f),
-                NextFloat(30f, 48f),
+                NextFloat(160f, 225f),
+                NextFloat(58f, 94f),
                 1f);
         }
         else
@@ -185,7 +190,7 @@ public sealed class PlaneCloudField : MonoBehaviour
         Vector3 direction = Quaternion.AngleAxis(angle, Vector3.up) * forward;
         card.position = new Vector3(
             target.position.x + direction.x * distance,
-            NextFloat(5f, 18f),
+            target.position.y - NextFloat(7f, 19f),
             target.position.z + direction.z * distance);
         card.rotation = Quaternion.Euler(90f, NextFloat(0f, 360f), 0f);
     }
@@ -194,10 +199,11 @@ public sealed class PlaneCloudField : MonoBehaviour
     {
         float radians = horizonAngles[index] * Mathf.Deg2Rad;
         Vector3 radial = new Vector3(Mathf.Cos(radians), 0f, Mathf.Sin(radians));
+        float staggeredRadius = horizonRadius + (index % 3 - 1) * 42f;
         Vector3 position = new Vector3(
-            target.position.x + radial.x * horizonRadius,
-            horizonHeights[index],
-            target.position.z + radial.z * horizonRadius);
+            target.position.x + radial.x * staggeredRadius,
+            target.position.y + horizonHeights[index],
+            target.position.z + radial.z * staggeredRadius);
         horizonCards[index].position = position;
         Vector3 inward = new Vector3(target.position.x, position.y, target.position.z) - position;
         horizonCards[index].rotation = Quaternion.LookRotation(inward.normalized, Vector3.up);
