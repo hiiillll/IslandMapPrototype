@@ -31,6 +31,7 @@ public static class GameModeSession
 
     private static bool openEndlessSelection;
     private static bool openStorySelection;
+    private static bool showOpeningCinematic;
     private static bool storyRunActive;
     private static bool skipInitialStorySkillSelection;
     private static StoryChapter activeChapter;
@@ -75,6 +76,7 @@ public static class GameModeSession
         CurrentMode = GameModeKind.Story;
         openEndlessSelection = false;
         openStorySelection = false;
+        showOpeningCinematic = true;
         storyRunActive = false;
         skipInitialStorySkillSelection = false;
         activeChapter = StoryChapter.None;
@@ -311,7 +313,7 @@ public static class GameModeSession
         activeChapter = StoryChapter.None;
         activeStoryScene = IslandSceneName;
         ClearStorySkills();
-        ReturnToStorySelection();
+        ReturnToMainMenu();
     }
 
     public static void StartEndlessLand()
@@ -375,13 +377,24 @@ public static class GameModeSession
         if (IsStoryRunActive)
         {
             CaptureCurrentPlayerProgress();
-            activeStoryScene = SceneManager.GetActiveScene().name;
         }
 
         CurrentMode = GameModeKind.Story;
+        storyRunActive = false;
+        skipInitialStorySkillSelection = false;
+        activeChapter = StoryChapter.None;
+        activeStoryScene = IslandSceneName;
         openEndlessSelection = false;
-        openStorySelection = storyRunActive;
+        openStorySelection = false;
+        showOpeningCinematic = false;
         LoadScene(IslandSceneName);
+    }
+
+    public static bool ConsumeOpeningCinematic()
+    {
+        bool shouldShow = showOpeningCinematic;
+        showOpeningCinematic = false;
+        return shouldShow;
     }
 
     public static bool ConsumeOpenEndlessSelection()

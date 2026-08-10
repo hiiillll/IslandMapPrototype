@@ -309,10 +309,10 @@ public sealed class ArcadeGameHud : MonoBehaviour
             AudioListener.pause = false;
         }
         if (GUI.Button(new Rect(buttonX, panel.y + 192f * scale, buttonWidth, buttonHeight),
-            "\u8fd4\u56de\u5173\u5361\u9009\u62e9", pauseMenuButtonStyle))
+            "返回主界面", pauseMenuButtonStyle))
         {
             isPaused = false;
-            GameModeSession.ReturnToStorySelection();
+            GameModeSession.ReturnToMainMenu();
         }
         if (GUI.Button(new Rect(buttonX, panel.y + 272f * scale, buttonWidth, buttonHeight),
             "\u91cd\u5f00\u526f\u672c\uff08\u91cd\u9009\u6280\u80fd\uff09", pauseMenuButtonStyle))

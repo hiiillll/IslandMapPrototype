@@ -148,7 +148,9 @@ public sealed class PlaneChaseTopDownCamera : MonoBehaviour
             cameraComponent.fieldOfView = thirdPersonFieldOfView;
         }
         cameraComponent.nearClipPlane = 0.1f;
-        cameraComponent.farClipPlane = 500f;
+        // The cloud sea spans several kilometres. A short far plane exposes the
+        // procedural sky's lower hemisphere as a dark band in chase view.
+        cameraComponent.farClipPlane = 6000f;
     }
 
     private void GetThirdPersonPose(out Vector3 position, out Quaternion rotation)

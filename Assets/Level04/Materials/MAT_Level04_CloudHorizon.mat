@@ -29,16 +29,16 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Cutoff: 0.17
+    - _Cutoff: 0.28
     - _DetailBlend: 0.22
     - _EdgeFadeX: 0.1
     - _EdgeFadeY: 0
-    - _GradientStrength: 0.92
+    - _GradientStrength: 1.28
     - _SecondaryScale: 1.62
-    - _Softness: 0.22
-    - _VerticalShade: 0.16
+    - _Softness: 0.12
+    - _VerticalShade: 0.3
     m_Colors:
     - _DriftA: {r: 0.00045, g: 0.00008, b: 0, a: 0}
     - _DriftB: {r: -0.00018, g: 0.0002, b: 0, a: 0}
-    - _Tint: {r: 0.58, g: 0.68, b: 0.79, a: 0.46}
+    - _Tint: {r: 0.82, g: 0.75, b: 0.72, a: 0.7}
   m_BuildTextureStacks: []
