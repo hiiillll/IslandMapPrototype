@@ -79,10 +79,12 @@ Shader "Custom/Level04CinematicSkybox"
                 float2 sphericalUv = float2(longitude, latitude);
 
                 float time = _Time.y;
+                // Longitude wraps from 1 back to 0 at the rear of the sky dome.
+                // Integer horizontal periods keep both sides of that boundary identical.
                 float2 shapeUv = MirrorRepeat(
-                    sphericalUv * float2(2.05, 2.65) + _DriftA.xy * time);
+                    sphericalUv * float2(2.0, 2.65) + _DriftA.xy * time);
                 float2 detailUv = MirrorRepeat(
-                    sphericalUv * float2(4.15, 4.9)
+                    sphericalUv * float2(4.0, 4.9)
                     + float2(0.37, 0.61)
                     + _DriftB.xy * time);
                 float shape = tex2D(_CloudTexA, shapeUv).r;
