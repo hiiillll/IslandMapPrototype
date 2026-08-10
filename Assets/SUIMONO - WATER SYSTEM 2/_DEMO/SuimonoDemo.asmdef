@@ -1,0 +1,16 @@
+{
+    "name": "Suimono.Demo",
+    "rootNamespace": "",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "SUIMONO_DEMO_UI"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

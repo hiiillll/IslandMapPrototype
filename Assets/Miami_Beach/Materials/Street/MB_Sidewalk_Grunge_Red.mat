@@ -1,0 +1,130 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: MB_Sidewalk_Grunge_Red
+  m_Shader: {fileID: 4800000, guid: 41c541f8b6c45724492ce635aff84c5f, type: 3}
+  m_ValidKeywords:
+  - _GRUNGECHANNEL_G
+  - _GRUNGE_ON_ON
+  m_InvalidKeywords:
+  - _GRUNGE_ON_R
+  - _GRUNGE_R
+  - _KEYWORD0_G
+  - _KEYWORD1_ON
+  - _METALLICGLOSSMAP
+  - _NORMALMAP
+  m_LightmapFlags: 5
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _AmbientOcclusion:
+        m_Texture: {fileID: 2800000, guid: da2f28917733b0e47aaf0ede516a1c73, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Base_Color:
+        m_Texture: {fileID: 2800000, guid: 081c3b5da674b584194a56d8cd95e6e3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 2800000, guid: c4607db225cf8184bb8f2512d32c5dad, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailAlbedoMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Grunge:
+        m_Texture: {fileID: 2800000, guid: 8ee0949f25e1b474eb8d60c4be44485f, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 081c3b5da674b584194a56d8cd95e6e3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 2800000, guid: 9cc8f8acab4a3714897fe410d13255bb, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Metallic_Smoothness:
+        m_Texture: {fileID: 2800000, guid: 9cc8f8acab4a3714897fe410d13255bb, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Normal:
+        m_Texture: {fileID: 2800000, guid: c4607db225cf8184bb8f2512d32c5dad, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OcclusionMap:
+        m_Texture: {fileID: 2800000, guid: da2f28917733b0e47aaf0ede516a1c73, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParallaxMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Texture0:
+        m_Texture: {fileID: 2800000, guid: 8ee0949f25e1b474eb8d60c4be44485f, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _texcoord:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _BumpScale: 1
+    - _Cutoff: 0.5
+    - _DetailNormalMapScale: 1
+    - _DstBlend: 0
+    - _GlossMapScale: 1
+    - _Glossiness: 0.5
+    - _GlossyReflections: 1
+    - _Grunge: 2.5
+    - _GrungeChannel: 1
+    - _GrungeScale: 11.4
+    - _Grunge_Max: 0.292
+    - _Grunge_Min: 0
+    - _Grunge_ON: 1
+    - _Keyword0: 1
+    - _Keyword1: 1
+    - _Metallic: 0
+    - _Mode: 0
+    - _Normal_Scale: 1
+    - _OcclusionStrength: 1
+    - _Parallax: 0.02
+    - _SmoothnessTextureChannel: 0
+    - _Smoothness_Grunge: 0.277
+    - _SpecularHighlights: 1
+    - _SrcBlend: 1
+    - _Tex_Tiling: 1
+    - _UVSec: 0
+    - _ZWrite: 1
+    - __dirty: 0
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _Grunge_Tint: {r: 1, g: 0.8820755, b: 0.8820755, a: 0}
+    - _Tint: {r: 0.9339623, g: 0.73571557, b: 0.73571557, a: 0}
+  m_BuildTextureStacks: []

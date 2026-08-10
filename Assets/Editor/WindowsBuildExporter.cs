@@ -17,6 +17,17 @@ public static class WindowsBuildExporter
     [MenuItem("Tools/Island Map/Windows Build/Build Now")]
     public static void BuildWindows()
     {
+        BuildWindowsInternal(BuildOptions.None);
+    }
+
+    [MenuItem("Tools/Island Map/Windows Build/Clean Build Now")]
+    public static void BuildWindowsClean()
+    {
+        BuildWindowsInternal(BuildOptions.CleanBuildCache);
+    }
+
+    private static void BuildWindowsInternal(BuildOptions options)
+    {
         Directory.CreateDirectory(BuildDirectory);
         string[] scenes = EditorBuildSettings.scenes
             .Where(scene => scene.enabled)
@@ -32,14 +43,14 @@ public static class WindowsBuildExporter
             scenes = scenes,
             locationPathName = ExecutablePath,
             target = BuildTarget.StandaloneWindows64,
-            options = BuildOptions.None
+            options = options
         });
         if (report.summary.result != BuildResult.Succeeded)
         {
             throw new InvalidOperationException($"Windows build failed: {report.summary.result}");
         }
 
-        Debug.Log($"Windows build completed: {ExecutablePath}");
+        Debug.Log($"Windows build completed ({options}): {ExecutablePath}");
     }
 
     [MenuItem("Tools/Island Map/Windows Build/Open Build Folder")]

@@ -132,6 +132,7 @@ public sealed class BoatEnemySpawner : MonoBehaviour
         visual.transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
         visual.transform.localScale = Vector3.one;
         FitVisualToPlayer(enemy, visual);
+        ImproveEnemyVisibility(visual);
 
         Bounds localBounds = CalculateLocalBounds(enemy);
         BoxCollider enemyCollider = enemy.AddComponent<BoxCollider>();
@@ -346,6 +347,42 @@ public sealed class BoatEnemySpawner : MonoBehaviour
         }
 
         return bounds;
+    }
+
+    private static void ImproveEnemyVisibility(GameObject visual)
+    {
+        foreach (Renderer enemyRenderer in visual.GetComponentsInChildren<Renderer>(true))
+        {
+            enemyRenderer.receiveShadows = false;
+            foreach (Material material in enemyRenderer.sharedMaterials)
+            {
+                if (material == null)
+                {
+                    continue;
+                }
+
+                if (material.HasProperty("_Color"))
+                {
+                    Color baseColor = material.GetColor("_Color");
+                    material.SetColor("_Color", Color.Lerp(baseColor, Color.white, 0.12f));
+                }
+
+                if (material.HasProperty("_EmissionColor"))
+                {
+                    Color currentEmission = material.GetColor("_EmissionColor");
+                    Color minimumEmission = new Color(0.085f, 0.105f, 0.14f, 1f);
+                    material.SetColor(
+                        "_EmissionColor",
+                        new Color(
+                            Mathf.Max(currentEmission.r, minimumEmission.r),
+                            Mathf.Max(currentEmission.g, minimumEmission.g),
+                            Mathf.Max(currentEmission.b, minimumEmission.b),
+                            1f));
+                    material.EnableKeyword("_EMISSION");
+                    material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+                }
+            }
+        }
     }
 
     private static Bounds CalculateLocalBounds(GameObject root)

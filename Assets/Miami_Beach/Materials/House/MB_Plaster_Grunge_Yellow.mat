@@ -1,0 +1,136 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: MB_Plaster_Grunge_Yellow
+  m_Shader: {fileID: 4800000, guid: 41c541f8b6c45724492ce635aff84c5f, type: 3}
+  m_ValidKeywords:
+  - _GRUNGECHANNEL_G
+  - _GRUNGE_ON_ON
+  m_InvalidKeywords:
+  - _METALLICGLOSSMAP
+  - _NORMALMAP
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _AmbientOcclusion:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Base_Color:
+        m_Texture: {fileID: 2800000, guid: 7ad8bf273cf65c64da7f43c9ddbcc82d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 2800000, guid: 579579eef33e1b047bc3ca2d315a1c9d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailAlbedoMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Grunge:
+        m_Texture: {fileID: 2800000, guid: 8ee0949f25e1b474eb8d60c4be44485f, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 7ad8bf273cf65c64da7f43c9ddbcc82d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Mask:
+        m_Texture: {fileID: 2800000, guid: 6db3ab01629e05b45a5a1077d641537d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 2800000, guid: 6db3ab01629e05b45a5a1077d641537d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Metallic_Smoothness:
+        m_Texture: {fileID: 2800000, guid: 6db3ab01629e05b45a5a1077d641537d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Noise:
+        m_Texture: {fileID: 2800000, guid: 8ee0949f25e1b474eb8d60c4be44485f, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Normal:
+        m_Texture: {fileID: 2800000, guid: 579579eef33e1b047bc3ca2d315a1c9d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OcclusionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParallaxMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _texcoord:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Ambient_Occlusion: 0
+    - _BumpScale: 0.8
+    - _Cutoff: 0.5
+    - _DetailNormalMapScale: 1
+    - _DstBlend: 0
+    - _GlossMapScale: 1
+    - _Glossiness: 0.5
+    - _GlossyReflections: 1
+    - _GrungeChannel: 1
+    - _GrungeScale: 24.3
+    - _Grunge_Max: 0.3000374
+    - _Grunge_Min: 0.06147235
+    - _Grunge_ON: 1
+    - _Metallic: 0
+    - _Mode: 0
+    - _Normal_Power: 0
+    - _Normal_Scale: 1
+    - _OcclusionStrength: 1
+    - _Parallax: 0.02
+    - _SmoothnessTextureChannel: 0
+    - _Smoothness_Grunge: 0.2765529
+    - _Smoothness_Power: 0
+    - _SpecularHighlights: 1
+    - _SrcBlend: 1
+    - _Tilling_Color: 1.49
+    - _UVSec: 0
+    - _WindPower: 0.2506492
+    - _WindScale: 0.3622508
+    - _WindSpeed: 0.2327153
+    - _Wind_Size: 0.5
+    - _ZWrite: 1
+    - __dirty: 0
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color_Tilling: {r: 0.9811321, g: 0.88194484, b: 0.69882524, a: 0}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _Grunge_Tint: {r: 0.8773585, g: 0.8773585, b: 0.8773585, a: 0}
+    - _Tilling: {r: 0, g: 0, b: 0, a: 0}
+    - _Tint: {r: 0.990566, g: 0.8927755, b: 0.7335796, a: 0}
+  m_BuildTextureStacks: []
