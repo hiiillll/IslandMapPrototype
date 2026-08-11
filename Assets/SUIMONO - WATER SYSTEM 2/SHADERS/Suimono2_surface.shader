@@ -38,6 +38,9 @@ Properties {
 	_HeightFoamAmt ("Edge Foam Amt", Range(5.0,500.0)) = 1.0
 	_HeightFoamHeight ("Height Foam Height", Range(5.0,500.0)) = 1.0
 	_HeightFoamSpread ("Height Foam Spread", Range(5.0,500.0)) = 1.0
+	_ShorelineLevel ("Island Shoreline Level", Float) = 150.0
+	_ShorelineWidth ("Island Shoreline Width", Float) = 14.0
+	_ShorelineFoam ("Island Shoreline Foam", Range(0.0,1.0)) = 0.0
 
 	_DepthFade ("Depth Fade", Range(0.01,5.0)) = 1.0
 	_ShallowFade ("Shallow Fade", Range(0.01,5.0)) = 1.0

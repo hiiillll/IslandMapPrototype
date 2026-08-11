@@ -7,7 +7,7 @@ public sealed class RuntimeLightingBootstrap : MonoBehaviour
 {
     private const float ReflectionVolumeSize = 10000f;
     private const int ReflectionResolution = 128;
-    private const float IslandMapReflectionIntensity = 0.6f;
+    private const float IslandMapReflectionIntensity = 0.82f;
     private const float Level03ReflectionIntensity = 0.65f;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]

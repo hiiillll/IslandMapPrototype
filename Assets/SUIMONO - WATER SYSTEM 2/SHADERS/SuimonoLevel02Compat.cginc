@@ -13,6 +13,9 @@ float _turbulenceFactor;
 float _specularPower;
 float _roughness;
 float _overallBrightness;
+float _ShorelineLevel;
+float _ShorelineWidth;
+float _ShorelineFoam;
 fixed4 _depthColor;
 fixed4 _shallowColor;
 fixed4 _SpecularColor;
@@ -110,6 +113,40 @@ fixed4 SuimonoCompatFrag(SuimonoCompatVertexOutput input) : SV_Target
     float horizonDistanceBlend = smoothstep(280.0, 500.0, cameraDistance);
     float3 horizonWaterColor = skyReflection * 0.94;
     waterColor = lerp(waterColor, horizonWaterColor, horizonDistanceBlend * 0.86);
+
+    float maxCoordinate = max(abs(input.worldPosition.x), abs(input.worldPosition.z));
+    float alongEdge = abs(input.worldPosition.x) > abs(input.worldPosition.z)
+        ? input.worldPosition.z
+        : input.worldPosition.x;
+    float shoreVariation = sin(alongEdge * 0.075) * 2.6
+        + sin(alongEdge * 0.031 + 1.7) * 1.8;
+    float shoreDistance = maxCoordinate - (_ShorelineLevel + shoreVariation);
+    float shoreEnabled = step(0.001, _ShorelineFoam);
+    float shallowBand = (1.0 - smoothstep(
+        -1.0,
+        max(_ShorelineWidth, 0.1),
+        shoreDistance)) * shoreEnabled;
+
+    float waveAdvance = sin(time * 0.72 + alongEdge * 0.052) * 0.72
+        + sin(time * 0.37 - alongEdge * 0.021) * 0.38;
+    float foamNoise = 0.5 + 0.3 * sin(alongEdge * 0.31 + time * 0.84)
+        + 0.2 * sin(alongEdge * 0.73 - time * 0.47);
+    float foamBreakup = smoothstep(0.5, 0.78, foamNoise);
+    float primaryLine = 1.0 - smoothstep(
+        0.1,
+        0.4,
+        abs(shoreDistance - 0.9 - waveAdvance));
+    float secondaryLine = 1.0 - smoothstep(
+        0.08,
+        0.34,
+        abs(shoreDistance - 3.3 + waveAdvance * 0.45));
+    secondaryLine *= smoothstep(0.76, 0.91, foamNoise) * 0.08;
+    float shoreFoam = saturate(primaryLine * foamBreakup + secondaryLine);
+    shoreFoam *= _ShorelineFoam * shoreEnabled;
+
+    float3 reflectedShallow = lerp(float3(0.34, 0.46, 0.49), skyReflection, 0.26);
+    waterColor = lerp(waterColor, reflectedShallow, shallowBand * 0.74);
+    waterColor = lerp(waterColor, float3(0.78, 0.84, 0.83), shoreFoam);
 
     float sunMirror = pow(saturate(dot(reflectionDirection, lightDirection)), 110.0);
     float3 sunColor = _LightColor0.rgb * lerp(float3(1.0, 1.0, 1.0), _SpecularColor.rgb, 0.12);
