@@ -13,6 +13,8 @@ float _turbulenceFactor;
 float _specularPower;
 float _roughness;
 float _overallBrightness;
+float _Level01ColorBlend;
+fixed4 _Level01ReflectionTint;
 float _ShorelineLevel;
 float _ShorelineWidth;
 float _ShorelineFoam;
@@ -82,8 +84,9 @@ fixed4 SuimonoCompatFrag(SuimonoCompatVertexOutput input) : SV_Target
     float ripple = saturate(length(slope) * 0.62
         + abs(normalA.z - normalB.z) * 0.55);
 
-    float3 deepBlue = lerp(float3(0.13, 0.17, 0.21), _depthColor.rgb, 0.12);
-    float3 crestBlue = lerp(float3(0.24, 0.28, 0.29), _shallowColor.rgb, 0.12);
+    float colorInfluence = lerp(0.12, 0.68, saturate(_Level01ColorBlend));
+    float3 deepBlue = lerp(float3(0.13, 0.17, 0.21), _depthColor.rgb, colorInfluence);
+    float3 crestBlue = lerp(float3(0.24, 0.28, 0.29), _shallowColor.rgb, colorInfluence);
     float3 waterColor = lerp(deepBlue, crestBlue, ripple * 0.46);
     waterColor *= lerp(0.92, 1.16, diffuse);
 
@@ -97,17 +100,30 @@ fixed4 SuimonoCompatFrag(SuimonoCompatVertexOutput input) : SV_Target
     float sampledLuminance = dot(sampledSky, float3(0.24, 0.62, 0.14));
     sampledSky = lerp(sampledSky, sampledLuminance.xxx, 0.38);
     sampledSky *= float3(1.03, 1.0, 0.94);
+    sampledSky *= lerp(
+        float3(1.0, 1.0, 1.0),
+        _Level01ReflectionTint.rgb,
+        saturate(_Level01ColorBlend));
     float skySampleEnergy = saturate(sampledLuminance * 4.0);
     float skyElevation = saturate(reflectionDirection.y);
     float3 fallbackSky = lerp(
         float3(0.82, 0.47, 0.28),
         float3(0.28, 0.26, 0.24),
         smoothstep(0.02, 0.72, skyElevation));
+    float3 level01FallbackSky = lerp(
+        float3(0.72, 0.46, 0.3),
+        float3(0.2, 0.36, 0.52),
+        smoothstep(0.02, 0.72, skyElevation));
+    fallbackSky = lerp(
+        fallbackSky,
+        level01FallbackSky,
+        saturate(_Level01ColorBlend));
     float3 skyReflection = lerp(fallbackSky, sampledSky, skySampleEnergy);
 
     float horizonView = pow(1.0 - saturate(viewDirection.y), 2.2);
     float reflectionAmount = saturate(0.1 + fresnel * 0.7 + horizonView * 0.2);
-    float reflectionBrightness = lerp(0.68, 0.98, horizonView);
+    float reflectionBrightness = lerp(0.68, 0.98, horizonView)
+        * lerp(1.0, 1.08, saturate(_Level01ColorBlend));
     waterColor = lerp(waterColor, skyReflection * reflectionBrightness, reflectionAmount);
 
     float horizonDistanceBlend = smoothstep(280.0, 500.0, cameraDistance);

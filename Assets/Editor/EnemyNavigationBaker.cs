@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.AI.Navigation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -11,7 +12,13 @@ public static class EnemyNavigationBaker
     private const string AssetFolder = "Assets/Scenes/IslandMap";
     private const string AssetPath = AssetFolder + "/NavMesh-AI_NAVIGATION_CarSurface.asset";
     private const string SurfaceName = "AI_NAVIGATION_CarSurface";
+    private const string EnclosedAreaGroupName = "AI_NAVIGATION_EnclosedAreas";
     private const float AdditionalObstacleClearance = 2.25f;
+    private const float EnclosedAreaPadding = 1.25f;
+    private const float MinimumEnclosedAreaSpan = 6f;
+    // Two perpendicular hedge runs can close a courtyard when buildings form
+    // the remaining sides, as in the Tolite block.
+    private const int MinimumEnclosureColliderCount = 2;
 
     [MenuItem("Tools/Island Map/Bake Enemy Navigation")]
     public static void Bake()
@@ -35,6 +42,7 @@ public static class EnemyNavigationBaker
         ConfigureSurface(surface, notWalkableArea);
         int sourceCount = ConfigureColliderModifiers(notWalkableArea);
         int clearanceVolumeCount = ConfigureObstacleClearanceVolumes(notWalkableArea);
+        int enclosedAreaCount = ConfigureEnclosedObstacleVolumes(notWalkableArea);
         if (sourceCount == 0)
         {
             Debug.LogError("Enemy navigation bake failed: no road, grass, or beach collider was found.");
@@ -60,7 +68,8 @@ public static class EnemyNavigationBaker
 
         NavMeshTriangulation triangulation = NavMesh.CalculateTriangulation();
         Debug.Log(
-            $"Baked car NavMesh from {sourceCount} colliders and {clearanceVolumeCount} clearance volumes " +
+            $"Baked car NavMesh from {sourceCount} colliders, {clearanceVolumeCount} clearance volumes, " +
+            $"and {enclosedAreaCount} enclosed areas " +
             $"({triangulation.vertices.Length} vertices) to {AssetPath}.",
             surface);
     }
@@ -74,7 +83,7 @@ public static class EnemyNavigationBaker
     {
         foreach (NavMeshSurface existingSurface in Object.FindObjectsOfType<NavMeshSurface>(true))
         {
-            if (existingSurface.name == SurfaceName)
+            if (IsInActiveScene(existingSurface) && existingSurface.name == SurfaceName)
             {
                 return existingSurface;
             }
@@ -111,9 +120,18 @@ public static class EnemyNavigationBaker
 
     private static int ConfigureObstacleClearanceVolumes(int notWalkableArea)
     {
+        GameObject existingEnclosedAreas = GameObject.Find(EnclosedAreaGroupName);
+        if (existingEnclosedAreas != null)
+        {
+            Object.DestroyImmediate(existingEnclosedAreas);
+        }
+
         foreach (NavMeshModifierVolume existingVolume in Object.FindObjectsOfType<NavMeshModifierVolume>(true))
         {
-            Object.DestroyImmediate(existingVolume);
+            if (IsInActiveScene(existingVolume))
+            {
+                Object.DestroyImmediate(existingVolume);
+            }
         }
 
         int volumeCount = 0;
@@ -147,12 +165,109 @@ public static class EnemyNavigationBaker
         return volumeCount;
     }
 
+    private static int ConfigureEnclosedObstacleVolumes(int notWalkableArea)
+    {
+        Dictionary<int, List<Collider>> enclosureGroups = new Dictionary<int, List<Collider>>();
+        Dictionary<int, Transform> enclosureOwners = new Dictionary<int, Transform>();
+        foreach (Collider collider in Object.FindObjectsOfType<Collider>(true))
+        {
+            if (!ShouldBakeCollider(collider) || !TryGetHedgeOwner(collider, out Transform owner))
+            {
+                continue;
+            }
+
+            int ownerId = owner != null ? owner.GetInstanceID() : 0;
+            if (!enclosureGroups.TryGetValue(ownerId, out List<Collider> colliders))
+            {
+                colliders = new List<Collider>();
+                enclosureGroups.Add(ownerId, colliders);
+                enclosureOwners.Add(ownerId, owner);
+            }
+
+            colliders.Add(collider);
+        }
+
+        GameObject systems = GameObject.Find("SYSTEMS");
+        if (systems == null)
+        {
+            systems = new GameObject("SYSTEMS");
+        }
+
+        GameObject generatedGroup = new GameObject(EnclosedAreaGroupName);
+        generatedGroup.transform.SetParent(systems.transform, false);
+        int volumeCount = 0;
+        foreach (KeyValuePair<int, List<Collider>> pair in enclosureGroups)
+        {
+            List<Collider> colliders = pair.Value;
+            if (colliders.Count < MinimumEnclosureColliderCount)
+            {
+                continue;
+            }
+
+            Bounds bounds = colliders[0].bounds;
+            for (int index = 1; index < colliders.Count; index++)
+            {
+                bounds.Encapsulate(colliders[index].bounds);
+            }
+
+            if (bounds.size.x < MinimumEnclosedAreaSpan || bounds.size.z < MinimumEnclosedAreaSpan)
+            {
+                continue;
+            }
+
+            Transform owner = enclosureOwners[pair.Key];
+            string ownerName = owner != null ? owner.name : "RootHedges";
+            GameObject volumeObject = new GameObject($"ENCLOSED_{ownerName}_{volumeCount + 1:00}");
+            volumeObject.transform.SetParent(generatedGroup.transform, false);
+            volumeObject.transform.position = bounds.center;
+
+            NavMeshModifierVolume volume = volumeObject.AddComponent<NavMeshModifierVolume>();
+            volume.center = Vector3.zero;
+            volume.size = new Vector3(
+                bounds.size.x + EnclosedAreaPadding * 2f,
+                Mathf.Max(4f, bounds.size.y + 4f),
+                bounds.size.z + EnclosedAreaPadding * 2f);
+            volume.area = notWalkableArea;
+            EditorUtility.SetDirty(volume);
+            volumeCount++;
+        }
+
+        if (volumeCount == 0)
+        {
+            Object.DestroyImmediate(generatedGroup);
+        }
+
+        return volumeCount;
+    }
+
+    private static bool TryGetHedgeOwner(Collider collider, out Transform owner)
+    {
+        Transform hedgeRoot = null;
+        for (Transform current = collider.transform; current != null; current = current.parent)
+        {
+            if (current.name.StartsWith("MB_Boxwood_Shrubs_"))
+            {
+                hedgeRoot = current;
+            }
+        }
+
+        if (hedgeRoot != null)
+        {
+            owner = hedgeRoot.parent;
+            return true;
+        }
+
+        owner = null;
+        return false;
+    }
+
     private static bool IsClearanceObstacle(Collider collider)
     {
         for (Transform current = collider.transform; current != null; current = current.parent)
         {
             if (current.name.StartsWith("BLD_") || current.name.StartsWith("PROP_PalmTree")
-                || current.name.StartsWith("PROP_StreetLight") || current.name.StartsWith("PROP_Barricade"))
+                || current.name.StartsWith("PROP_StreetLight") || current.name.StartsWith("PROP_Barricade")
+                || current.name.StartsWith("PROP_OilBarrel"))
             {
                 return true;
             }
@@ -196,6 +311,11 @@ public static class EnemyNavigationBaker
     {
         foreach (NavMeshModifier modifier in Object.FindObjectsOfType<NavMeshModifier>(true))
         {
+            if (!IsInActiveScene(modifier))
+            {
+                continue;
+            }
+
             modifier.ignoreFromBuild = true;
             modifier.applyToChildren = false;
             EditorUtility.SetDirty(modifier);
@@ -228,7 +348,7 @@ public static class EnemyNavigationBaker
 
     private static bool ShouldBakeCollider(Collider collider)
     {
-        if (collider == null || !collider.enabled || collider.isTrigger || !collider.gameObject.activeInHierarchy
+        if (!IsInActiveScene(collider) || !collider.enabled || collider.isTrigger || !collider.gameObject.activeInHierarchy
             || collider.attachedRigidbody != null)
         {
             return false;
@@ -246,10 +366,34 @@ public static class EnemyNavigationBaker
         return true;
     }
 
+    private static bool IsInActiveScene(Component component)
+    {
+        if (component == null)
+        {
+            return false;
+        }
+
+        Scene objectScene = component.gameObject.scene;
+        return objectScene.IsValid() && objectScene == SceneManager.GetActiveScene();
+    }
+
     private static bool IsWalkableSurface(Collider collider)
     {
-        string objectName = collider.gameObject.name;
-        return objectName == "COL_Grass" || objectName == "COL_Beach" || objectName.StartsWith("COL_Road");
+        for (Transform current = collider.transform; current != null; current = current.parent)
+        {
+            string objectName = current.name;
+            if (objectName == "COL_Grass" || objectName == "COL_Beach" || objectName.StartsWith("COL_Road")
+                || objectName.StartsWith("MB_Coastal_Sidewalk_")
+                || objectName.StartsWith("MB_Sidewalk_")
+                || objectName.StartsWith("MB_Road_") && !objectName.StartsWith("MB_Road_Barrier_")
+                || objectName.StartsWith("MB_Bike_Path_")
+                || objectName == "MB_Promenade")
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void EnsureAssetFolder()

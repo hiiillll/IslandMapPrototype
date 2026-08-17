@@ -483,6 +483,14 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
             if (objectName == "COL_Grass" ||
                 objectName == "COL_Beach" ||
                 objectName.StartsWith("COL_Road") ||
+                objectName.StartsWith("ENV_Ground_Grass") ||
+                objectName == "ENV_Ground_Beach" ||
+                objectName.StartsWith("ENV_Road_") ||
+                objectName.StartsWith("MB_Coastal_Sidewalk_") ||
+                objectName.StartsWith("MB_Sidewalk_") ||
+                objectName.StartsWith("MB_Bike_Path_") ||
+                objectName == "MB_Promenade" ||
+                objectName.StartsWith("MB_Road_") && !objectName.StartsWith("MB_Road_Barrier_") ||
                 objectName == "ENV_Level03_RoadNetwork_FromReference" ||
                 objectName.StartsWith("Terrain_Level03_"))
             {

@@ -7,7 +7,7 @@ public sealed class RuntimeLightingBootstrap : MonoBehaviour
 {
     private const float ReflectionVolumeSize = 10000f;
     private const int ReflectionResolution = 128;
-    private const float IslandMapReflectionIntensity = 0.82f;
+    private const float IslandMapReflectionIntensity = 0.94f;
     private const float Level03ReflectionIntensity = 0.65f;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -27,7 +27,17 @@ public sealed class RuntimeLightingBootstrap : MonoBehaviour
     private IEnumerator Start()
     {
         QualitySettings.realtimeReflectionProbes = true;
+        ConfigureIslandMapVehicleProbes();
         ApplyRuntimeLighting();
+
+        // IslandMap already owns three authored reflection probes. Reapplying
+        // environment lighting and adding a second runtime probe causes visible
+        // brightness jumps while the scene is settling.
+        if (SceneManager.GetActiveScene().name == "IslandMap")
+        {
+            yield break;
+        }
+
         yield return null;
         ApplyRuntimeLighting();
 
@@ -39,6 +49,27 @@ public sealed class RuntimeLightingBootstrap : MonoBehaviour
         }
 
         ApplyRuntimeLighting();
+    }
+
+    private static void ConfigureIslandMapVehicleProbes()
+    {
+        if (SceneManager.GetActiveScene().name != "IslandMap")
+        {
+            return;
+        }
+
+        GameObject playerCar = GameObject.Find("PLAYER_Car");
+        if (playerCar == null)
+        {
+            return;
+        }
+
+        foreach (Renderer renderer in playerCar.GetComponentsInChildren<Renderer>(true))
+        {
+            renderer.probeAnchor = playerCar.transform;
+            renderer.reflectionProbeUsage = ReflectionProbeUsage.BlendProbesAndSkybox;
+            renderer.lightProbeUsage = LightProbeUsage.BlendProbes;
+        }
     }
 
     private ReflectionProbe CreateSkyReflectionProbe()
@@ -65,14 +96,15 @@ public sealed class RuntimeLightingBootstrap : MonoBehaviour
 
     private static void ApplyRuntimeLighting()
     {
+        string sceneName = SceneManager.GetActiveScene().name;
         if (RenderSettings.sun == null)
         {
             RenderSettings.sun = FindMainDirectionalLight();
         }
 
         RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
-        RenderSettings.defaultReflectionResolution = ReflectionResolution;
-        RenderSettings.reflectionBounces = 1;
+        RenderSettings.defaultReflectionResolution = sceneName == "IslandMap" ? 256 : ReflectionResolution;
+        RenderSettings.reflectionBounces = sceneName == "IslandMap" ? 2 : 1;
         RenderSettings.reflectionIntensity = GetSceneReflectionIntensity();
         DynamicGI.UpdateEnvironment();
     }

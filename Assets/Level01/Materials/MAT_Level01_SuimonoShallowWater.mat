@@ -163,6 +163,7 @@ Material:
     - _HeightFoamAmt: 0.955
     - _HeightFoamHeight: 0.083
     - _HeightFoamSpread: 0.276
+    - _Level01ColorBlend: 1
     - _MaskAmt: 8
     - _MasterScale: 2.25
     - _MaxVariance: 8.299999
@@ -202,9 +203,9 @@ Material:
     - _lgWaveHeight: 0.055
     - _maxDist: 116
     - _minDist: -180
-    - _overallBrightness: 1.05
+    - _overallBrightness: 1.1
     - _reflecTerm: 0.025
-    - _roughness: 0.62
+    - _roughness: 0.6
     - _shorelineFrequency: 0.5
     - _shorelineHeight: 0.397
     - _shorelineScale: 3.55
@@ -234,7 +235,7 @@ Material:
     - _useDynamicReflections: 1
     - normalShore: 1
     m_Colors:
-    - _BlendColor: {r: 0.14, g: 0.17, b: 0.2, a: 1}
+    - _BlendColor: {r: 0.16, g: 0.24, b: 0.29, a: 1}
     - _CausticsColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _DepthColor: {r: 0, g: 0, b: 0, a: 0}
@@ -245,19 +246,20 @@ Material:
     - _EdgeColor: {r: 0.73, g: 1, b: 0.94, a: 0}
     - _FoamColor: {r: 0.912, g: 0.874, b: 0.791, a: 1}
     - _HighColor: {r: 0, g: 0, b: 0, a: 0.9}
+    - _Level01ReflectionTint: {r: 1.03, g: 1, b: 0.96, a: 1}
     - _LowColor: {r: 0.34, g: 0.26, b: 0.18, a: 0.15}
     - _OverlayColor: {r: 0.1, g: 0.12, b: 0.14, a: 0.38}
-    - _ReflectionColor: {r: 0.42, g: 0.3, b: 0.2, a: 0.18}
+    - _ReflectionColor: {r: 0.52, g: 0.43, b: 0.36, a: 0.18}
     - _SSSColor: {r: 0.002, g: 0.008, b: 0.025, a: 1}
     - _SpecColorH: {r: 1, g: 0.48, b: 0, a: 1}
     - _SpecColorL: {r: 1, g: 0, b: 0, a: 1}
-    - _SpecularColor: {r: 0.72, g: 0.52, b: 0.3, a: 0.18}
+    - _SpecularColor: {r: 0.85, g: 0.74, b: 0.62, a: 0.18}
     - _TideColor: {r: 0.24, g: 0.34, b: 0.32, a: 0}
     - _TintColor: {r: 0.5, g: 0.5, b: 0.5, a: 0.5}
     - _UnderColor: {r: 1, g: 0.62, b: 0.17, a: 1}
     - _UnderwaterColor: {r: 1, g: 1, b: 1, a: 1}
     - _castshadowColor: {r: 0, g: 1, b: 0.79, a: 0.18}
-    - _depthColor: {r: 0.13, g: 0.17, b: 0.22, a: 1}
-    - _shallowColor: {r: 0.23, g: 0.27, b: 0.3, a: 0.72}
+    - _depthColor: {r: 0.2, g: 0.36, b: 0.42, a: 1}
+    - _shallowColor: {r: 0.38, g: 0.54, b: 0.56, a: 0.72}
     - _suimono_Dir: {r: -0.42, g: 1, b: -0.91, a: 0}
   m_BuildTextureStacks: []

@@ -37,19 +37,29 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _MacroMeters: 38
-    - _MacroStrength: 0.1
+    - _DetailScale: 2.6
+    - _DetailStrength: 0.1
+    - _EdgeStrength: 0
+    - _EdgeWidth: 0
+    - _MacroMeters: 52
+    - _MacroStrength: 0
     - _Metallic: 0
     - _NormalStrength: 0.7
+    - _PatchStrength: 0
     - _Smoothness: 0.045
-    - _TileMeters: 7
-    - _WearStrength: 0.08
+    - _SmoothnessVariation: 0.01
+    - _TileMeters: 3.8
+    - _WearStrength: 0
+    - _WetColorStrength: 0.9
     - _WetEdgeStart: 0.4
     - _WetEdgeWidth: 13
     - _WetShoreLevel: 145
-    - _WetSmoothness: 0.46
+    - _WetSmoothness: 0.38
     - _Wetness: 1
     m_Colors:
-    - _Color: {r: 0.96, g: 0.9, b: 0.75, a: 1}
-    - _WetTint: {r: 0.58, g: 0.65, b: 0.64, a: 1}
+    - _Color: {r: 0.9, g: 0.8, b: 0.64, a: 1}
+    - _EdgeTint: {r: 0.55, g: 0.52, b: 0.46, a: 1}
+    - _MacroTintA: {r: 1, g: 1, b: 1, a: 1}
+    - _MacroTintB: {r: 1, g: 1, b: 1, a: 1}
+    - _WetTint: {r: 0.48, g: 0.62, b: 0.68, a: 1}
   m_BuildTextureStacks: []

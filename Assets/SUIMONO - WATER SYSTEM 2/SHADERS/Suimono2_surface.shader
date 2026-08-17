@@ -29,6 +29,8 @@ Properties {
 	_specularPower ("Specular Power", Range(0.0,2.0)) = 0.42
 	_roughness ("Roughness", Range(0.0,1.0)) = 0.62
 	_overallBrightness ("Overall Brightness", Range(0.0,2.0)) = 0.9
+	_Level01ColorBlend ("Level01 Environment Blend", Range(0.0,1.0)) = 0.0
+	_Level01ReflectionTint ("Level01 Reflection Tint", Color) = (1.0,1.0,1.0,1.0)
 	_suimono_Dir ("Flow Direction", Vector) = (0.42,1,-0.91,0)
 	_RefractStrength ("Refraction Strength", Range(0.0,1.0)) = 0.5
 	_EdgeFade ("Edge Fade", Range(0.01,500.0)) = 1.0

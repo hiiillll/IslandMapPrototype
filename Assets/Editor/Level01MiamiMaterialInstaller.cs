@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -20,6 +21,9 @@ public static class Level01MiamiMaterialInstaller
     private const string TextureFolder = "Assets/Miami_Beach/Textures/Terrain";
     private const string AsphaltTextureFolder = "Assets/Miami_Beach/Textures/MB_Asphalt";
     private const string MacroTexturePath = "Assets/Miami_Beach/Textures/MB_Noise.tga";
+    private const string TransitionMeshPath = MeshFolder + "/MESH_Level01_SurfaceTransitions.asset";
+    private const string TransitionShaderName = "Custom/Level01SurfaceTransition";
+    private const string TransitionMaterialPath = MaterialFolder + "/MAT_Level01_SurfaceTransition.mat";
     private const string RoadMarkingSourcePath =
         "Assets/Art/Materials/RoadMarkings/MAT_RoadMarking_White.mat";
     private const string SuimonoOceanSourcePath =
@@ -158,44 +162,76 @@ public static class Level01MiamiMaterialInstaller
             0.025f,
             0.16f,
             shader);
-        road.SetColor("_Color", new Color(0.36f, 0.39f, 0.43f, 1f));
-        road.SetFloat("_MacroStrength", 0.065f);
-        road.SetFloat("_WearStrength", 0.16f);
+        road.SetColor("_Color", new Color(0.64f, 0.67f, 0.72f, 1f));
+        road.SetFloat("_NormalStrength", 0.72f);
+        road.SetFloat("_TileMeters", 3.2f);
+        road.SetFloat("_DetailScale", 3.2f);
+        road.SetFloat("_DetailStrength", 0.05f);
+        road.SetFloat("_MacroMeters", 44f);
+        road.SetFloat("_MacroStrength", 0f);
+        road.SetColor("_MacroTintA", Color.white);
+        road.SetColor("_MacroTintB", Color.white);
+        road.SetFloat("_PatchStrength", 0f);
+        road.SetFloat("_WearStrength", 0f);
+        road.SetColor("_EdgeTint", new Color(0.72f, 0.7f, 0.66f, 1f));
+        road.SetFloat("_EdgeWidth", 0.085f);
+        road.SetFloat("_EdgeStrength", 0.08f);
         road.SetFloat("_Wetness", 0f);
-        road.SetFloat("_Smoothness", 0.14f);
+        road.SetFloat("_Smoothness", 0.12f);
+        road.SetFloat("_SmoothnessVariation", 0.015f);
         EditorUtility.SetDirty(road);
         Material grass = CreateMaterial(
             "MAT_Level01_MiamiGrass",
             TextureFolder + "/MB_Grass_01_A.tga",
             TextureFolder + "/MB_Grass_01_N.tga",
-            4f,
-            0.78f,
+            2.4f,
+            0.58f,
             0.045f,
             0.02f,
             shader);
-        grass.SetColor("_Color", new Color(0.84f, 0.88f, 0.68f, 1f));
-        grass.SetFloat("_MacroStrength", 0.095f);
-        grass.SetFloat("_WearStrength", 0.06f);
+        grass.SetColor("_Color", new Color(0.66f, 0.72f, 0.54f, 1f));
+        grass.SetFloat("_NormalStrength", 0.66f);
+        grass.SetFloat("_DetailScale", 2.7f);
+        grass.SetFloat("_DetailStrength", 0.11f);
+        grass.SetFloat("_MacroMeters", 48f);
+        grass.SetFloat("_MacroStrength", 0.08f);
+        grass.SetColor("_MacroTintA", new Color(0.78f, 0.86f, 0.68f, 1f));
+        grass.SetColor("_MacroTintB", new Color(0.94f, 0.9f, 0.72f, 1f));
+        grass.SetFloat("_PatchStrength", 0.03f);
+        grass.SetFloat("_WearStrength", 0.02f);
+        grass.SetFloat("_EdgeStrength", 0f);
         grass.SetFloat("_Wetness", 0f);
+        grass.SetFloat("_Smoothness", 0.025f);
+        grass.SetFloat("_SmoothnessVariation", 0.015f);
         EditorUtility.SetDirty(grass);
         Material sand = CreateMaterial(
             "MAT_Level01_MiamiSand",
             TextureFolder + "/MB_Sand_02_A.tga",
             TextureFolder + "/MB_Sand_02_N.tga",
-            7f,
-            0.7f,
+            3.8f,
+            0.62f,
             0.055f,
             0.045f,
             shader);
-        sand.SetColor("_Color", new Color(0.96f, 0.9f, 0.75f, 1f));
-        sand.SetFloat("_MacroStrength", 0.1f);
-        sand.SetFloat("_WearStrength", 0.08f);
+        sand.SetColor("_Color", new Color(0.9f, 0.8f, 0.64f, 1f));
+        sand.SetFloat("_NormalStrength", 0.7f);
+        sand.SetFloat("_DetailScale", 2.6f);
+        sand.SetFloat("_DetailStrength", 0.1f);
+        sand.SetFloat("_MacroMeters", 52f);
+        sand.SetFloat("_MacroStrength", 0f);
+        sand.SetColor("_MacroTintA", Color.white);
+        sand.SetColor("_MacroTintB", Color.white);
+        sand.SetFloat("_PatchStrength", 0f);
+        sand.SetFloat("_WearStrength", 0f);
+        sand.SetFloat("_EdgeStrength", 0f);
         sand.SetFloat("_Wetness", 1f);
         sand.SetFloat("_WetShoreLevel", 145f);
         sand.SetFloat("_WetEdgeStart", 0.4f);
         sand.SetFloat("_WetEdgeWidth", 13f);
-        sand.SetFloat("_WetSmoothness", 0.46f);
-        sand.SetColor("_WetTint", new Color(0.58f, 0.65f, 0.64f, 1f));
+        sand.SetFloat("_WetSmoothness", 0.38f);
+        sand.SetFloat("_SmoothnessVariation", 0.01f);
+        sand.SetFloat("_WetColorStrength", 0.9f);
+        sand.SetColor("_WetTint", new Color(0.48f, 0.62f, 0.68f, 1f));
         EditorUtility.SetDirty(sand);
         Material ocean = CreateSuimonoWaterMaterial("MAT_Level01_SuimonoOcean", 0f);
         Material shallowWater = CreateSuimonoWaterMaterial(
@@ -205,6 +241,7 @@ public static class Level01MiamiMaterialInstaller
         Mesh oceanMesh = CreateOceanMesh();
         Mesh shallowWaterMesh = CreateShallowWaterMesh();
         Mesh beachMesh = CreateBeachVisualMesh();
+        Material transition = CreateTransitionMaterial();
 
         Scene previousScene = SceneManager.GetActiveScene();
         Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
@@ -215,7 +252,7 @@ public static class Level01MiamiMaterialInstaller
                 .ToArray();
 
             int roadCount = AssignByName(renderers, "ENV_Road_", road);
-            int grassCount = AssignExact(renderers, "ENV_Ground_Grass", grass);
+            int grassCount = AssignByName(renderers, "ENV_Ground_Grass", grass);
             int sandCount = ConfigureBeach(renderers, sand, beachMesh);
             int oceanCount = ConfigureOcean(renderers, ocean, oceanMesh);
             int shallowWaterCount = ConfigureShallowWater(
@@ -223,6 +260,7 @@ public static class Level01MiamiMaterialInstaller
                 shallowWater,
                 shallowWaterMesh);
             int roadMarkingCount = AssignRoadMarkingMaterial(renderers, roadMarking);
+            ConfigureRoadTransitions(scene, renderers, transition);
             if (roadCount == 0 || grassCount == 0 || sandCount == 0 || oceanCount == 0
                 || shallowWaterCount == 0)
             {
@@ -230,8 +268,6 @@ public static class Level01MiamiMaterialInstaller
                     $"Level01 surface objects missing. Road={roadCount}, Grass={grassCount}, "
                     + $"Sand={sandCount}, Ocean={oceanCount}, Shallow={shallowWaterCount}.");
             }
-
-            ConfigureLighting(scene);
 
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene, ScenePath))
@@ -386,6 +422,266 @@ public static class Level01MiamiMaterialInstaller
         material.SetFloat("_ShorelineFoam", shorelineFoam);
         EditorUtility.SetDirty(material);
         return material;
+    }
+
+    private static Material CreateTransitionMaterial()
+    {
+        Shader shader = Shader.Find(TransitionShaderName);
+        if (shader == null)
+        {
+            throw new MissingReferenceException("The Level01 surface transition shader was not found.");
+        }
+
+        Material material = AssetDatabase.LoadAssetAtPath<Material>(TransitionMaterialPath);
+        if (material == null)
+        {
+            material = new Material(shader) { name = "MAT_Level01_SurfaceTransition" };
+            AssetDatabase.CreateAsset(material, TransitionMaterialPath);
+        }
+        else
+        {
+            material.shader = shader;
+        }
+
+        Texture2D grassTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
+            TextureFolder + "/MB_Grass_01_A.tga");
+        Texture2D noiseTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(MacroTexturePath);
+        material.SetTexture("_MainTex", grassTexture);
+        material.SetTexture("_NoiseTex", noiseTexture);
+        material.SetColor("_Color", new Color(0.66f, 0.71f, 0.53f, 1f));
+        material.SetFloat("_Opacity", 0.32f);
+        EditorUtility.SetDirty(material);
+        return material;
+    }
+
+    private static void ConfigureRoadTransitions(
+        Scene scene,
+        Renderer[] renderers,
+        Material material)
+    {
+        Transform environment = scene.GetRootGameObjects()
+            .SelectMany(root => root.GetComponentsInChildren<Transform>(true))
+            .FirstOrDefault(item => item.name == "ENVIRONMENT");
+        if (environment == null)
+        {
+            return;
+        }
+
+        Transform transitionRoot = environment.Find("ENV_SurfaceTransitions");
+        if (transitionRoot == null)
+        {
+            GameObject rootObject = new GameObject("ENV_SurfaceTransitions");
+            rootObject.transform.SetParent(environment, false);
+            transitionRoot = rootObject.transform;
+        }
+
+        for (int index = transitionRoot.childCount - 1; index >= 0; index--)
+        {
+            UnityEngine.Object.DestroyImmediate(transitionRoot.GetChild(index).gameObject);
+        }
+
+        Mesh transitionMesh = CreateRoadTransitionMesh(renderers, transitionRoot);
+        if (transitionMesh == null)
+        {
+            return;
+        }
+
+        GameObject transitionObject = new GameObject("ENV_RoadGrassTransition");
+        transitionObject.transform.SetParent(transitionRoot, false);
+        MeshFilter meshFilter = transitionObject.AddComponent<MeshFilter>();
+        meshFilter.sharedMesh = transitionMesh;
+        MeshRenderer meshRenderer = transitionObject.AddComponent<MeshRenderer>();
+        meshRenderer.sharedMaterial = material;
+        meshRenderer.shadowCastingMode = ShadowCastingMode.Off;
+        meshRenderer.receiveShadows = false;
+        EditorUtility.SetDirty(transitionObject);
+    }
+
+    private static Mesh CreateRoadTransitionMesh(Renderer[] renderers, Transform relativeTo)
+    {
+        List<Vector3> vertices = new List<Vector3>();
+        List<Vector2> uvs = new List<Vector2>();
+        List<int> triangles = new List<int>();
+        List<Renderer> roadRenderers = renderers
+            .Where(IsTransitionRoadRenderer)
+            .ToList();
+
+        foreach (Renderer renderer in roadRenderers)
+        {
+            Bounds bounds = renderer.bounds;
+            float length = Mathf.Max(bounds.size.x, bounds.size.z);
+            float width = Mathf.Min(bounds.size.x, bounds.size.z);
+            if (length < width * 1.5f || width < 2f)
+            {
+                continue;
+            }
+
+            float y = bounds.max.y + 0.006f;
+            if (bounds.size.x >= bounds.size.z)
+            {
+                AddHorizontalTransition(
+                    vertices, uvs, triangles, renderer, roadRenderers, bounds, y, 1f, relativeTo);
+                AddHorizontalTransition(
+                    vertices, uvs, triangles, renderer, roadRenderers, bounds, y, -1f, relativeTo);
+            }
+            else
+            {
+                AddVerticalTransition(
+                    vertices, uvs, triangles, renderer, roadRenderers, bounds, y, 1f, relativeTo);
+                AddVerticalTransition(
+                    vertices, uvs, triangles, renderer, roadRenderers, bounds, y, -1f, relativeTo);
+            }
+        }
+
+        if (vertices.Count == 0)
+        {
+            return null;
+        }
+
+        Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(TransitionMeshPath);
+        if (mesh == null)
+        {
+            mesh = new Mesh { name = "MESH_Level01_SurfaceTransitions" };
+            AssetDatabase.CreateAsset(mesh, TransitionMeshPath);
+        }
+        else
+        {
+            mesh.Clear();
+        }
+
+        mesh.indexFormat = IndexFormat.UInt32;
+        mesh.SetVertices(vertices);
+        mesh.SetUVs(0, uvs);
+        mesh.SetTriangles(triangles, 0);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        EditorUtility.SetDirty(mesh);
+        return mesh;
+    }
+
+    private static bool IsTransitionRoadRenderer(Renderer renderer)
+    {
+        return renderer != null
+            && renderer.gameObject.name.StartsWith("ENV_Road_", StringComparison.Ordinal)
+            && !renderer.gameObject.name.StartsWith("ENV_RoadMarkings", StringComparison.Ordinal)
+            && !renderer.gameObject.name.StartsWith("ENV_RoadGrassTransition", StringComparison.Ordinal);
+    }
+
+    private static void AddHorizontalTransition(
+        List<Vector3> vertices,
+        List<Vector2> uvs,
+        List<int> triangles,
+        Renderer owner,
+        List<Renderer> roadRenderers,
+        Bounds bounds,
+        float y,
+        float direction,
+        Transform relativeTo)
+    {
+        // A small controlled overlap breaks the ruler-straight asphalt edge. Road
+        // intersections are clipped separately, so this never crosses another road.
+        float inner = bounds.center.z + direction * (bounds.size.z * 0.5f - 0.12f);
+        float outer = bounds.center.z + direction * (bounds.size.z * 0.5f + 0.95f);
+        float min = bounds.min.x + 0.4f;
+        float max = bounds.max.x - 0.4f;
+        int segments = Mathf.Max(1, Mathf.CeilToInt((max - min) / 0.75f));
+        for (int index = 0; index < segments; index++)
+        {
+            float u0 = (float)index / segments;
+            float u1 = (float)(index + 1) / segments;
+            float x0 = Mathf.Lerp(min, max, u0);
+            float x1 = Mathf.Lerp(min, max, u1);
+            if (IsCoveredByAnotherRoad((x0 + x1) * 0.5f, (inner + outer) * 0.5f, owner, roadRenderers))
+            {
+                continue;
+            }
+
+            int start = vertices.Count;
+            vertices.Add(relativeTo.InverseTransformPoint(new Vector3(x0, y, inner)));
+            vertices.Add(relativeTo.InverseTransformPoint(new Vector3(x0, y, outer)));
+            vertices.Add(relativeTo.InverseTransformPoint(new Vector3(x1, y, outer)));
+            vertices.Add(relativeTo.InverseTransformPoint(new Vector3(x1, y, inner)));
+            uvs.Add(new Vector2(u0, 0f));
+            uvs.Add(new Vector2(u0, 1f));
+            uvs.Add(new Vector2(u1, 1f));
+            uvs.Add(new Vector2(u1, 0f));
+            AddQuadTriangles(triangles, start);
+        }
+    }
+
+    private static void AddVerticalTransition(
+        List<Vector3> vertices,
+        List<Vector2> uvs,
+        List<int> triangles,
+        Renderer owner,
+        List<Renderer> roadRenderers,
+        Bounds bounds,
+        float y,
+        float direction,
+        Transform relativeTo)
+    {
+        float inner = bounds.center.x + direction * (bounds.size.x * 0.5f - 0.12f);
+        float outer = bounds.center.x + direction * (bounds.size.x * 0.5f + 0.95f);
+        float min = bounds.min.z + 0.4f;
+        float max = bounds.max.z - 0.4f;
+        int segments = Mathf.Max(1, Mathf.CeilToInt((max - min) / 0.75f));
+        for (int index = 0; index < segments; index++)
+        {
+            float u0 = (float)index / segments;
+            float u1 = (float)(index + 1) / segments;
+            float z0 = Mathf.Lerp(min, max, u0);
+            float z1 = Mathf.Lerp(min, max, u1);
+            if (IsCoveredByAnotherRoad((inner + outer) * 0.5f, (z0 + z1) * 0.5f, owner, roadRenderers))
+            {
+                continue;
+            }
+
+            int start = vertices.Count;
+            vertices.Add(relativeTo.InverseTransformPoint(new Vector3(inner, y, z0)));
+            vertices.Add(relativeTo.InverseTransformPoint(new Vector3(inner, y, z1)));
+            vertices.Add(relativeTo.InverseTransformPoint(new Vector3(outer, y, z1)));
+            vertices.Add(relativeTo.InverseTransformPoint(new Vector3(outer, y, z0)));
+            uvs.Add(new Vector2(u0, 0f));
+            uvs.Add(new Vector2(u1, 0f));
+            uvs.Add(new Vector2(u1, 1f));
+            uvs.Add(new Vector2(u0, 1f));
+            AddQuadTriangles(triangles, start);
+        }
+    }
+
+    private static bool IsCoveredByAnotherRoad(
+        float x,
+        float z,
+        Renderer owner,
+        List<Renderer> roadRenderers)
+    {
+        const float margin = 0.2f;
+        foreach (Renderer renderer in roadRenderers)
+        {
+            if (renderer == null || renderer == owner)
+            {
+                continue;
+            }
+
+            Bounds bounds = renderer.bounds;
+            if (x >= bounds.min.x - margin && x <= bounds.max.x + margin
+                && z >= bounds.min.z - margin && z <= bounds.max.z + margin)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void AddQuadTriangles(List<int> triangles, int start)
+    {
+        triangles.Add(start);
+        triangles.Add(start + 1);
+        triangles.Add(start + 2);
+        triangles.Add(start);
+        triangles.Add(start + 2);
+        triangles.Add(start + 3);
     }
 
     private static Material CreateRoadMarkingMaterial()

@@ -10,7 +10,17 @@ public static class SmoothDrivingSurfaceSeams
 {
     private const string ScenePath = "Assets/Scenes/IslandMap.unity";
     private const string MarkerPath = "Library/DrivingSurfaceSeamsSmoothed.v1";
-    private const float PlateThickness = 0.2f;
+    // PhysX requires non-zero volume; 0.01 is effectively a surface while
+    // remaining reliable for continuous collision detection.
+    private const float PlateThickness = 0.01f;
+    private const float GrassTopOffset = 0.01f;
+    private const float BeachTopOffset = 0.015f;
+
+    public static void ApplyFromBatchMode()
+    {
+        EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        TryApply();
+    }
 
     [MenuItem("Tools/Island Map/Smooth Driving Surface Seams")]
     public static void TryApply()
@@ -47,8 +57,18 @@ public static class SmoothDrivingSurfaceSeams
 
         foreach (BoxCollider surfaceCollider in surfaceColliders)
         {
+            float targetTop = commonTop;
+            if (surfaceCollider.gameObject.name == "COL_Grass")
+            {
+                targetTop -= GrassTopOffset;
+            }
+            else if (surfaceCollider.gameObject.name == "COL_Beach")
+            {
+                targetTop -= BeachTopOffset;
+            }
+
             Vector3 worldCenter = surfaceCollider.bounds.center;
-            worldCenter.y = commonTop - PlateThickness * 0.5f;
+            worldCenter.y = targetTop - PlateThickness * 0.5f;
             surfaceCollider.center = surfaceCollider.transform.InverseTransformPoint(worldCenter);
             Vector3 size = surfaceCollider.size;
             size.y = PlateThickness / Mathf.Max(Mathf.Abs(surfaceCollider.transform.lossyScale.y), 0.001f);
@@ -77,6 +97,8 @@ public static class SmoothDrivingSurfaceSeams
         EditorSceneManager.SaveScene(scene, ScenePath);
         File.WriteAllText(MarkerPath, DateTime.UtcNow.ToString("O"));
         Selection.activeGameObject = collisionRoot;
-        Debug.Log($"Aligned {surfaceColliders.Length} driving colliders at Y={commonTop:F2} with thickness {PlateThickness:F2}.");
+        Debug.Log(
+            $"Aligned {surfaceColliders.Length} thin driving colliders with road top {commonTop:F3}, " +
+            $"grass top {commonTop - GrassTopOffset:F3}, and beach top {commonTop - BeachTopOffset:F3}.");
     }
 }
