@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Text;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -15,6 +17,7 @@ public static class Level01GlobalRenderingInstaller
     private const string SourceSkyboxPath = "Assets/Level04/Materials/MAT_Level04_CoverSunsetSky.mat";
     private const string Level01SkyboxPath = "Assets/Level01/Materials/MAT_Level01_CoverSunsetSky.mat";
     private const string Level01SkyboxShaderName = "Custom/Level01GoldenHourSkybox";
+    private const string ArchitectureMaterialFolder = "Assets/Level01/Materials/Architecture";
 
     private static readonly Vector3[] ProbePositions =
     {
@@ -49,6 +52,7 @@ public static class Level01GlobalRenderingInstaller
         ConfigureSkybox();
         ConfigurePostProcessing(scene);
         ConfigureReflectionProbes(scene);
+        ConfigureArchitectureMaterials(scene);
         ConfigureVehicleRenderers(scene);
         ConfigureOceanMaterial();
 
@@ -77,6 +81,7 @@ public static class Level01GlobalRenderingInstaller
         sun.shadowBias = 0.045f;
         sun.shadowNormalBias = 0.28f;
         sun.shadowCustomResolution = 4096;
+        sun.useViewFrustumForShadowCasterCull = false;
         sun.useColorTemperature = false;
         RenderSettings.sun = sun;
         EditorUtility.SetDirty(sun);
@@ -200,8 +205,8 @@ public static class Level01GlobalRenderingInstaller
 
         Bloom bloom = GetOrAdd<Bloom>(profile);
         bloom.enabled.Override(true);
-        bloom.intensity.Override(0.08f);
-        bloom.threshold.Override(1.15f);
+        bloom.intensity.Override(0.06f);
+        bloom.threshold.Override(1.3f);
         bloom.softKnee.Override(0.5f);
         bloom.diffusion.Override(5f);
         bloom.color.Override(new Color(1f, 0.96f, 0.9f, 1f));
@@ -311,6 +316,144 @@ public static class Level01GlobalRenderingInstaller
             renderer.receiveShadows = true;
             renderer.motionVectorGenerationMode = MotionVectorGenerationMode.Object;
             EditorUtility.SetDirty(renderer);
+        }
+    }
+
+    private static void ConfigureArchitectureMaterials(Scene scene)
+    {
+        EnsureArchitectureMaterialFolder();
+        Dictionary<Material, Material> stableMaterials = new Dictionary<Material, Material>();
+
+        foreach (GameObject root in scene.GetRootGameObjects())
+        {
+            foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!IsArchitectureRenderer(renderer.transform))
+                {
+                    continue;
+                }
+
+                Material[] materials = renderer.sharedMaterials;
+                bool changed = false;
+                for (int index = 0; index < materials.Length; index++)
+                {
+                    Material source = materials[index];
+                    if (!IsMatteArchitectureMaterial(source))
+                    {
+                        continue;
+                    }
+
+                    if (!stableMaterials.TryGetValue(source, out Material stable))
+                    {
+                        stable = CreateStableArchitectureMaterial(source);
+                        stableMaterials.Add(source, stable);
+                    }
+
+                    materials[index] = stable;
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    renderer.sharedMaterials = materials;
+                    EditorUtility.SetDirty(renderer);
+                }
+            }
+        }
+    }
+
+    private static bool IsArchitectureRenderer(Transform transform)
+    {
+        for (Transform current = transform; current != null; current = current.parent)
+        {
+            string objectName = current.name;
+            if (objectName.IndexOf("Building", StringComparison.OrdinalIgnoreCase) >= 0
+                || objectName.IndexOf("Hotel", StringComparison.OrdinalIgnoreCase) >= 0
+                || objectName.IndexOf("House", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsMatteArchitectureMaterial(Material material)
+    {
+        if (material == null)
+        {
+            return false;
+        }
+
+        string materialName = material.name;
+        string[] reflectiveKeywords =
+        {
+            "Glass", "Window", "Metal", "Chrome", "Mirror", "Lamp", "Light", "Neon", "Sign"
+        };
+        foreach (string keyword in reflectiveKeywords)
+        {
+            if (materialName.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return false;
+            }
+        }
+
+        return material.HasProperty("_Glossiness") || material.HasProperty("_Smoothness");
+    }
+
+    private static Material CreateStableArchitectureMaterial(Material source)
+    {
+        string sourcePath = AssetDatabase.GetAssetPath(source);
+        string guid = AssetDatabase.AssetPathToGUID(sourcePath);
+        string suffix = guid.Length >= 8 ? guid.Substring(0, 8) : "instance";
+        string materialName = "MAT_Level01_Stable_" + SanitizeAssetName(source.name) + "_" + suffix;
+        string materialPath = ArchitectureMaterialFolder + "/" + materialName + ".mat";
+        Material material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+        if (material == null)
+        {
+            material = new Material(source) { name = materialName };
+            AssetDatabase.CreateAsset(material, materialPath);
+        }
+        else
+        {
+            EditorUtility.CopySerialized(source, material);
+            material.name = materialName;
+        }
+
+        if (material.HasProperty("_Glossiness"))
+        {
+            material.SetFloat("_Glossiness", Mathf.Min(material.GetFloat("_Glossiness"), 0.2f));
+        }
+        if (material.HasProperty("_Smoothness"))
+        {
+            material.SetFloat("_Smoothness", Mathf.Min(material.GetFloat("_Smoothness"), 0.2f));
+        }
+        if (material.HasProperty("_Metallic"))
+        {
+            material.SetFloat("_Metallic", 0f);
+        }
+
+        EditorUtility.SetDirty(material);
+        return material;
+    }
+
+    private static string SanitizeAssetName(string value)
+    {
+        StringBuilder result = new StringBuilder(value.Length);
+        foreach (char character in value)
+        {
+            result.Append(char.IsLetterOrDigit(character) || character == '_' || character == '-'
+                ? character
+                : '_');
+        }
+        return result.ToString();
+    }
+
+    private static void EnsureArchitectureMaterialFolder()
+    {
+        if (!AssetDatabase.IsValidFolder(ArchitectureMaterialFolder))
+        {
+            AssetDatabase.CreateFolder("Assets/Level01/Materials", "Architecture");
         }
     }
 
