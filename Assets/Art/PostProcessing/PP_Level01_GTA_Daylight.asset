@@ -30,7 +30,7 @@ MonoBehaviour:
     value: 65472
   diffusion:
     overrideState: 1
-    value: 5
+    value: 4
   anamorphicRatio:
     overrideState: 0
     value: 0
@@ -1490,7 +1490,7 @@ MonoBehaviour:
     value: 1
   shutterAngle:
     overrideState: 1
-    value: 35
+    value: 24
   sampleCount:
     overrideState: 1
-    value: 16
+    value: 12

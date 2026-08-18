@@ -18,6 +18,7 @@ public static class Level01GlobalRenderingInstaller
     private const string Level01SkyboxPath = "Assets/Level01/Materials/MAT_Level01_CoverSunsetSky.mat";
     private const string Level01SkyboxShaderName = "Custom/Level01GoldenHourSkybox";
     private const string ArchitectureMaterialFolder = "Assets/Level01/Materials/Architecture";
+    private const string StableMaterialPrefix = "MAT_Level01_Stable_";
 
     private static readonly Vector3[] ProbePositions =
     {
@@ -80,6 +81,8 @@ public static class Level01GlobalRenderingInstaller
         sun.shadowStrength = 0.34f;
         sun.shadowBias = 0.045f;
         sun.shadowNormalBias = 0.28f;
+        // Favor contact-shadow quality. StableFit and zero cascades keep the
+        // higher-resolution map from reintroducing camera-angle popping.
         sun.shadowCustomResolution = 4096;
         sun.useViewFrustumForShadowCasterCull = false;
         sun.useColorTemperature = false;
@@ -92,7 +95,7 @@ public static class Level01GlobalRenderingInstaller
         RenderSettings.ambientGroundColor = new Color(0.42f, 0.44f, 0.47f, 1f);
         RenderSettings.ambientIntensity = 1.24f;
         RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
-        RenderSettings.defaultReflectionResolution = 256;
+        RenderSettings.defaultReflectionResolution = 512;
         RenderSettings.reflectionBounces = 2;
         RenderSettings.reflectionIntensity = 0.94f;
 
@@ -210,7 +213,8 @@ public static class Level01GlobalRenderingInstaller
         bloom.intensity.Override(0.06f);
         bloom.threshold.Override(1.3f);
         bloom.softKnee.Override(0.5f);
-        bloom.diffusion.Override(5f);
+        // Keep the sunset bloom soft without spreading it across the whole frame.
+        bloom.diffusion.Override(4f);
         bloom.color.Override(new Color(1f, 0.96f, 0.9f, 1f));
         bloom.fastMode.Override(false);
 
@@ -226,8 +230,10 @@ public static class Level01GlobalRenderingInstaller
 
         MotionBlur motionBlur = GetOrAdd<MotionBlur>(profile);
         motionBlur.enabled.Override(true);
-        motionBlur.shutterAngle.Override(35f);
-        motionBlur.sampleCount.Override(16);
+        // Lower blur accumulation prevents high-speed camera turns from mixing
+        // bright reflections into a visible exposure pulse.
+        motionBlur.shutterAngle.Override(24f);
+        motionBlur.sampleCount.Override(12);
 
         DisableIfPresent<Grain>(profile);
         DisableIfPresent<ChromaticAberration>(profile);
@@ -281,10 +287,12 @@ public static class Level01GlobalRenderingInstaller
 
             probe.mode = ReflectionProbeMode.Realtime;
             probe.refreshMode = ReflectionProbeRefreshMode.OnAwake;
+            // Full-face capture gives the vehicle and water a coherent reflection
+            // at the first rendered frame; startup cost is accepted for quality.
             probe.timeSlicingMode = ReflectionProbeTimeSlicingMode.NoTimeSlicing;
             probe.clearFlags = ReflectionProbeClearFlags.Skybox;
             probe.cullingMask = ~excludedLayers;
-            probe.resolution = 256;
+            probe.resolution = 512;
             probe.hdr = true;
             probe.shadowDistance = 120f;
             probe.intensity = 0.96f;
@@ -345,6 +353,18 @@ public static class Level01GlobalRenderingInstaller
                         continue;
                     }
 
+                    Material canonical = FindCanonicalStableMaterial(source);
+                    if (canonical != null)
+                    {
+                        ApplyStableArchitectureLimits(canonical);
+                        if (canonical != source)
+                        {
+                            materials[index] = canonical;
+                            changed = true;
+                        }
+                        continue;
+                    }
+
                     if (!stableMaterials.TryGetValue(source, out Material stable))
                     {
                         stable = CreateStableArchitectureMaterial(source);
@@ -362,6 +382,8 @@ public static class Level01GlobalRenderingInstaller
                 }
             }
         }
+
+        RemoveNestedStableMaterialAssets();
     }
 
     private static bool IsArchitectureRenderer(Transform transform)
@@ -408,7 +430,7 @@ public static class Level01GlobalRenderingInstaller
         string sourcePath = AssetDatabase.GetAssetPath(source);
         string guid = AssetDatabase.AssetPathToGUID(sourcePath);
         string suffix = guid.Length >= 8 ? guid.Substring(0, 8) : "instance";
-        string materialName = "MAT_Level01_Stable_" + SanitizeAssetName(source.name) + "_" + suffix;
+        string materialName = StableMaterialPrefix + SanitizeAssetName(source.name) + "_" + suffix;
         string materialPath = ArchitectureMaterialFolder + "/" + materialName + ".mat";
         Material material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
         if (material == null)
@@ -422,6 +444,45 @@ public static class Level01GlobalRenderingInstaller
             material.name = materialName;
         }
 
+        ApplyStableArchitectureLimits(material);
+        return material;
+    }
+
+    private static Material FindCanonicalStableMaterial(Material source)
+    {
+        string sourcePath = AssetDatabase.GetAssetPath(source).Replace('\\', '/');
+        if (!sourcePath.StartsWith(ArchitectureMaterialFolder + "/", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        if (CountOccurrences(source.name, StableMaterialPrefix) == 1)
+        {
+            return source;
+        }
+
+        Material bestMatch = null;
+        foreach (string guid in AssetDatabase.FindAssets("t:Material", new[] { ArchitectureMaterialFolder }))
+        {
+            Material candidate = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(guid));
+            if (candidate == null
+                || CountOccurrences(candidate.name, StableMaterialPrefix) != 1
+                || source.name.IndexOf(candidate.name, StringComparison.Ordinal) < 0)
+            {
+                continue;
+            }
+
+            if (bestMatch == null || candidate.name.Length > bestMatch.name.Length)
+            {
+                bestMatch = candidate;
+            }
+        }
+
+        return bestMatch;
+    }
+
+    private static void ApplyStableArchitectureLimits(Material material)
+    {
         if (material.HasProperty("_Glossiness"))
         {
             material.SetFloat("_Glossiness", Mathf.Min(material.GetFloat("_Glossiness"), 0.2f));
@@ -436,7 +497,31 @@ public static class Level01GlobalRenderingInstaller
         }
 
         EditorUtility.SetDirty(material);
-        return material;
+    }
+
+    private static void RemoveNestedStableMaterialAssets()
+    {
+        foreach (string guid in AssetDatabase.FindAssets("t:Material", new[] { ArchitectureMaterialFolder }))
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material != null && CountOccurrences(material.name, StableMaterialPrefix) > 1)
+            {
+                AssetDatabase.DeleteAsset(path);
+            }
+        }
+    }
+
+    private static int CountOccurrences(string value, string token)
+    {
+        int count = 0;
+        int offset = 0;
+        while ((offset = value.IndexOf(token, offset, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            offset += token.Length;
+        }
+        return count;
     }
 
     private static string SanitizeAssetName(string value)

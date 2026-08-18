@@ -37,6 +37,8 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _DetailFadeEnd: 220
+    - _DetailFadeStart: 80
     - _DetailScale: 2.6
     - _DetailStrength: 0.1
     - _EdgeStrength: 0

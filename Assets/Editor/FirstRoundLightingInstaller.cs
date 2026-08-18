@@ -30,12 +30,14 @@ public static class FirstRoundLightingInstaller
         EnsureFolder("Assets/Art");
         EnsureFolder(ProfileFolder);
 
-        ApplyScene(IslandScenePath, false);
+        // Level 01 has its own authoritative global-rendering installer. Keeping
+        // this legacy tool from writing the scene prevents it from overwriting
+        // the stable ACES/SMAA/shadow configuration by accident.
         ApplyScene(Level03ScenePath, true);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        Debug.Log("[First Round Lighting] Applied scene profiles and GTA-style tone mapping to Level01 and Level03.");
+        Debug.Log("[First Round Lighting] Applied the legacy lighting profile to Level03 only. Level01 is owned by Level01GlobalRenderingInstaller.");
     }
 
     private static void ApplyScene(string scenePath, bool level03)

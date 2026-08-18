@@ -10,6 +10,8 @@ Shader "Custom/Level01MiamiSurface"
         _NormalStrength ("Normal Strength", Range(0, 2)) = 1
         _DetailScale ("Detail Scale", Range(1, 6)) = 2.8
         _DetailStrength ("Detail Strength", Range(0, 0.4)) = 0.12
+        _DetailFadeStart ("Detail Fade Start (Meters)", Float) = 80
+        _DetailFadeEnd ("Detail Fade End (Meters)", Float) = 220
         _MacroMeters ("Macro Size (Meters)", Float) = 38
         _MacroStrength ("Macro Variation", Range(0, 0.25)) = 0.06
         _MacroTintA ("Macro Tint A", Color) = (0.9, 0.9, 0.9, 1)
@@ -48,6 +50,8 @@ Shader "Custom/Level01MiamiSurface"
         float _NormalStrength;
         float _DetailScale;
         float _DetailStrength;
+        float _DetailFadeStart;
+        float _DetailFadeEnd;
         float _MacroMeters;
         float _MacroStrength;
         fixed4 _MacroTintA;
@@ -85,13 +89,30 @@ Shader "Custom/Level01MiamiSurface"
             detailUv = detailUv * _DetailScale + float2(0.37, 0.61);
 
             fixed4 albedo = tex2D(_MainTex, surfaceUv) * _Color;
-            fixed3 detailAlbedo = tex2D(_MainTex, detailUv).rgb;
-            albedo.rgb *= lerp(1.0, detailAlbedo * 2.0, _DetailStrength);
-            half macro = tex2D(_MacroTex, macroUv).r;
-            half macroSecondary = tex2D(
-                _MacroTex,
-                macroUv * 0.57 + float2(0.41, -0.23)).r;
-            half macroBlend = saturate(macro * 0.68h + macroSecondary * 0.32h);
+            float cameraDistance = distance(_WorldSpaceCameraPos.xyz, input.worldPos);
+            float detailFade = 1.0 - smoothstep(
+                min(_DetailFadeStart, _DetailFadeEnd),
+                max(_DetailFadeStart, _DetailFadeEnd),
+                cameraDistance);
+            float detailStrength = _DetailStrength * detailFade;
+            UNITY_BRANCH
+            if (detailStrength > 0.001)
+            {
+                fixed3 detailAlbedo = tex2D(_MainTex, detailUv).rgb;
+                albedo.rgb *= lerp(1.0, detailAlbedo * 2.0, detailStrength);
+            }
+
+            half macroBlend = 0.5h;
+            half macroSecondary = 0.5h;
+            UNITY_BRANCH
+            if (_MacroStrength > 0.001 || _PatchStrength > 0.001 || _WearStrength > 0.001)
+            {
+                half macro = tex2D(_MacroTex, macroUv).r;
+                macroSecondary = tex2D(
+                    _MacroTex,
+                    macroUv * 0.57 + float2(0.41, -0.23)).r;
+                macroBlend = saturate(macro * 0.68h + macroSecondary * 0.32h);
+            }
             half macroFactor = lerp(
                 1.0h - _MacroStrength,
                 1.0h + _MacroStrength,
@@ -101,10 +122,15 @@ Shader "Custom/Level01MiamiSurface"
                 _MacroTintB.rgb,
                 smoothstep(0.24h, 0.76h, macroBlend));
             half patchMask = smoothstep(0.61h, 0.82h, macroSecondary) * _PatchStrength;
-            half wearNoise = tex2D(
-                _MacroTex,
-                macroUv * 1.85 + float2(0.31, -0.17)).r;
-            half wearMask = smoothstep(0.34h, 0.72h, wearNoise) * _WearStrength;
+            half wearMask = 0.0h;
+            UNITY_BRANCH
+            if (_WearStrength > 0.001)
+            {
+                half wearNoise = tex2D(
+                    _MacroTex,
+                    macroUv * 1.85 + float2(0.31, -0.17)).r;
+                wearMask = smoothstep(0.34h, 0.72h, wearNoise) * _WearStrength;
+            }
             half alongEdge = abs(input.worldPos.x) > abs(input.worldPos.z)
                 ? input.worldPos.z
                 : input.worldPos.x;
@@ -158,9 +184,14 @@ Shader "Custom/Level01MiamiSurface"
             half3 baseNormal = UnpackScaleNormal(
                 tex2D(_NormalMap, surfaceUv),
                 _NormalStrength);
-            half3 detailNormal = UnpackScaleNormal(
-                tex2D(_NormalMap, detailUv),
-                _NormalStrength * _DetailStrength * 0.75h);
+            half3 detailNormal = half3(0.0h, 0.0h, 1.0h);
+            UNITY_BRANCH
+            if (detailStrength > 0.001)
+            {
+                detailNormal = UnpackScaleNormal(
+                    tex2D(_NormalMap, detailUv),
+                    _NormalStrength * detailStrength * 0.75h);
+            }
             output.Normal = normalize(half3(
                 baseNormal.xy + detailNormal.xy,
                 baseNormal.z * detailNormal.z));

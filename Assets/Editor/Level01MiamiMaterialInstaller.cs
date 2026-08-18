@@ -376,6 +376,8 @@ public static class Level01MiamiMaterialInstaller
         material.SetColor("_Color", Color.white);
         material.SetFloat("_TileMeters", tileMeters);
         material.SetFloat("_NormalStrength", normalStrength);
+        material.SetFloat("_DetailFadeStart", 80f);
+        material.SetFloat("_DetailFadeEnd", 220f);
         material.SetFloat("_MacroMeters", 38f);
         material.SetFloat("_MacroStrength", macroStrength);
         material.SetFloat("_Metallic", 0f);
