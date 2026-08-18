@@ -4,6 +4,7 @@
 sampler2D _NormalTexS;
 sampler2D _NormalTexD;
 sampler2D _NormalTexR;
+sampler2D _FoamTex;
 float4 _NormalTexS_ST;
 float4 _suimono_Dir;
 float _NormalStrength;
@@ -135,11 +136,12 @@ fixed4 SuimonoCompatFrag(SuimonoCompatVertexOutput input) : SV_Target
         ? input.worldPosition.z
         : input.worldPosition.x;
     float shoreVariation = sin(alongEdge * 0.075) * 2.6
-        + sin(alongEdge * 0.031 + 1.7) * 1.8;
+        + sin(alongEdge * 0.031 + 1.7) * 1.8
+        + sin(alongEdge * 0.17 + 0.4) * 0.65;
     float shoreDistance = maxCoordinate - (_ShorelineLevel + shoreVariation);
     float shoreEnabled = step(0.001, _ShorelineFoam);
     float shallowBand = (1.0 - smoothstep(
-        -1.0,
+        -2.0,
         max(_ShorelineWidth, 0.1),
         shoreDistance)) * shoreEnabled;
 
@@ -147,22 +149,26 @@ fixed4 SuimonoCompatFrag(SuimonoCompatVertexOutput input) : SV_Target
         + sin(time * 0.37 - alongEdge * 0.021) * 0.38;
     float foamNoise = 0.5 + 0.3 * sin(alongEdge * 0.31 + time * 0.84)
         + 0.2 * sin(alongEdge * 0.73 - time * 0.47);
-    float foamBreakup = smoothstep(0.5, 0.78, foamNoise);
+    float2 foamUv = input.worldPosition.xz * 0.082
+        + direction * time * 0.014;
+    float foamTexture = smoothstep(0.28, 0.76, tex2D(_FoamTex, foamUv).r);
+    float foamBreakup = lerp(0.08, 1.0, smoothstep(0.44, 0.8, foamNoise));
+    foamBreakup *= lerp(0.42, 1.12, foamTexture);
     float primaryLine = 1.0 - smoothstep(
-        0.1,
-        0.4,
-        abs(shoreDistance - 0.9 - waveAdvance));
+        0.12,
+        0.48,
+        abs(shoreDistance - 0.65 - waveAdvance * 0.82));
     float secondaryLine = 1.0 - smoothstep(
-        0.08,
-        0.34,
-        abs(shoreDistance - 3.3 + waveAdvance * 0.45));
-    secondaryLine *= smoothstep(0.76, 0.91, foamNoise) * 0.08;
+        0.1,
+        0.48,
+        abs(shoreDistance - 3.1 + waveAdvance * 0.42));
+    secondaryLine *= smoothstep(0.72, 0.91, foamNoise) * 0.12;
     float shoreFoam = saturate(primaryLine * foamBreakup + secondaryLine);
     shoreFoam *= _ShorelineFoam * shoreEnabled;
 
     float3 reflectedShallow = lerp(float3(0.34, 0.46, 0.49), skyReflection, 0.26);
-    waterColor = lerp(waterColor, reflectedShallow, shallowBand * 0.74);
-    waterColor = lerp(waterColor, float3(0.78, 0.84, 0.83), shoreFoam);
+    waterColor = lerp(waterColor, reflectedShallow, shallowBand * 0.7);
+    waterColor = lerp(waterColor, float3(0.84, 0.88, 0.86), shoreFoam);
 
     float sunMirror = pow(saturate(dot(reflectionDirection, lightDirection)), 110.0);
     float3 sunColor = _LightColor0.rgb * lerp(float3(1.0, 1.0, 1.0), _SpecularColor.rgb, 0.12);

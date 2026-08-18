@@ -58,6 +58,27 @@ public static class Level01MiamiMaterialInstaller
         }
     }
 
+    [MenuItem("Tools/Island Map/Level01/Refresh Shoreline Transition")]
+    public static void RefreshShorelineFromMenu()
+    {
+        RefreshShorelineAssets();
+    }
+
+    public static void RefreshShorelineFromCommandLine()
+    {
+        try
+        {
+            RefreshShorelineAssets();
+            Debug.Log("[Level01] Shoreline slope, shallow-water blend, and surf line refreshed.");
+            EditorApplication.Exit(0);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception);
+            EditorApplication.Exit(1);
+        }
+    }
+
     public static void CapturePreviewFromCommandLine()
     {
         try
@@ -233,10 +254,10 @@ public static class Level01MiamiMaterialInstaller
         sand.SetFloat("_WetColorStrength", 0.9f);
         sand.SetColor("_WetTint", new Color(0.48f, 0.62f, 0.68f, 1f));
         EditorUtility.SetDirty(sand);
-        Material ocean = CreateSuimonoWaterMaterial("MAT_Level01_SuimonoOcean", 0f);
+        Material ocean = CreateSuimonoWaterMaterial("MAT_Level01_SuimonoOcean", 0.62f);
         Material shallowWater = CreateSuimonoWaterMaterial(
             "MAT_Level01_SuimonoShallowWater",
-            0.42f);
+            0.62f);
         Material roadMarking = CreateRoadMarkingMaterial();
         Mesh oceanMesh = CreateOceanMesh();
         Mesh shallowWaterMesh = CreateShallowWaterMesh();
@@ -367,6 +388,7 @@ public static class Level01MiamiMaterialInstaller
         string materialName,
         float shorelineFoam)
     {
+        bool shallow = materialName.IndexOf("ShallowWater", StringComparison.Ordinal) >= 0;
         string targetPath = MaterialFolder + "/" + materialName + ".mat";
         Material source = AssetDatabase.LoadAssetAtPath<Material>(SuimonoOceanSourcePath);
         if (source == null || source.shader == null)
@@ -398,9 +420,9 @@ public static class Level01MiamiMaterialInstaller
         material.SetTexture("_NormalTexS", calmNormal);
         material.SetTexture("_NormalTexD", turbulentNormal);
         material.SetTexture("_NormalTexR", rollingNormal);
-        material.SetFloat("_overallBrightness", 1.05f);
+        material.SetFloat("_overallBrightness", shallow ? 1.1f : 1.08f);
         material.SetFloat("_specularPower", 0.42f);
-        material.SetFloat("_roughness", 0.62f);
+        material.SetFloat("_roughness", shallow ? 0.6f : 0.55f);
         material.SetFloat("_roughness2", 0.76f);
         material.SetFloat("_reflecTerm", 0.025f);
         material.SetFloat("_NormalStrength", 0.48f);
@@ -410,15 +432,19 @@ public static class Level01MiamiMaterialInstaller
         material.SetFloat("_turbulenceFactor", 0.08f);
         material.SetFloat("_enableFoam", 0f);
         material.SetVector("_suimono_Dir", new Vector4(-0.42f, 1f, -0.91f, 0f));
-        material.SetColor("_depthColor", new Color(0.13f, 0.17f, 0.22f, 1f));
-        material.SetColor("_shallowColor", new Color(0.23f, 0.27f, 0.3f, 0.72f));
-        material.SetColor("_ReflectionColor", new Color(0.42f, 0.3f, 0.2f, 0.18f));
-        material.SetColor("_SpecularColor", new Color(0.72f, 0.52f, 0.3f, 0.18f));
+        material.SetColor("_depthColor", shallow
+            ? new Color(0.2f, 0.36f, 0.42f, 1f)
+            : new Color(0.12f, 0.27f, 0.36f, 1f));
+        material.SetColor("_shallowColor", shallow
+            ? new Color(0.38f, 0.54f, 0.56f, 0.72f)
+            : new Color(0.3f, 0.46f, 0.52f, 0.72f));
+        material.SetColor("_ReflectionColor", new Color(0.52f, 0.43f, 0.36f, 0.18f));
+        material.SetColor("_SpecularColor", new Color(0.85f, 0.74f, 0.62f, 0.18f));
         material.SetColor("_SSSColor", new Color(0.002f, 0.008f, 0.025f, 1f));
-        material.SetColor("_BlendColor", new Color(0.14f, 0.17f, 0.2f, 1f));
+        material.SetColor("_BlendColor", new Color(0.16f, 0.24f, 0.29f, 1f));
         material.SetColor("_OverlayColor", new Color(0.1f, 0.12f, 0.14f, 0.38f));
         material.SetFloat("_ShorelineLevel", 145f);
-        material.SetFloat("_ShorelineWidth", 13f);
+        material.SetFloat("_ShorelineWidth", 30f);
         material.SetFloat("_ShorelineFoam", shorelineFoam);
         EditorUtility.SetDirty(material);
         return material;
@@ -833,7 +859,9 @@ public static class Level01MiamiMaterialInstaller
         const float shoreLevel = 145f;
         const float slopeHalfWidth = 6f;
         const float innerHeight = 0.5f;
-        const float outerHeight = -2.5f;
+        // Submerge the square mesh boundary so the visible waterline is formed
+        // by the irregular sloped beach instead of the outer mesh edge.
+        const float outerHeight = -5.5f;
         int verticesPerSide = segments + 1;
         Vector3[] vertices = new Vector3[verticesPerSide * verticesPerSide];
         Vector2[] uvs = new Vector2[vertices.Length];
@@ -850,7 +878,8 @@ public static class Level01MiamiMaterialInstaller
                 float maxCoordinate = Mathf.Max(Mathf.Abs(worldX), Mathf.Abs(worldZ));
                 float alongEdge = Mathf.Abs(worldX) > Mathf.Abs(worldZ) ? worldZ : worldX;
                 float irregularity = Mathf.Sin(alongEdge * 0.075f) * 2.6f
-                    + Mathf.Sin(alongEdge * 0.031f + 1.7f) * 1.8f;
+                    + Mathf.Sin(alongEdge * 0.031f + 1.7f) * 1.8f
+                    + Mathf.Sin(alongEdge * 0.17f + 0.4f) * 0.65f;
                 float localShore = shoreLevel + irregularity;
                 float slope = Mathf.InverseLerp(
                     localShore - slopeHalfWidth,
@@ -993,8 +1022,21 @@ public static class Level01MiamiMaterialInstaller
         renderer.sharedMaterial = material;
         renderer.shadowCastingMode = ShadowCastingMode.Off;
         renderer.receiveShadows = false;
+        renderer.enabled = false;
         shallow.gameObject.isStatic = false;
         return 1;
+    }
+
+    private static void RefreshShorelineAssets()
+    {
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        EnsureFolder("Assets/Level01");
+        EnsureFolder(MaterialFolder);
+        EnsureFolder(MeshFolder);
+        CreateBeachVisualMesh();
+        CreateSuimonoWaterMaterial("MAT_Level01_SuimonoOcean", 0.62f);
+        CreateSuimonoWaterMaterial("MAT_Level01_SuimonoShallowWater", 0.62f);
+        AssetDatabase.SaveAssets();
     }
 
     private static void ConfigureLighting(Scene scene)

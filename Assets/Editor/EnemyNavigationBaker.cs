@@ -382,7 +382,8 @@ public static class EnemyNavigationBaker
         for (Transform current = collider.transform; current != null; current = current.parent)
         {
             string objectName = current.name;
-            if (objectName == "COL_Grass" || objectName == "COL_Beach" || objectName.StartsWith("COL_Road")
+            if (objectName == "COL_DriveSurface" || objectName == "COL_Grass" || objectName == "COL_Beach"
+                || objectName.StartsWith("COL_Road")
                 || objectName.StartsWith("MB_Coastal_Sidewalk_")
                 || objectName.StartsWith("MB_Sidewalk_")
                 || objectName.StartsWith("MB_Road_") && !objectName.StartsWith("MB_Road_Barrier_")

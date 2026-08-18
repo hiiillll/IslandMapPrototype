@@ -182,9 +182,9 @@ Material:
     - _ShallowFoamAmt: 1
     - _ShoreAmt: -3.5
     - _ShoreAmtDk: 1
-    - _ShorelineFoam: 0.42
+    - _ShorelineFoam: 0.62
     - _ShorelineLevel: 145
-    - _ShorelineWidth: 13
+    - _ShorelineWidth: 30
     - _SpecScatterAmt: 0.5
     - _SpecScatterWidth: 0.1
     - _Tess: 28

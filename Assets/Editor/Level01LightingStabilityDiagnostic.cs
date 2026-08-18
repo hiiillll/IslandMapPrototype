@@ -278,9 +278,9 @@ public static class Level01LightingStabilityDiagnostic
         bool[] probeStates = probes.Select(probe => probe.enabled).ToArray();
         ReflectionProbeUsage[] usages = architecture.Select(renderer => renderer.reflectionProbeUsage).ToArray();
 
-        Vector3 position = new Vector3(16.11f, 7.949057f, -78.91f);
-        Quaternion rotationA = Quaternion.Euler(21.896f, 38.36f, 3.142f);
-        Quaternion rotationB = Quaternion.Euler(21.938f, 37.483f, 2.815f);
+        Vector3 position = new Vector3(115.7319f, 7.954056f, 46.43281f);
+        Quaternion rotationA = Quaternion.Euler(20.153f, 15.545f, 9.29f);
+        Quaternion rotationB = Quaternion.Euler(20.339f, 14.302f, 8.859f);
         const int comparisonWidth = 960;
         const int comparisonHeight = 540;
         TestMode[] modes = { TestMode.Baseline, TestMode.NoShadows, TestMode.NoReflections, TestMode.NoPostProcessing, TestMode.ForceLod0, TestMode.SingleStableCascade };

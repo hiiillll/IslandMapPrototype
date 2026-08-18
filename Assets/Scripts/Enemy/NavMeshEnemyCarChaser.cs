@@ -480,7 +480,8 @@ public class NavMeshEnemyCarChaser : MonoBehaviour
         for (Transform current = collider.transform; current != null; current = current.parent)
         {
             string objectName = current.name;
-            if (objectName == "COL_Grass" ||
+            if (objectName == "COL_DriveSurface" ||
+                objectName == "COL_Grass" ||
                 objectName == "COL_Beach" ||
                 objectName.StartsWith("COL_Road") ||
                 objectName.StartsWith("ENV_Ground_Grass") ||

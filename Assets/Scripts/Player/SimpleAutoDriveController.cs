@@ -62,6 +62,7 @@ public class SimpleAutoDriveController : MonoBehaviour
     private float previousFixedDeltaTime;
     private Collider[] vehicleColliders;
     private readonly RaycastHit[] groundHits = new RaycastHit[8];
+    private readonly RaycastHit[] surfaceZoneHits = new RaycastHit[32];
 
     public float ForwardSpeed => forwardSpeed;
     public float SteeringAmount => Mathf.Abs(smoothedTurnInput);
@@ -166,7 +167,7 @@ public class SimpleAutoDriveController : MonoBehaviour
         isGrounded = CheckGrounded(out Collider groundCollider, out RaycastHit groundHit);
         isDriveSurfaceSafe = isGrounded
             && Vector3.Angle(groundHit.normal, Vector3.up) <= maximumDriveSlope;
-        isOnBeach = isDriveSurfaceSafe && IsBeachSurface(groundCollider);
+        isOnBeach = isDriveSurfaceSafe && IsBeachSurfaceAtVehicle(groundCollider);
         UpdateSurfaceHandling();
         UpdateDriftState(planarVelocity.magnitude);
 
@@ -374,6 +375,72 @@ public class SimpleAutoDriveController : MonoBehaviour
         PhysicMaterial surfaceMaterial = groundCollider.sharedMaterial;
         return surfaceMaterial != null
             && surfaceMaterial.name.IndexOf("Beach", System.StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private bool IsBeachSurfaceAtVehicle(Collider groundCollider)
+    {
+        if (groundCollider == null || groundCollider.name != "COL_DriveSurface")
+        {
+            return IsBeachSurface(groundCollider);
+        }
+
+        int hitCount = Physics.RaycastNonAlloc(
+            body.worldCenterOfMass + Vector3.up,
+            Vector3.down,
+            surfaceZoneHits,
+            6f,
+            groundLayers,
+            QueryTriggerInteraction.Collide);
+        float highestSurface = float.NegativeInfinity;
+        bool highestSurfaceIsBeach = false;
+        bool foundZone = false;
+        for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
+        {
+            Collider zone = surfaceZoneHits[hitIndex].collider;
+            if (zone == null || zone == groundCollider || !zone.isTrigger
+                || !TryGetDriveSurfaceZone(zone.transform, out bool isBeachZone))
+            {
+                continue;
+            }
+
+            float surfaceHeight = zone.bounds.max.y;
+            if (!foundZone || surfaceHeight > highestSurface + 0.0001f
+                || Mathf.Abs(surfaceHeight - highestSurface) <= 0.0001f && !isBeachZone)
+            {
+                foundZone = true;
+                highestSurface = surfaceHeight;
+                highestSurfaceIsBeach = isBeachZone;
+            }
+        }
+
+        return foundZone && highestSurfaceIsBeach;
+    }
+
+    private static bool TryGetDriveSurfaceZone(Transform transform, out bool isBeach)
+    {
+        for (Transform current = transform; current != null; current = current.parent)
+        {
+            string objectName = current.name;
+            if (objectName == "COL_Beach")
+            {
+                isBeach = true;
+                return true;
+            }
+
+            if (objectName == "COL_Grass" || objectName.StartsWith("COL_Road")
+                || objectName.StartsWith("MB_Coastal_Sidewalk_")
+                || objectName.StartsWith("MB_Sidewalk_")
+                || objectName.StartsWith("MB_Road_") && !objectName.StartsWith("MB_Road_Barrier_")
+                || objectName.StartsWith("MB_Bike_Path_")
+                || objectName == "MB_Promenade")
+            {
+                isBeach = false;
+                return true;
+            }
+        }
+
+        isBeach = false;
+        return false;
     }
 
     private bool CheckGrounded(out Collider groundCollider, out RaycastHit groundHit)

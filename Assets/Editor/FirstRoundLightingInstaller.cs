@@ -157,7 +157,7 @@ public static class FirstRoundLightingInstaller
             : new Color(0.98f, 1f, 1f, 1f));
 
         AmbientOcclusion ambientOcclusion = GetOrAdd<AmbientOcclusion>(profile);
-        ambientOcclusion.enabled.value = true;
+        ambientOcclusion.enabled.value = level03;
         ambientOcclusion.mode.Override(AmbientOcclusionMode.ScalableAmbientObscurance);
         ambientOcclusion.intensity.Override(level03 ? 0.12f : 0.12f);
         ambientOcclusion.radius.Override(level03 ? 1.8f : 1.7f);

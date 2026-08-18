@@ -195,7 +195,9 @@ public static class Level01GlobalRenderingInstaller
         grading.colorFilter.Override(Color.white);
 
         AmbientOcclusion ambientOcclusion = GetOrAdd<AmbientOcclusion>(profile);
-        ambientOcclusion.enabled.Override(true);
+        // Screen-space AO is tied to the camera projection. On this wide outdoor
+        // level it produced a visible lighting step after very small camera turns.
+        ambientOcclusion.enabled.Override(false);
         ambientOcclusion.mode.Override(AmbientOcclusionMode.ScalableAmbientObscurance);
         ambientOcclusion.intensity.Override(0.16f);
         ambientOcclusion.radius.Override(0.8f);
