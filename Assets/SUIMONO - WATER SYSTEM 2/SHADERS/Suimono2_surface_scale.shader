@@ -22,10 +22,19 @@ Properties {
 	_NormalStrength ("Normal Strength", Range(0.0,1.0)) = 0.5
 	_heightScale ("Wave Height", Float) = 0.12
 	_lgWaveHeight ("Large Wave Height", Float) = 0.055
+	_CompatWaveAmplitude ("Visible Wave Amplitude", Float) = 0.028
 	_turbulenceFactor ("Turbulence", Range(0.0,1.0)) = 0.08
 	_specularPower ("Specular Power", Range(0.0,2.0)) = 0.42
 	_roughness ("Roughness", Range(0.0,1.0)) = 0.62
 	_overallBrightness ("Overall Brightness", Range(0.0,2.0)) = 0.9
+	_Level01ColorBlend ("Level01 Environment Blend", Range(0.0,1.0)) = 0.0
+	_Level01ReflectionTint ("Level01 Reflection Tint", Color) = (1.0,1.0,1.0,1.0)
+	_CinematicOcean ("Cinematic Ocean Rendering", Range(0.0,1.0)) = 0.0
+	_CinematicReflection ("Cinematic Reflection", Range(0.0,1.5)) = 0.82
+	_CinematicSunGlint ("Cinematic Sun Glint", Range(0.0,1.5)) = 0.38
+	_CinematicHorizonBlend ("Cinematic Horizon Blend", Range(0.0,1.0)) = 0.68
+	_CinematicHorizonColor ("Cinematic Horizon Color", Color) = (0.78,0.52,0.32,1.0)
+	_CinematicMicroRipple ("Cinematic Micro Ripple", Range(0.0,1.0)) = 0.46
 	_suimono_Dir ("Flow Direction", Vector) = (0.42,1,-0.91,0)
 	_RefractStrength ("Refraction Strength", Range(0.0,1.0)) = 0.5
 	_EdgeFade ("Edge Fade", Range(0.01,500.0)) = 1.0
@@ -72,6 +81,7 @@ SubShader {
 		#pragma target 3.0
 		#pragma vertex SuimonoCompatVert
 		#pragma fragment SuimonoCompatFrag
+		#pragma multi_compile_fog
 		#include "SuimonoLevel02Compat.cginc"
 		ENDCG
 	}

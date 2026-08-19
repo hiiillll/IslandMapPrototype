@@ -94,7 +94,9 @@ public sealed class BoatChaseController : MonoBehaviour
             difficultyController = FindObjectOfType<BoatChaseDifficultyController>();
         }
 
-        float targetForwardSpeed = GetTargetForwardSpeed();
+        float propulsionScale = Level02Whirlpool.SamplePropulsionScale(body.position);
+        float targetForwardSpeed = GetTargetForwardSpeed() * propulsionScale;
+        Vector3 whirlpoolCurrent = Level02Whirlpool.SampleWaterCurrent(body.position);
         Vector3 planarVelocity = new Vector3(body.velocity.x, 0f, body.velocity.z);
         float currentForwardSpeed = Vector3.Dot(planarVelocity, transform.forward);
         if (immediateSteering)
@@ -102,7 +104,8 @@ public sealed class BoatChaseController : MonoBehaviour
             float turnDegrees = steeringInput * maximumTurnRate * Time.fixedDeltaTime;
             Quaternion nextRotation = body.rotation * Quaternion.Euler(0f, turnDegrees, 0f);
             body.MoveRotation(nextRotation);
-            body.velocity = nextRotation * Vector3.forward * targetForwardSpeed;
+            body.velocity = nextRotation * Vector3.forward * targetForwardSpeed
+                + whirlpoolCurrent;
             body.angularVelocity = Vector3.zero;
             CurrentForwardSpeed = targetForwardSpeed;
             return;
@@ -122,6 +125,7 @@ public sealed class BoatChaseController : MonoBehaviour
         body.AddForce(
             -transform.right * lateralSpeed * lateralWaterResistance,
             ForceMode.Acceleration);
+        body.AddForce(whirlpoolCurrent * 1.8f, ForceMode.Acceleration);
 
         float steeringStrength = Mathf.InverseLerp(
             minimumSteeringSpeed,

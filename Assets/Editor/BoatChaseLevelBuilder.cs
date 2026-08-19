@@ -11,7 +11,7 @@ public static class BoatChaseLevelBuilder
     private const string LevelTwoScenePath = "Assets/Scenes/Level02.unity";
     private const string OceanTexturePath = "Assets/Art/Textures/Ocean_BoatChase_Tile.png";
     private const string OceanMaterialPath = "Assets/Art/Materials/Ocean_BoatChase.mat";
-    private const string SkyMaterialPath = "Assets/Art/Sky/MAT_Sky_TropicalNoon.mat";
+    private const string SkyMaterialPath = "Assets/Level01/Materials/MAT_Level01_CoverSunsetSky.mat";
     private const string BoatModelPath = "Assets/Models/Imported/Model_16/485ec29b8ae85aa1f00db80da3760cf6.obj";
     private const string EnemyBoatModelPath = "Assets/Models/Imported/Model_17/25318314cfea921a21d08ea9355017fe.obj";
     private const float OceanSize = 4000f;
@@ -57,6 +57,7 @@ public static class BoatChaseLevelBuilder
         ConfigureRenderSettings();
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
+        Level02Level01RenderingInstaller.ApplyFromMenu();
         Selection.activeGameObject = playerBoat;
         Debug.Log("Added Model_16 speedboat and a fixed top-down camera to Level02.");
     }
@@ -106,6 +107,7 @@ public static class BoatChaseLevelBuilder
         ConfigureRenderSettings();
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene, LevelTwoScenePath);
+        Level02Level01RenderingInstaller.ApplyFromMenu();
         EditorSceneManager.SetActiveScene(scene);
         ConfigureBuildScenes();
         Selection.activeGameObject = playerBoat;
@@ -281,13 +283,22 @@ public static class BoatChaseLevelBuilder
         GameObject lightObject = new GameObject("SYS_DirectionalLight");
         SceneManager.MoveGameObjectToScene(lightObject, scene);
         lightObject.transform.SetParent(parent, false);
-        lightObject.transform.rotation = Quaternion.Euler(48f, -35f, 0f);
+        lightObject.transform.localRotation = new Quaternion(
+            0.08445507f,
+            0.9109815f,
+            -0.23373589f,
+            0.32916212f);
 
         Light light = lightObject.AddComponent<Light>();
         light.type = LightType.Directional;
-        light.color = new Color(1f, 0.96f, 0.85f);
-        light.intensity = 1.15f;
+        light.color = new Color(1f, 0.88f, 0.72f, 1f);
+        light.intensity = 1.08f;
         light.shadows = LightShadows.Soft;
+        light.shadowStrength = 0.34f;
+        light.shadowBias = 0.045f;
+        light.shadowNormalBias = 0.28f;
+        light.shadowCustomResolution = 4096;
+        light.useViewFrustumForShadowCasterCull = false;
     }
 
     private static Material CreateOceanMaterial()
@@ -334,9 +345,19 @@ public static class BoatChaseLevelBuilder
 
         RenderSettings.skybox = skyMaterial;
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.48f, 0.74f, 0.96f);
-        RenderSettings.ambientEquatorColor = new Color(0.72f, 0.86f, 0.92f);
-        RenderSettings.ambientGroundColor = new Color(0.36f, 0.42f, 0.38f);
+        RenderSettings.ambientSkyColor = new Color(0.44f, 0.54f, 0.7f, 1f);
+        RenderSettings.ambientEquatorColor = new Color(0.64f, 0.55f, 0.47f, 1f);
+        RenderSettings.ambientGroundColor = new Color(0.42f, 0.44f, 0.47f, 1f);
+        RenderSettings.ambientIntensity = 1.24f;
+        RenderSettings.defaultReflectionMode = UnityEngine.Rendering.DefaultReflectionMode.Skybox;
+        RenderSettings.defaultReflectionResolution = 512;
+        RenderSettings.reflectionBounces = 2;
+        RenderSettings.reflectionIntensity = 0.94f;
+        RenderSettings.fog = true;
+        RenderSettings.fogMode = FogMode.Linear;
+        RenderSettings.fogColor = new Color(0.58f, 0.52f, 0.47f, 1f);
+        RenderSettings.fogStartDistance = 300f;
+        RenderSettings.fogEndDistance = 1050f;
         DynamicGI.UpdateEnvironment();
     }
 

@@ -16,8 +16,10 @@ public static class Level02SuimonoInstaller
         "Assets/SUIMONO - WATER SYSTEM 2/PREFABS/SUIMONO_Module.prefab";
     private const string SurfacePrefabPath =
         "Assets/SUIMONO - WATER SYSTEM 2/PREFABS/SUIMONO_Surface.prefab";
-    private const string Level04SkyboxPath =
-        "Assets/Level04/Materials/MAT_Level04_CoverSunsetSky.mat";
+    private const string Level01SkyboxPath =
+        "Assets/Level01/Materials/MAT_Level01_CoverSunsetSky.mat";
+    private const string Level02SkyboxPath =
+        "Assets/Level02/Materials/MAT_Level02_OceanSunsetSky.mat";
 
     private const string ModuleName = "SUIMONO_Module";
     private const string SurfaceName = "ENV_SUIMONO_Ocean";
@@ -111,7 +113,7 @@ public static class Level02SuimonoInstaller
         }
 
         ConfigureModule(module, mainCamera, player.transform, mainLight);
-        ConfigureLevel04Lighting(mainLight);
+        ConfigureLevel01Lighting(mainLight);
 
         GameObject surfaceObject = InstantiatePrefab(SurfacePrefabPath, environment);
         surfaceObject.name = SurfaceName;
@@ -334,10 +336,10 @@ public static class Level02SuimonoInstaller
         surface.flowDirection = 205f;
         surface.flowSpeed = 0.035f;
         surface.waveScale = 0.9f;
-        surface.waveHeight = 0.12f;
-        surface.lgWaveHeight = 0.055f;
+        surface.waveHeight = 0.1f;
+        surface.lgWaveHeight = 0.045f;
         surface.lgWaveScale = 0.075f;
-        surface.turbulenceFactor = 0.08f;
+        surface.turbulenceFactor = 0.12f;
 
         surface.refractStrength = 0.08f;
         surface.aberrationScale = 0.015f;
@@ -346,10 +348,10 @@ public static class Level02SuimonoInstaller
         surface.reflectResolution = 4;
         surface.reflectionDistance = 420f;
         surface.reflectFallback = 3;
-        surface.customRefColor = new Color(0.3f, 0.25f, 0.2f, 1f);
-        surface.specularPower = 0.42f;
-        surface.roughness = 0.62f;
-        surface.roughness2 = 0.76f;
+        surface.customRefColor = new Color(0.6f, 0.64f, 0.68f, 1f);
+        surface.specularPower = 0.3f;
+        surface.roughness = 0.46f;
+        surface.roughness2 = 0.68f;
         surface.reflectTerm = 0.025f;
 
         surface.enableReflections = true;
@@ -362,18 +364,18 @@ public static class Level02SuimonoInstaller
         surface.enableUnderDebris = false;
         surface.enableFoam = false;
 
-        surface.overallBright = 1.05f;
+        surface.overallBright = 1.03f;
         surface.overallTransparency = 0.96f;
         surface.depthAmt = 0.78f;
         surface.shallowAmt = 0.26f;
         surface.edgeAmt = 0.14f;
-        surface.depthColor = new Color(0.13f, 0.17f, 0.22f, 1f);
-        surface.shallowColor = new Color(0.23f, 0.27f, 0.3f, 0.72f);
-        surface.reflectionColor = new Color(0.42f, 0.3f, 0.2f, 0.18f);
-        surface.specularColor = new Color(0.72f, 0.52f, 0.3f, 0.18f);
-        surface.sssColor = new Color(0.002f, 0.008f, 0.025f, 1f);
-        surface.blendColor = new Color(0.14f, 0.17f, 0.2f, 1f);
-        surface.overlayColor = new Color(0.1f, 0.12f, 0.14f, 0.38f);
+        surface.depthColor = new Color(0.13f, 0.31f, 0.41f, 1f);
+        surface.shallowColor = new Color(0.3f, 0.49f, 0.55f, 0.72f);
+        surface.reflectionColor = new Color(0.6f, 0.64f, 0.68f, 0.24f);
+        surface.specularColor = new Color(0.95f, 0.82f, 0.67f, 0.2f);
+        surface.sssColor = new Color(0.1f, 0.23f, 0.28f, 1f);
+        surface.blendColor = new Color(0.18f, 0.31f, 0.38f, 1f);
+        surface.overlayColor = new Color(0.08f, 0.13f, 0.16f, 0.22f);
 
         surface.foamColor = new Color(0.68f, 0.78f, 0.8f, 0.55f);
         surface.foamScale = 24f;
@@ -392,37 +394,48 @@ public static class Level02SuimonoInstaller
         surface.reflectLayerMask = surface.reflectLayer;
     }
 
-    private static void ConfigureLevel04Lighting(Light mainLight)
+    private static void ConfigureLevel01Lighting(Light mainLight)
     {
-        Material skybox = AssetDatabase.LoadAssetAtPath<Material>(Level04SkyboxPath);
+        Material skybox = AssetDatabase.LoadAssetAtPath<Material>(Level02SkyboxPath);
         if (skybox == null)
         {
-            throw new InvalidOperationException("Missing Level04 skybox: " + Level04SkyboxPath);
+            skybox = AssetDatabase.LoadAssetAtPath<Material>(Level01SkyboxPath);
+        }
+        if (skybox == null)
+        {
+            throw new InvalidOperationException("Missing Level01 skybox: " + Level01SkyboxPath);
         }
 
         RenderSettings.skybox = skybox;
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.34f, 0.37f, 0.45f, 1f);
-        RenderSettings.ambientEquatorColor = new Color(0.45f, 0.4f, 0.38f, 1f);
-        RenderSettings.ambientGroundColor = new Color(0.16f, 0.18f, 0.23f, 1f);
-        RenderSettings.ambientIntensity = 1.08f;
+        RenderSettings.ambientSkyColor = new Color(0.44f, 0.54f, 0.7f, 1f);
+        RenderSettings.ambientEquatorColor = new Color(0.64f, 0.55f, 0.47f, 1f);
+        RenderSettings.ambientGroundColor = new Color(0.42f, 0.44f, 0.47f, 1f);
+        RenderSettings.ambientIntensity = 1.24f;
         RenderSettings.defaultReflectionMode = UnityEngine.Rendering.DefaultReflectionMode.Skybox;
-        RenderSettings.defaultReflectionResolution = 128;
-        RenderSettings.reflectionIntensity = 0.82f;
+        RenderSettings.defaultReflectionResolution = 1024;
+        RenderSettings.reflectionBounces = 2;
+        RenderSettings.reflectionIntensity = 0.94f;
         RenderSettings.fog = true;
-        RenderSettings.fogColor = new Color(0.36f, 0.36f, 0.41f, 1f);
+        RenderSettings.fogColor = new Color(0.48f, 0.46f, 0.44f, 1f);
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 680f;
-        RenderSettings.fogEndDistance = 2600f;
+        RenderSettings.fogStartDistance = 220f;
+        RenderSettings.fogEndDistance = 1100f;
 
-        mainLight.color = new Color(1f, 0.64f, 0.38f, 1f);
+        mainLight.color = new Color(1f, 0.88f, 0.72f, 1f);
         mainLight.intensity = 1.08f;
-        mainLight.shadows = LightShadows.None;
+        mainLight.shadows = LightShadows.Soft;
+        mainLight.shadowStrength = 0.34f;
+        mainLight.shadowBias = 0.045f;
+        mainLight.shadowNormalBias = 0.28f;
+        mainLight.shadowCustomResolution = 4096;
+        mainLight.useViewFrustumForShadowCasterCull = false;
+        mainLight.useColorTemperature = false;
         mainLight.transform.localRotation = new Quaternion(
-            0.007630724f,
-            0.94025195f,
-            -0.021118615f,
-            0.3397383f);
+            0.08445507f,
+            0.9109815f,
+            -0.23373589f,
+            0.32916212f);
         RenderSettings.sun = mainLight;
     }
 

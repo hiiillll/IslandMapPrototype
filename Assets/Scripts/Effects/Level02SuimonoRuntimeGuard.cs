@@ -49,9 +49,8 @@ public sealed class Level02SuimonoRuntimeGuard : MonoBehaviour
         module.gameObject.SetActive(true);
         ocean.gameObject.SetActive(true);
         BindSceneReferences();
-        ConfigureLevel04Lighting();
-        ConfigurePlayerBoatFillLight();
-        ConfigureEnemyBoatFillLight();
+        ConfigureLevel01Rendering();
+        RemoveLegacyFillLights();
         ConfigureOcean();
         CacheLegacyHelperCameras();
         DisableLegacyHelperCameras();
@@ -175,10 +174,10 @@ public sealed class Level02SuimonoRuntimeGuard : MonoBehaviour
         ocean.flowDirection = 205f;
         ocean.flowSpeed = 0.035f;
         ocean.waveScale = 0.9f;
-        ocean.waveHeight = 0.12f;
-        ocean.lgWaveHeight = 0.055f;
+        ocean.waveHeight = 0.1f;
+        ocean.lgWaveHeight = 0.045f;
         ocean.lgWaveScale = 0.075f;
-        ocean.turbulenceFactor = 0.08f;
+        ocean.turbulenceFactor = 0.12f;
         ocean.enableReflections = true;
         ocean.enableDynamicReflections = false;
         ocean.enableTess = false;
@@ -187,20 +186,20 @@ public sealed class Level02SuimonoRuntimeGuard : MonoBehaviour
         ocean.enableUnderwater = false;
         ocean.enableFoam = false;
         ocean.reflectFallback = 3;
-        ocean.customRefColor = new Color(0.3f, 0.25f, 0.2f, 1f);
+        ocean.customRefColor = new Color(0.6f, 0.64f, 0.68f, 1f);
         ocean.reflectProjection = 0.35f;
-        ocean.specularPower = 0.42f;
-        ocean.roughness = 0.62f;
-        ocean.roughness2 = 0.76f;
+        ocean.specularPower = 0.3f;
+        ocean.roughness = 0.46f;
+        ocean.roughness2 = 0.68f;
         ocean.reflectTerm = 0.025f;
-        ocean.overallBright = 1.05f;
-        ocean.depthColor = new Color(0.13f, 0.17f, 0.22f, 1f);
-        ocean.shallowColor = new Color(0.23f, 0.27f, 0.3f, 0.72f);
-        ocean.reflectionColor = new Color(0.42f, 0.3f, 0.2f, 0.18f);
-        ocean.specularColor = new Color(0.72f, 0.52f, 0.3f, 0.18f);
-        ocean.sssColor = new Color(0.002f, 0.008f, 0.025f, 1f);
-        ocean.blendColor = new Color(0.14f, 0.17f, 0.2f, 1f);
-        ocean.overlayColor = new Color(0.1f, 0.12f, 0.14f, 0.38f);
+        ocean.overallBright = 1.03f;
+        ocean.depthColor = new Color(0.13f, 0.31f, 0.41f, 1f);
+        ocean.shallowColor = new Color(0.3f, 0.49f, 0.55f, 0.72f);
+        ocean.reflectionColor = new Color(0.6f, 0.64f, 0.68f, 0.24f);
+        ocean.specularColor = new Color(0.95f, 0.82f, 0.67f, 0.2f);
+        ocean.sssColor = new Color(0.1f, 0.23f, 0.28f, 1f);
+        ocean.blendColor = new Color(0.18f, 0.31f, 0.38f, 1f);
+        ocean.overlayColor = new Color(0.08f, 0.13f, 0.16f, 0.22f);
     }
 
     private void ConfigureStableSurface()
@@ -230,21 +229,22 @@ public sealed class Level02SuimonoRuntimeGuard : MonoBehaviour
         }
     }
 
-    private static void ConfigureLevel04Lighting()
+    private static void ConfigureLevel01Rendering()
     {
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.34f, 0.37f, 0.45f, 1f);
-        RenderSettings.ambientEquatorColor = new Color(0.45f, 0.4f, 0.38f, 1f);
-        RenderSettings.ambientGroundColor = new Color(0.16f, 0.18f, 0.23f, 1f);
-        RenderSettings.ambientIntensity = 1.08f;
+        RenderSettings.ambientSkyColor = new Color(0.44f, 0.54f, 0.7f, 1f);
+        RenderSettings.ambientEquatorColor = new Color(0.64f, 0.55f, 0.47f, 1f);
+        RenderSettings.ambientGroundColor = new Color(0.42f, 0.44f, 0.47f, 1f);
+        RenderSettings.ambientIntensity = 1.24f;
         RenderSettings.defaultReflectionMode = UnityEngine.Rendering.DefaultReflectionMode.Skybox;
-        RenderSettings.defaultReflectionResolution = 128;
-        RenderSettings.reflectionIntensity = 0.82f;
+        RenderSettings.defaultReflectionResolution = 1024;
+        RenderSettings.reflectionBounces = 2;
+        RenderSettings.reflectionIntensity = 0.94f;
         RenderSettings.fog = true;
-        RenderSettings.fogColor = new Color(0.36f, 0.36f, 0.41f, 1f);
+        RenderSettings.fogColor = new Color(0.48f, 0.46f, 0.44f, 1f);
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 680f;
-        RenderSettings.fogEndDistance = 2600f;
+        RenderSettings.fogStartDistance = 220f;
+        RenderSettings.fogEndDistance = 1100f;
 
         Light sun = GameObject.Find("SYS_DirectionalLight")?.GetComponent<Light>();
         if (sun == null)
@@ -252,85 +252,40 @@ public sealed class Level02SuimonoRuntimeGuard : MonoBehaviour
             return;
         }
 
-        sun.color = new Color(1f, 0.64f, 0.38f, 1f);
+        sun.color = new Color(1f, 0.88f, 0.72f, 1f);
         sun.intensity = 1.08f;
-        sun.shadows = LightShadows.None;
+        sun.shadows = LightShadows.Soft;
+        sun.shadowStrength = 0.34f;
+        sun.shadowBias = 0.045f;
+        sun.shadowNormalBias = 0.28f;
+        sun.shadowCustomResolution = 4096;
+        sun.useViewFrustumForShadowCasterCull = false;
+        sun.useColorTemperature = false;
         sun.transform.localRotation = new Quaternion(
-            0.007630724f,
-            0.94025195f,
-            -0.021118615f,
-            0.3397383f);
+            0.08445507f,
+            0.9109815f,
+            -0.23373589f,
+            0.32916212f);
         RenderSettings.sun = sun;
         DynamicGI.UpdateEnvironment();
     }
 
-    private static void ConfigurePlayerBoatFillLight()
+    private static void RemoveLegacyFillLights()
     {
         BoatChaseController player = FindObjectOfType<BoatChaseController>(true);
-        if (player == null)
+        Transform playerFill = player != null ? player.transform.Find("FX_PlayerBoatFillLight") : null;
+        if (playerFill != null)
         {
-            return;
+            playerFill.gameObject.SetActive(false);
+            Destroy(playerFill.gameObject);
         }
 
-        Transform existingLight = player.transform.Find("FX_PlayerBoatFillLight");
-        GameObject lightObject = existingLight != null
-            ? existingLight.gameObject
-            : new GameObject("FX_PlayerBoatFillLight");
-        lightObject.transform.SetParent(player.transform, false);
-        lightObject.transform.localPosition = new Vector3(0f, 5.2f, -3.8f);
-        lightObject.transform.localRotation = Quaternion.LookRotation(
-            new Vector3(0f, -5.2f, 3.8f),
-            Vector3.up);
-
-        Light fillLight = lightObject.GetComponent<Light>();
-        if (fillLight == null)
+        GameObject enemyFill = GameObject.Find("SYS_Level02EnemyFillLight");
+        if (enemyFill != null)
         {
-            fillLight = lightObject.AddComponent<Light>();
+            enemyFill.SetActive(false);
+            Destroy(enemyFill);
         }
-
-        fillLight.type = LightType.Spot;
-        fillLight.color = new Color(0.72f, 0.82f, 1f, 1f);
-        fillLight.intensity = 1.65f;
-        fillLight.range = 16f;
-        fillLight.spotAngle = 88f;
-        fillLight.innerSpotAngle = 54f;
-        fillLight.shadows = LightShadows.None;
-        fillLight.renderMode = LightRenderMode.ForcePixel;
-
-        int waterLayer = LayerMask.NameToLayer("Suimono_Water");
-        fillLight.cullingMask = waterLayer >= 0
-            ? ~(1 << waterLayer)
-            : Physics.AllLayers;
-    }
-
-    private static void ConfigureEnemyBoatFillLight()
-    {
-        const string objectName = "SYS_Level02EnemyFillLight";
-        GameObject lightObject = GameObject.Find(objectName);
-        if (lightObject == null)
-        {
-            lightObject = new GameObject(objectName);
-        }
-
-        lightObject.transform.position = new Vector3(0f, 70f, -40f);
-        lightObject.transform.rotation = Quaternion.Euler(52f, 0f, 0f);
-
-        Light fillLight = lightObject.GetComponent<Light>();
-        if (fillLight == null)
-        {
-            fillLight = lightObject.AddComponent<Light>();
-        }
-
-        fillLight.type = LightType.Directional;
-        fillLight.color = new Color(0.78f, 0.84f, 0.92f, 1f);
-        fillLight.intensity = 0.55f;
-        fillLight.shadows = LightShadows.None;
-        fillLight.renderMode = LightRenderMode.ForcePixel;
-
-        int waterLayer = LayerMask.NameToLayer("Suimono_Water");
-        fillLight.cullingMask = waterLayer >= 0
-            ? ~(1 << waterLayer)
-            : Physics.AllLayers;
     }
 
     private static void ApplyOceanMaterial(Material material)
@@ -340,23 +295,53 @@ public sealed class Level02SuimonoRuntimeGuard : MonoBehaviour
             return;
         }
 
-        material.SetFloat("_overallBrightness", 1.05f);
-        material.SetFloat("_specularPower", 0.42f);
-        material.SetFloat("_roughness", 0.62f);
-        material.SetFloat("_roughness2", 0.76f);
+        material.SetFloat("_overallBrightness", 1.03f);
+        material.SetFloat("_specularPower", 0.3f);
+        material.SetFloat("_roughness", 0.46f);
+        material.SetFloat("_roughness2", 0.68f);
         material.SetFloat("_reflecTerm", 0.025f);
-        material.SetFloat("_NormalStrength", 0.48f);
-        material.SetFloat("_heightScale", 0.12f);
-        material.SetFloat("_lgWaveHeight", 0.055f);
+        material.SetFloat("_NormalStrength", 0.58f);
+        material.SetFloat("_heightScale", 0.1f);
+        material.SetFloat("_lgWaveHeight", 0.045f);
+        if (material.HasProperty("_CompatWaveAmplitude"))
+        {
+            material.SetFloat("_CompatWaveAmplitude", 0.22f);
+        }
         material.SetFloat("_lgWaveScale", 0.075f);
-        material.SetFloat("_turbulenceFactor", 0.08f);
+        material.SetFloat("_turbulenceFactor", 0.12f);
         material.SetFloat("_enableFoam", 0f);
-        material.SetColor("_depthColor", new Color(0.13f, 0.17f, 0.22f, 1f));
-        material.SetColor("_shallowColor", new Color(0.23f, 0.27f, 0.3f, 0.72f));
-        material.SetColor("_ReflectionColor", new Color(0.42f, 0.3f, 0.2f, 0.18f));
-        material.SetColor("_SpecularColor", new Color(0.72f, 0.52f, 0.3f, 0.18f));
-        material.SetColor("_SSSColor", new Color(0.002f, 0.008f, 0.025f, 1f));
-        material.SetColor("_BlendColor", new Color(0.14f, 0.17f, 0.2f, 1f));
-        material.SetColor("_OverlayColor", new Color(0.1f, 0.12f, 0.14f, 0.38f));
+        material.SetColor("_depthColor", new Color(0.13f, 0.31f, 0.41f, 1f));
+        material.SetColor("_shallowColor", new Color(0.3f, 0.49f, 0.55f, 0.72f));
+        material.SetColor("_ReflectionColor", new Color(0.6f, 0.64f, 0.68f, 0.24f));
+        material.SetColor("_SpecularColor", new Color(0.95f, 0.82f, 0.67f, 0.2f));
+        material.SetColor("_SSSColor", new Color(0.1f, 0.23f, 0.28f, 1f));
+        material.SetColor("_BlendColor", new Color(0.18f, 0.31f, 0.38f, 1f));
+        if (material.HasProperty("_Level01ColorBlend"))
+        {
+            material.SetFloat("_Level01ColorBlend", 1f);
+        }
+        if (material.HasProperty("_Level01ReflectionTint"))
+        {
+            material.SetColor("_Level01ReflectionTint", new Color(1.01f, 1f, 0.98f, 1f));
+        }
+        if (material.HasProperty("_CinematicOcean"))
+        {
+            material.SetFloat("_CinematicOcean", 1f);
+            material.SetFloat("_CinematicReflection", 0.86f);
+            material.SetFloat("_CinematicSunGlint", 0.34f);
+            material.SetFloat("_CinematicHorizonBlend", 1f);
+            if (material.HasProperty("_CinematicHorizonColor"))
+            {
+                Color horizonColor = new Color(0.48f, 0.46f, 0.44f, 1f);
+                Material skybox = RenderSettings.skybox;
+                if (skybox != null && skybox.HasProperty("_SeaHorizonHazeColor"))
+                {
+                    horizonColor = skybox.GetColor("_SeaHorizonHazeColor");
+                }
+                material.SetColor("_CinematicHorizonColor", horizonColor);
+            }
+            material.SetFloat("_CinematicMicroRipple", 0.62f);
+        }
+        material.SetColor("_OverlayColor", new Color(0.08f, 0.13f, 0.16f, 0.22f));
     }
 }

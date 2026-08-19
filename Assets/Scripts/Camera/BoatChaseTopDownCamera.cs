@@ -26,9 +26,9 @@ public sealed class BoatChaseTopDownCamera : MonoBehaviour
     [SerializeField, Min(0f)] private float viewBlendSpeed = 8f;
 
     [Header("Third Person")]
-    [SerializeField] private Vector3 thirdPersonCameraOffset = new Vector3(0f, 14f, -32f);
-    [SerializeField] private Vector3 thirdPersonLookOffset = new Vector3(0f, 2f, -4f);
-    [SerializeField, Range(30f, 100f)] private float thirdPersonFieldOfView = 70f;
+    [SerializeField] private Vector3 thirdPersonCameraOffset = new Vector3(0f, 10.5f, -24.5f);
+    [SerializeField] private Vector3 thirdPersonLookOffset = new Vector3(0f, 1.7f, -6.5f);
+    [SerializeField, Range(30f, 100f)] private float thirdPersonFieldOfView = 66f;
 
     private Camera cameraComponent;
     private CameraViewMode viewMode;
@@ -148,7 +148,7 @@ public sealed class BoatChaseTopDownCamera : MonoBehaviour
             cameraComponent.fieldOfView = thirdPersonFieldOfView;
         }
         cameraComponent.nearClipPlane = 0.1f;
-        cameraComponent.farClipPlane = 500f;
+        cameraComponent.farClipPlane = 900f;
     }
 
     private void GetThirdPersonPose(out Vector3 position, out Quaternion rotation)
