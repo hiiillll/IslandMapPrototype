@@ -17,6 +17,8 @@ public static class Level01GlobalRenderingInstaller
     private const string SourceSkyboxPath = "Assets/Level04/Materials/MAT_Level04_CoverSunsetSky.mat";
     private const string Level01SkyboxPath = "Assets/Level01/Materials/MAT_Level01_CoverSunsetSky.mat";
     private const string Level01SkyboxShaderName = "Custom/Level01GoldenHourSkybox";
+    private const string VegetationMaterialPath =
+        "Assets/Miami_Beach/Materials/Vegetation/MB_Ficus_Aurea.mat";
     private const string ArchitectureMaterialFolder = "Assets/Level01/Materials/Architecture";
     private const string StableMaterialPrefix = "MAT_Level01_Stable_";
 
@@ -54,6 +56,7 @@ public static class Level01GlobalRenderingInstaller
         ConfigurePostProcessing(scene);
         ConfigureReflectionProbes(scene);
         ConfigureArchitectureMaterials(scene);
+        ConfigureVegetationMaterials();
         ConfigureVehicleRenderers(scene);
         ConfigureOceanMaterial();
 
@@ -75,12 +78,12 @@ public static class Level01GlobalRenderingInstaller
         }
 
         // Keep the established shadow direction; only rebalance its color and response.
-        sun.color = new Color(1f, 0.88f, 0.72f, 1f);
+        sun.color = new Color(1f, 0.87f, 0.73f, 1f);
         sun.intensity = 1.08f;
         sun.shadows = LightShadows.Soft;
-        sun.shadowStrength = 0.34f;
-        sun.shadowBias = 0.045f;
-        sun.shadowNormalBias = 0.28f;
+        sun.shadowStrength = 0.4f;
+        sun.shadowBias = 0.035f;
+        sun.shadowNormalBias = 0.22f;
         // Favor contact-shadow quality. StableFit and zero cascades keep the
         // higher-resolution map from reintroducing camera-angle popping.
         sun.shadowCustomResolution = 4096;
@@ -90,19 +93,19 @@ public static class Level01GlobalRenderingInstaller
         EditorUtility.SetDirty(sun);
 
         RenderSettings.ambientMode = AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.44f, 0.54f, 0.7f, 1f);
-        RenderSettings.ambientEquatorColor = new Color(0.64f, 0.55f, 0.47f, 1f);
-        RenderSettings.ambientGroundColor = new Color(0.42f, 0.44f, 0.47f, 1f);
-        RenderSettings.ambientIntensity = 1.24f;
+        RenderSettings.ambientSkyColor = new Color(0.43f, 0.5f, 0.64f, 1f);
+        RenderSettings.ambientEquatorColor = new Color(0.6f, 0.54f, 0.48f, 1f);
+        RenderSettings.ambientGroundColor = new Color(0.4f, 0.39f, 0.38f, 1f);
+        RenderSettings.ambientIntensity = 1.16f;
         RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
         RenderSettings.defaultReflectionResolution = 512;
-        RenderSettings.reflectionBounces = 2;
-        RenderSettings.reflectionIntensity = 0.94f;
+        RenderSettings.reflectionBounces = 1;
+        RenderSettings.reflectionIntensity = 0.84f;
 
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogColor = new Color(0.58f, 0.52f, 0.47f, 1f);
-        RenderSettings.fogStartDistance = 300f;
+        RenderSettings.fogColor = new Color(0.43f, 0.46f, 0.49f, 1f);
+        RenderSettings.fogStartDistance = 210f;
         RenderSettings.fogEndDistance = 1050f;
     }
 
@@ -132,20 +135,20 @@ public static class Level01GlobalRenderingInstaller
             SetTexture(skybox, "_CloudTexB", sourceSkybox.GetTexture("_CloudTexB"));
         }
 
-        SetColor(skybox, "_ZenithColor", new Color(0.09f, 0.18f, 0.34f, 1f));
-        SetColor(skybox, "_UpperSkyColor", new Color(0.25f, 0.4f, 0.6f, 1f));
-        SetColor(skybox, "_HorizonColor", new Color(0.78f, 0.52f, 0.32f, 1f));
-        SetColor(skybox, "_GroundColor", new Color(0.34f, 0.35f, 0.38f, 1f));
-        SetColor(skybox, "_CloudShadow", new Color(0.34f, 0.36f, 0.41f, 1f));
-        SetColor(skybox, "_CloudLight", new Color(0.82f, 0.76f, 0.68f, 1f));
-        SetColor(skybox, "_SunColor", new Color(1f, 0.67f, 0.34f, 1f));
+        SetColor(skybox, "_ZenithColor", new Color(0.045f, 0.12f, 0.27f, 1f));
+        SetColor(skybox, "_UpperSkyColor", new Color(0.15f, 0.32f, 0.55f, 1f));
+        SetColor(skybox, "_HorizonColor", new Color(0.62f, 0.38f, 0.25f, 1f));
+        SetColor(skybox, "_GroundColor", new Color(0.24f, 0.27f, 0.32f, 1f));
+        SetColor(skybox, "_CloudShadow", new Color(0.23f, 0.28f, 0.36f, 1f));
+        SetColor(skybox, "_CloudLight", new Color(0.8f, 0.73f, 0.64f, 1f));
+        SetColor(skybox, "_SunColor", new Color(1f, 0.64f, 0.34f, 1f));
         SetVector(skybox, "_SunDirection", new Vector4(-0.64f, 0.055f, 0.77f, 0f));
         SetVector(skybox, "_DriftA", new Vector4(0.00045f, 0.00008f, 0f, 0f));
         SetVector(skybox, "_DriftB", new Vector4(-0.00018f, 0.00012f, 0f, 0f));
-        SetFloat(skybox, "_CloudCoverage", 0.62f);
+        SetFloat(skybox, "_CloudCoverage", 0.56f);
         SetFloat(skybox, "_CloudSoftness", 0.14f);
         SetFloat(skybox, "_CloudOpacity", 0.58f);
-        SetFloat(skybox, "_Exposure", 1.02f);
+        SetFloat(skybox, "_Exposure", 0.98f);
         RenderSettings.skybox = skybox;
         EditorUtility.SetDirty(skybox);
     }
@@ -190,31 +193,34 @@ public static class Level01GlobalRenderingInstaller
         grading.enabled.Override(true);
         grading.gradingMode.Override(GradingMode.HighDefinitionRange);
         grading.tonemapper.Override(Tonemapper.ACES);
-        grading.postExposure.Override(0.18f);
-        grading.contrast.Override(5f);
-        grading.saturation.Override(2f);
-        grading.temperature.Override(4f);
+        grading.postExposure.Override(0.08f);
+        grading.contrast.Override(6f);
+        grading.saturation.Override(3f);
+        grading.temperature.Override(2f);
         grading.tint.Override(0f);
         grading.colorFilter.Override(Color.white);
 
         AmbientOcclusion ambientOcclusion = GetOrAdd<AmbientOcclusion>(profile);
-        // Screen-space AO is tied to the camera projection. On this wide outdoor
-        // level it produced a visible lighting step after very small camera turns.
-        ambientOcclusion.enabled.Override(false);
-        ambientOcclusion.mode.Override(AmbientOcclusionMode.ScalableAmbientObscurance);
-        ambientOcclusion.intensity.Override(0.16f);
-        ambientOcclusion.radius.Override(0.8f);
-        ambientOcclusion.quality.Override(AmbientOcclusionQuality.High);
+        // Multi-scale VO is temporally stable on this outdoor camera and restores
+        // the missing contact depth under cars, tents and street furniture. The
+        // older scalable AO mode was disabled because its projection-dependent
+        // step moved across the scene during tiny camera rotations.
+        ambientOcclusion.enabled.Override(true);
+        ambientOcclusion.mode.Override(AmbientOcclusionMode.MultiScaleVolumetricObscurance);
+        ambientOcclusion.intensity.Override(0.18f);
+        ambientOcclusion.radius.Override(1f);
+        ambientOcclusion.thicknessModifier.Override(1f);
+        ambientOcclusion.quality.Override(AmbientOcclusionQuality.Ultra);
         ambientOcclusion.ambientOnly.Override(false);
         ambientOcclusion.directLightingStrength.Override(0.05f);
 
         Bloom bloom = GetOrAdd<Bloom>(profile);
         bloom.enabled.Override(true);
-        bloom.intensity.Override(0.06f);
-        bloom.threshold.Override(1.3f);
+        bloom.intensity.Override(0.055f);
+        bloom.threshold.Override(1.4f);
         bloom.softKnee.Override(0.5f);
         // Keep the sunset bloom soft without spreading it across the whole frame.
-        bloom.diffusion.Override(4f);
+        bloom.diffusion.Override(3.5f);
         bloom.color.Override(new Color(1f, 0.96f, 0.9f, 1f));
         bloom.fastMode.Override(false);
 
@@ -223,17 +229,15 @@ public static class Level01GlobalRenderingInstaller
         vignette.mode.Override(VignetteMode.Classic);
         vignette.color.Override(Color.black);
         vignette.center.Override(new Vector2(0.5f, 0.5f));
-        vignette.intensity.Override(0.02f);
+        vignette.intensity.Override(0.025f);
         vignette.smoothness.Override(0.35f);
         vignette.roundness.Override(1f);
         vignette.rounded.Override(false);
 
         MotionBlur motionBlur = GetOrAdd<MotionBlur>(profile);
-        motionBlur.enabled.Override(true);
-        // Lower blur accumulation prevents high-speed camera turns from mixing
-        // bright reflections into a visible exposure pulse.
-        motionBlur.shutterAngle.Override(24f);
-        motionBlur.sampleCount.Override(12);
+        motionBlur.enabled.Override(false);
+        motionBlur.shutterAngle.Override(0f);
+        motionBlur.sampleCount.Override(4);
 
         DisableIfPresent<Grain>(profile);
         DisableIfPresent<ChromaticAberration>(profile);
@@ -289,13 +293,13 @@ public static class Level01GlobalRenderingInstaller
             probe.refreshMode = ReflectionProbeRefreshMode.OnAwake;
             // Full-face capture gives the vehicle and water a coherent reflection
             // at the first rendered frame; startup cost is accepted for quality.
-            probe.timeSlicingMode = ReflectionProbeTimeSlicingMode.NoTimeSlicing;
+            probe.timeSlicingMode = ReflectionProbeTimeSlicingMode.AllFacesAtOnce;
             probe.clearFlags = ReflectionProbeClearFlags.Skybox;
             probe.cullingMask = ~excludedLayers;
             probe.resolution = 512;
             probe.hdr = true;
-            probe.shadowDistance = 120f;
-            probe.intensity = 0.96f;
+            probe.shadowDistance = 90f;
+            probe.intensity = 0.88f;
             probe.importance = 2000;
             probe.boxProjection = true;
             probe.blendDistance = 48f;
@@ -327,6 +331,27 @@ public static class Level01GlobalRenderingInstaller
             renderer.motionVectorGenerationMode = MotionVectorGenerationMode.Object;
             EditorUtility.SetDirty(renderer);
         }
+    }
+
+    private static void ConfigureVegetationMaterials()
+    {
+        Material foliage = AssetDatabase.LoadAssetAtPath<Material>(VegetationMaterialPath);
+        if (foliage == null)
+        {
+            throw new InvalidOperationException(
+                "Level 01 foliage material was not found at " + VegetationMaterialPath);
+        }
+
+        // These values are paired with the multiplicative AE/Leaves shader fix.
+        // They retain leaf color variation without the former additive white clip.
+        SetColor(foliage, "_Color", new Color(0.92f, 0.95f, 0.72f, 1f));
+        SetColor(foliage, "_Color_Tilling", new Color(0.84f, 0.9f, 0.66f, 1f));
+        SetFloat(foliage, "_Ambient_Occlusion", 0.9f);
+        SetFloat(foliage, "_Smoothness_Power", 0.1f);
+        SetFloat(foliage, "_Normal_Power", 0.58f);
+        SetFloat(foliage, "_WindPower", 0.055f);
+        SetFloat(foliage, "_WindSpeed", 0.16f);
+        EditorUtility.SetDirty(foliage);
     }
 
     private static void ConfigureArchitectureMaterials(Scene scene)
@@ -562,21 +587,33 @@ public static class Level01GlobalRenderingInstaller
 
     private static void ConfigureWaterMaterial(Material water, bool shallow)
     {
-        SetColor(water, "_BlendColor", new Color(0.16f, 0.24f, 0.29f, 1f));
-        SetColor(water, "_LowColor", new Color(0.16f, 0.27f, 0.32f, 0.15f));
-        SetColor(water, "_ReflectionColor", new Color(0.52f, 0.43f, 0.36f, 0.18f));
-        SetColor(water, "_SpecularColor", new Color(0.85f, 0.74f, 0.62f, 0.18f));
-        SetColor(water, "_depthColor", shallow
-            ? new Color(0.2f, 0.36f, 0.42f, 1f)
-            : new Color(0.12f, 0.27f, 0.36f, 1f));
-        SetColor(water, "_shallowColor", shallow
-            ? new Color(0.38f, 0.54f, 0.56f, 0.72f)
-            : new Color(0.3f, 0.46f, 0.52f, 0.72f));
-        SetFloat(water, "_ReflectStrength", 0.86f);
-        SetFloat(water, "_roughness", shallow ? 0.6f : 0.55f);
-        SetFloat(water, "_overallBrightness", shallow ? 1.1f : 1.08f);
+        SetColor(water, "_BlendColor", new Color(0.08f, 0.2f, 0.28f, 1f));
+        SetColor(water, "_LowColor", new Color(0.07f, 0.22f, 0.31f, 0.15f));
+        SetColor(water, "_ReflectionColor", new Color(0.45f, 0.45f, 0.43f, 0.16f));
+        SetColor(water, "_SpecularColor", new Color(0.76f, 0.72f, 0.66f, 0.16f));
+        SetColor(water, "_depthColor", new Color(0.055f, 0.18f, 0.28f, 1f));
+        SetColor(water, "_shallowColor", new Color(0.12f, 0.39f, 0.42f, 0.76f));
+        SetFloat(water, "_ReflectStrength", 0.84f);
+        SetFloat(water, "_roughness", 0.48f);
+        SetFloat(water, "_overallBrightness", 1.02f);
         SetFloat(water, "_Level01ColorBlend", 1f);
-        SetColor(water, "_Level01ReflectionTint", new Color(1.03f, 1f, 0.96f, 1f));
+        SetColor(water, "_Level01ReflectionTint", new Color(0.98f, 1f, 1.03f, 1f));
+        SetFloat(water, "_ShorelineFoam", 0.58f);
+        SetColor(water, "_FoamColor", new Color(0.68f, 0.75f, 0.74f, 1f));
+        SetFloat(water, "_shorelineFrequency", 0.82f);
+        SetFloat(water, "_shorelineSpeed", 1.55f);
+        SetFloat(water, "_shorelineHeight", 1.08f);
+        SetFloat(water, "_TideAmount", 0.62f);
+        SetFloat(water, "_TideSpread", 0.7f);
+        SetFloat(water, "_AnimSpeed", 1.55f);
+        SetFloat(water, "_CompatWaveAmplitude", 0.24f);
+        SetFloat(water, "_NormalStrength", 0.62f);
+        SetFloat(water, "_CinematicOcean", 1f);
+        SetFloat(water, "_CinematicReflection", 0.78f);
+        SetFloat(water, "_CinematicSunGlint", 0.42f);
+        SetFloat(water, "_CinematicHorizonBlend", 0.78f);
+        SetFloat(water, "_CinematicMicroRipple", 0.42f);
+        SetColor(water, "_CinematicHorizonColor", new Color(0.4f, 0.45f, 0.49f, 1f));
         EditorUtility.SetDirty(water);
     }
 

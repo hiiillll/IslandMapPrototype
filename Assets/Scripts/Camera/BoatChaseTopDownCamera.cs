@@ -58,6 +58,11 @@ public sealed class BoatChaseTopDownCamera : MonoBehaviour
         cameraComponent = GetComponent<Camera>();
         height = Mathf.Max(height, 62f);
         orthographicSize = Mathf.Max(orthographicSize, 36f);
+        // Keep the player boat large enough to read while preserving a broad
+        // ocean horizon and useful reaction distance in the chase view.
+        thirdPersonCameraOffset = new Vector3(0f, 6.2f, -15.5f);
+        thirdPersonLookOffset = new Vector3(0f, 1.15f, 6.2f);
+        thirdPersonFieldOfView = 59f;
         ApplyCameraSettings();
     }
 
@@ -148,7 +153,7 @@ public sealed class BoatChaseTopDownCamera : MonoBehaviour
             cameraComponent.fieldOfView = thirdPersonFieldOfView;
         }
         cameraComponent.nearClipPlane = 0.1f;
-        cameraComponent.farClipPlane = 900f;
+        cameraComponent.farClipPlane = 1600f;
     }
 
     private void GetThirdPersonPose(out Vector3 position, out Quaternion rotation)

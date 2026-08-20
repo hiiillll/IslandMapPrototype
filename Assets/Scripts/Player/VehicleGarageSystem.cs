@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -18,6 +19,7 @@ public sealed class VehicleGarageSystem : MonoBehaviour
     private const string PreviewWidthKey = "Garage.PreviewWidth";
     private const string PreviewHeightKey = "Garage.PreviewHeight";
     private const string DefaultVehicleId = "default_car";
+    private const string Porsche911VehicleId = "garage_car_02";
     private const int PreviewLayer = 31;
     private const float PreviewTargetSize = 5.5f;
     private const float AutomaticRotationSpeed = 20f;
@@ -55,9 +57,9 @@ public sealed class VehicleGarageSystem : MonoBehaviour
         },
         new VehicleDefinition
         {
-            Id = "garage_car_02",
+            Id = Porsche911VehicleId,
             DisplayName = "Porsche 911 GT3 RS",
-            ResourcePath = "Vehicles/GarageCar02/Model"
+            ResourcePath = "Vehicles/GarageCar02/Porsche911_GT3RS"
         },
         new VehicleDefinition
         {
@@ -349,6 +351,11 @@ public sealed class VehicleGarageSystem : MonoBehaviour
         appliedAlternateVisual = Instantiate(source, transform);
         appliedAlternateVisual.name = "GarageVehicleVisual_" + definition.Id;
         PrepareVisual(appliedAlternateVisual, definition, transform, defaultHorizontalSize, defaultMinimumY);
+        if (definition.Id == Porsche911VehicleId)
+        {
+            CarWheelVisualAnimator wheelAnimator = appliedAlternateVisual.AddComponent<CarWheelVisualAnimator>();
+            wheelAnimator.Configure(transform);
+        }
     }
 
     private GameObject FindDefaultVisual()
@@ -715,6 +722,12 @@ public sealed class VehicleGarageSystem : MonoBehaviour
             return;
         }
 
+        if (definition.Id == Porsche911VehicleId)
+        {
+            AssignPorsche911Materials(visual, definition);
+            return;
+        }
+
         if (!RuntimeMaterials.TryGetValue(definition.Id, out Material material) || material == null)
         {
             Shader shader = Shader.Find("Standard");
@@ -753,6 +766,98 @@ public sealed class VehicleGarageSystem : MonoBehaviour
         {
             visualRenderer.sharedMaterial = material;
         }
+    }
+
+    private static void AssignPorsche911Materials(GameObject visual, VehicleDefinition definition)
+    {
+        Shader shader = Shader.Find("Standard");
+        if (shader == null)
+        {
+            return;
+        }
+
+        string directory = definition.ResourcePath.Substring(0, definition.ResourcePath.LastIndexOf('/'));
+        Material bodyMaterial = GetOrCreatePorscheMaterial(
+            Porsche911VehicleId + "_body",
+            shader,
+            new Color(0.82f, 0.82f, 0.82f, 1f),
+            0.28f,
+            0.34f);
+        Texture2D albedo = Resources.Load<Texture2D>(directory + "/Porsche911_Albedo");
+        Texture2D normal = Resources.Load<Texture2D>(directory + "/Porsche911_Normal");
+        if (albedo != null)
+        {
+            bodyMaterial.mainTexture = albedo;
+        }
+        if (normal != null)
+        {
+            bodyMaterial.EnableKeyword("_NORMALMAP");
+            bodyMaterial.SetTexture("_BumpMap", normal);
+            bodyMaterial.SetFloat("_BumpScale", 1f);
+        }
+
+        Material wheelMaterial = GetOrCreatePorscheMaterial(
+            Porsche911VehicleId + "_wheel",
+            shader,
+            Color.white,
+            0.34f,
+            0.46f);
+        Texture2D wheelAlbedo = Resources.Load<Texture2D>(directory + "/Porsche911_WheelAlbedo");
+        Texture2D wheelNormal = Resources.Load<Texture2D>(directory + "/Porsche911_WheelNormal");
+        if (wheelAlbedo != null)
+        {
+            wheelMaterial.mainTexture = wheelAlbedo;
+        }
+        if (wheelNormal != null)
+        {
+            wheelMaterial.EnableKeyword("_NORMALMAP");
+            wheelMaterial.SetTexture("_BumpMap", wheelNormal);
+            wheelMaterial.SetFloat("_BumpScale", 1f);
+        }
+
+        Material tireMaterial = GetOrCreatePorscheMaterial(
+            Porsche911VehicleId + "_tire",
+            shader,
+            new Color(0.012f, 0.014f, 0.017f, 1f),
+            0.02f,
+            0.18f);
+
+        foreach (Renderer visualRenderer in visual.GetComponentsInChildren<Renderer>(true))
+        {
+            if (visualRenderer.transform.name.EndsWith("_Tire", StringComparison.Ordinal))
+            {
+                visualRenderer.sharedMaterial = tireMaterial;
+                continue;
+            }
+
+            if (!visualRenderer.transform.name.StartsWith("Wheel_", StringComparison.Ordinal))
+            {
+                visualRenderer.sharedMaterial = bodyMaterial;
+                continue;
+            }
+
+            visualRenderer.sharedMaterial = wheelMaterial;
+        }
+    }
+
+    private static Material GetOrCreatePorscheMaterial(
+        string key,
+        Shader shader,
+        Color color,
+        float metallic,
+        float smoothness)
+    {
+        if (RuntimeMaterials.TryGetValue(key, out Material material) && material != null)
+        {
+            return material;
+        }
+
+        material = new Material(shader) { name = "MAT_" + key };
+        material.color = color;
+        material.SetFloat("_Metallic", metallic);
+        material.SetFloat("_Glossiness", smoothness);
+        RuntimeMaterials[key] = material;
+        return material;
     }
 
     private static Bounds CalculateLocalBounds(Transform visual, Transform relativeTo)

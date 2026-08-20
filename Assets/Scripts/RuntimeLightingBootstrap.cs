@@ -7,7 +7,10 @@ public sealed class RuntimeLightingBootstrap : MonoBehaviour
 {
     private const float ReflectionVolumeSize = 10000f;
     private const int ReflectionResolution = 128;
-    private const float IslandMapReflectionIntensity = 0.94f;
+    // Keep the runtime value aligned with the authored Level 01 lighting pass.
+    // A brighter value here used to undo the material/foam toning immediately
+    // after IslandMap loaded and made foliage and the shoreline clip toward white.
+    private const float IslandMapReflectionIntensity = 0.84f;
     private const float Level03ReflectionIntensity = 0.65f;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -103,8 +106,8 @@ public sealed class RuntimeLightingBootstrap : MonoBehaviour
         }
 
         RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
-        RenderSettings.defaultReflectionResolution = sceneName == "IslandMap" ? 256 : ReflectionResolution;
-        RenderSettings.reflectionBounces = sceneName == "IslandMap" ? 2 : 1;
+        RenderSettings.defaultReflectionResolution = sceneName == "IslandMap" ? 512 : ReflectionResolution;
+        RenderSettings.reflectionBounces = 1;
         RenderSettings.reflectionIntensity = GetSceneReflectionIntensity();
         DynamicGI.UpdateEnvironment();
     }

@@ -66,6 +66,7 @@ public class SimpleAutoDriveController : MonoBehaviour
 
     public float ForwardSpeed => forwardSpeed;
     public float SteeringAmount => Mathf.Abs(smoothedTurnInput);
+    public float SignedSteeringInput => smoothedTurnInput;
     public bool IsDrifting => isDrifting;
     public bool IsGrounded => isGrounded;
     public bool IsOnBeach => isOnBeach;

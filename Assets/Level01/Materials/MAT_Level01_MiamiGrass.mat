@@ -35,23 +35,33 @@ Material:
         m_Texture: {fileID: 2800000, guid: d0c03c07d67d4bf4a8499a49856001b5, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _SecondaryTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _DetailFadeEnd: 220
-    - _DetailFadeStart: 80
+    - _DetailFadeEnd: 620
+    - _DetailFadeStart: 150
     - _DetailScale: 2.7
-    - _DetailStrength: 0.11
-    - _EdgeStrength: 0
-    - _EdgeWidth: 0
+    - _DetailStrength: 0.13
+    - _EdgeStrength: 0.34
+    - _EdgeWidth: 0.12
     - _MacroMeters: 48
-    - _MacroStrength: 0.08
+    - _MacroStrength: 0.14
     - _Metallic: 0
-    - _NormalStrength: 0.66
-    - _PatchStrength: 0.03
+    - _NormalStrength: 0.56
+    - _PatchStrength: 0.05
+    - _SecondaryScale: 1.7
+    - _SecondaryStrength: 0
+    - _ShoreFoamStrength: 0.32
+    - _ShoreFoamWidth: 2.2
     - _Smoothness: 0.025
     - _SmoothnessVariation: 0.015
+    - _TideReach: 8
+    - _TideSpeed: 1.8
     - _TileMeters: 2.4
-    - _WearStrength: 0.02
+    - _WearStrength: 0.03
     - _WetColorStrength: 0.62
     - _WetEdgeStart: 4
     - _WetEdgeWidth: 22
@@ -59,9 +69,10 @@ Material:
     - _WetSmoothness: 0.3
     - _Wetness: 0
     m_Colors:
-    - _Color: {r: 0.66, g: 0.72, b: 0.54, a: 1}
-    - _EdgeTint: {r: 0.55, g: 0.52, b: 0.46, a: 1}
-    - _MacroTintA: {r: 0.78, g: 0.86, b: 0.68, a: 1}
-    - _MacroTintB: {r: 0.94, g: 0.9, b: 0.72, a: 1}
+    - _Color: {r: 0.64, g: 0.69, b: 0.48, a: 1}
+    - _EdgeTint: {r: 0.78, g: 0.72, b: 0.5, a: 1}
+    - _MacroTintA: {r: 0.72, g: 0.82, b: 0.62, a: 1}
+    - _MacroTintB: {r: 0.95, g: 0.9, b: 0.68, a: 1}
+    - _ShoreFoamColor: {r: 0.68, g: 0.77, b: 0.78, a: 1}
     - _WetTint: {r: 0.78, g: 0.8, b: 0.76, a: 1}
   m_BuildTextureStacks: []

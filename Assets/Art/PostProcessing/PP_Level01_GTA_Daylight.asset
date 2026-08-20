@@ -18,10 +18,10 @@ MonoBehaviour:
     value: 1
   intensity:
     overrideState: 1
-    value: 0.06
+    value: 0.055
   threshold:
     overrideState: 1
-    value: 1.3
+    value: 1.4
   softKnee:
     overrideState: 1
     value: 0.5
@@ -30,7 +30,7 @@ MonoBehaviour:
     value: 65472
   diffusion:
     overrideState: 1
-    value: 4
+    value: 3.5
   anamorphicRatio:
     overrideState: 0
     value: 0
@@ -62,13 +62,13 @@ MonoBehaviour:
   active: 1
   enabled:
     overrideState: 1
-    value: 0
+    value: 1
   mode:
     overrideState: 1
-    value: 0
+    value: 1
   intensity:
     overrideState: 1
-    value: 0.16
+    value: 0.18
   color:
     overrideState: 0
     value: {r: 0, g: 0, b: 0, a: 1}
@@ -86,7 +86,7 @@ MonoBehaviour:
     value: -12
   thicknessModifier:
     overrideState: 1
-    value: 0.85
+    value: 1
   zBias:
     overrideState: 0
     value: 0.0001
@@ -95,10 +95,10 @@ MonoBehaviour:
     value: 0.05
   radius:
     overrideState: 1
-    value: 0.8
+    value: 1
   quality:
     overrideState: 1
-    value: 3
+    value: 4
 --- !u!114 &-2141193161005925537
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -152,7 +152,7 @@ MonoBehaviour:
     value: 1
   temperature:
     overrideState: 1
-    value: 4
+    value: 2
   tint:
     overrideState: 1
     value: 0
@@ -164,16 +164,16 @@ MonoBehaviour:
     value: 0
   saturation:
     overrideState: 1
-    value: 2
+    value: 3
   brightness:
     overrideState: 0
     value: 0
   postExposure:
     overrideState: 1
-    value: 0.18
+    value: 0.08
   contrast:
     overrideState: 1
-    value: 5
+    value: 6
   mixerRedOutRedIn:
     overrideState: 0
     value: 100
@@ -1455,7 +1455,7 @@ MonoBehaviour:
     value: {x: 0.5, y: 0.5}
   intensity:
     overrideState: 1
-    value: 0.02
+    value: 0.025
   smoothness:
     overrideState: 1
     value: 0.35
@@ -1487,10 +1487,10 @@ MonoBehaviour:
   active: 1
   enabled:
     overrideState: 1
-    value: 1
+    value: 0
   shutterAngle:
     overrideState: 1
-    value: 24
+    value: 0
   sampleCount:
     overrideState: 1
-    value: 12
+    value: 4

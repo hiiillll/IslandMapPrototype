@@ -138,7 +138,13 @@ Shader "AE/Leaves"
 			float2 uv_TexCoord154 = i.uv_texcoord * _Tilling;
 			float simplePerlin2D152 = snoise( uv_TexCoord154*_Tilling_Color );
 			simplePerlin2D152 = simplePerlin2D152*0.5 + 0.5;
-			o.Albedo = ( ( _Color * tex2DNode89 ) + ( _Color_Tilling * tex2DNode89 * simplePerlin2D152 ) ).rgb;
+			// The original graph added two full-strength albedo layers, pushing
+			// foliage above physically plausible diffuse values and clipping hedges
+			// to yellow-white under the sunset light. Keep the variation, but apply
+			// it multiplicatively so texture detail and leaf depth remain visible.
+			float3 variationTint = lerp( float3( 1.0, 1.0, 1.0 ), _Color_Tilling.rgb, 0.38 );
+			float variationValue = lerp( 0.78, 1.08, simplePerlin2D152 );
+			o.Albedo = ( _Color.rgb * tex2DNode89.rgb ) * variationTint * variationValue;
 			float2 uv_Mask = i.uv_texcoord * _Mask_ST.xy + _Mask_ST.zw;
 			float4 tex2DNode15 = tex2D( _Mask, uv_Mask );
 			o.Smoothness = ( _Smoothness_Power * tex2DNode15.g );

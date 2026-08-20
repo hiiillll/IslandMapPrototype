@@ -3,6 +3,9 @@ Shader "Custom/Level01MiamiSurface"
     Properties
     {
         _MainTex ("Miami Diffuse", 2D) = "white" {}
+        _SecondaryTex ("Secondary Diffuse", 2D) = "gray" {}
+        _SecondaryScale ("Secondary Scale", Range(0.5, 4)) = 1.7
+        _SecondaryStrength ("Secondary Strength", Range(0, 0.7)) = 0
         [Normal] _NormalMap ("Miami Normal", 2D) = "bump" {}
         _MacroTex ("Macro Variation", 2D) = "gray" {}
         _Color ("Tint", Color) = (1, 1, 1, 1)
@@ -28,6 +31,11 @@ Shader "Custom/Level01MiamiSurface"
         _WetSmoothness ("Wet Smoothness", Range(0, 1)) = 0.3
         _WetTint ("Wet Tint", Color) = (0.78, 0.8, 0.76, 1)
         _WetColorStrength ("Wet Color Strength", Range(0, 1)) = 0.62
+        _TideSpeed ("Shore Break Speed", Float) = 1.8
+        _TideReach ("Shore Break Reach", Float) = 8
+        _ShoreFoamWidth ("Shore Foam Width", Float) = 2.2
+        _ShoreFoamStrength ("Shore Foam Strength", Range(0, 1)) = 0.32
+        _ShoreFoamColor ("Shore Foam Color", Color) = (0.68, 0.77, 0.78, 1)
         _Metallic ("Metallic", Range(0, 1)) = 0
         _Smoothness ("Smoothness", Range(0, 1)) = 0.2
         _SmoothnessVariation ("Smoothness Variation", Range(0, 0.3)) = 0.04
@@ -43,9 +51,12 @@ Shader "Custom/Level01MiamiSurface"
         #pragma target 3.0
 
         sampler2D _MainTex;
+        sampler2D _SecondaryTex;
         sampler2D _NormalMap;
         sampler2D _MacroTex;
         fixed4 _Color;
+        float _SecondaryScale;
+        float _SecondaryStrength;
         float _TileMeters;
         float _NormalStrength;
         float _DetailScale;
@@ -68,6 +79,11 @@ Shader "Custom/Level01MiamiSurface"
         float _WetSmoothness;
         fixed4 _WetTint;
         float _WetColorStrength;
+        float _TideSpeed;
+        float _TideReach;
+        float _ShoreFoamWidth;
+        float _ShoreFoamStrength;
+        fixed4 _ShoreFoamColor;
         half _Metallic;
         half _Smoothness;
         half _SmoothnessVariation;
@@ -100,6 +116,28 @@ Shader "Custom/Level01MiamiSurface"
             {
                 fixed3 detailAlbedo = tex2D(_MainTex, detailUv).rgb;
                 albedo.rgb *= lerp(1.0, detailAlbedo * 2.0, detailStrength);
+            }
+
+            // A differently rotated second source breaks the broad horizontal
+            // repetition in the beach texture without shifting its authored
+            // colour.  We only transfer fine luminance variation so sand stays
+            // neutral instead of becoming mottled orange or grey at distance.
+            UNITY_BRANCH
+            if (_SecondaryStrength > 0.001)
+            {
+                float2 secondaryUv = float2(
+                    surfaceUv.x * 0.43 + surfaceUv.y * 0.90,
+                    surfaceUv.x * -0.90 + surfaceUv.y * 0.43);
+                secondaryUv = secondaryUv * max(_SecondaryScale, 0.5)
+                    + float2(0.19, -0.37);
+                fixed3 secondaryAlbedo = tex2D(_SecondaryTex, secondaryUv).rgb;
+                fixed3 secondarySurface = secondaryAlbedo
+                    * _Color.rgb
+                    * 1.08h;
+                albedo.rgb = lerp(
+                    albedo.rgb,
+                    secondarySurface,
+                    _SecondaryStrength * detailFade);
             }
 
             half macroBlend = 0.5h;
@@ -135,14 +173,85 @@ Shader "Custom/Level01MiamiSurface"
                 ? input.worldPos.z
                 : input.worldPos.x;
             half shoreVariation = sin(alongEdge * 0.075h) * 2.6h
-                + sin(alongEdge * 0.031h + 1.7h) * 1.8h;
-            half edgeDistance = (_WetShoreLevel + shoreVariation)
-                - max(abs(input.worldPos.x), abs(input.worldPos.z));
-            half wetMask = 1.0h - smoothstep(
-                _WetEdgeStart,
-                _WetEdgeStart + max(_WetEdgeWidth, 0.1),
-                edgeDistance);
+                + sin(alongEdge * 0.031h + 1.7h) * 1.8h
+                + sin(alongEdge * 0.17h + 0.4h) * 0.65h;
+            // Positive values are seaward and negative values are inland. This
+            // signed distance exactly matches the generated beach mesh and the
+            // water shader, so foam and wet sand share one physical shoreline.
+            half shoreDistance = max(abs(input.worldPos.x), abs(input.worldPos.z))
+                - (_WetShoreLevel + shoreVariation);
+            half tidePhase = _Time.y * max(_TideSpeed, 0.1)
+                + alongEdge * 0.018h
+                + sin(alongEdge * 0.011h) * 0.45h;
+            half tideCycle = 0.5h + 0.5h * sin(tidePhase);
+            half tideSurge = smoothstep(0.08h, 0.88h, tideCycle);
+            half tideFront = lerp(
+                max(_WetEdgeStart, 0.2h),
+                -max(_TideReach, 0.2h),
+                tideSurge);
+            tideFront += sin(
+                _Time.y * max(_TideSpeed, 0.1h) * 1.46h
+                - alongEdge * 0.036h) * 0.28h;
+
+            // The broad band is always dark wet sand. Only the narrow water-film
+            // band follows the active breaker, preventing moving white blobs.
+            half wetLimit = -max(_WetEdgeWidth, 0.5h)
+                - tideSurge * max(_TideReach * 0.35h, 0.2h);
+            half wetMask = smoothstep(
+                wetLimit - 2.0h,
+                wetLimit + 2.0h,
+                shoreDistance);
+            wetMask *= 1.0h - smoothstep(7.0h, 13.0h, shoreDistance);
             wetMask = saturate(wetMask) * _Wetness;
+            half foamNoise = 0.5h
+                + 0.28h * sin(alongEdge * 0.31h + _Time.y * 0.94h)
+                + 0.22h * sin(alongEdge * 0.73h - _Time.y * 0.53h);
+            // A second world-space noise breaks the former continuous white
+            // ribbon into clusters. The slow offset makes each breaker form,
+            // fragment and dissolve instead of sliding as one painted stripe.
+            half foamGrain = tex2D(
+                _MacroTex,
+                input.worldPos.xz * 0.115h
+                    + float2(_Time.y * 0.018h, -_Time.y * 0.011h)).r;
+            half foamBreakup = smoothstep(
+                0.39h,
+                0.7h,
+                foamNoise * 0.42h + foamGrain * 0.58h);
+            half brokenFront = tideFront
+                + (foamGrain - 0.5h) * 1.15h
+                + sin(alongEdge * 0.21h + _Time.y * 0.37h) * 0.32h;
+
+            // A connected sheet of shallow water travels behind the breaker.
+            // This creates the visible advance/retreat missing from the old
+            // effect, while the lingering broad wet mask fades much more slowly.
+            half behindBreaker = shoreDistance - brokenFront;
+            half waterFilm = smoothstep(-0.45h, 0.25h, behindBreaker)
+                * (1.0h - smoothstep(
+                    max(_ShoreFoamWidth * 2.6h, 2.5h),
+                    max(_ShoreFoamWidth * 5.2h, 5.6h),
+                    behindBreaker));
+            half leadingSheen = 1.0h - smoothstep(
+                0.12h,
+                max(_ShoreFoamWidth * 1.25h, 0.8h),
+                abs(behindBreaker));
+            waterFilm = saturate(waterFilm + leadingSheen * 0.35h) * _Wetness;
+
+            half shoreFoam = 1.0h - smoothstep(
+                max(_ShoreFoamWidth, 0.08h) * 0.16h,
+                max(_ShoreFoamWidth, 0.08h),
+                abs(shoreDistance - brokenFront));
+            shoreFoam *= lerp(0.24h, 1.0h, foamBreakup)
+                * _ShoreFoamStrength
+                * _Wetness;
+            half trailingFoam = 1.0h - smoothstep(
+                max(_ShoreFoamWidth, 0.08h) * 0.22h,
+                max(_ShoreFoamWidth, 0.08h) * 1.18h,
+                abs(behindBreaker - 1.45h));
+            trailingFoam *= smoothstep(0.52h, 0.82h, foamNoise)
+                * _ShoreFoamStrength
+                * _Wetness
+                * 0.28h;
+            shoreFoam = saturate(shoreFoam + trailingFoam);
 
             float3 localPosition = mul(
                 unity_WorldToObject,
@@ -181,6 +290,21 @@ Shader "Custom/Level01MiamiSurface"
                 output.Albedo,
                 output.Albedo * _WetTint.rgb,
                 wetMask * _WetColorStrength);
+            // The advancing sheet first darkens and smooths the sand. Foam is
+            // deliberately a low-energy surface tint so it reads as wet bubbles,
+            // not an emissive white decal disconnected from the sea.
+            output.Albedo = lerp(
+                output.Albedo,
+                output.Albedo * lerp(_WetTint.rgb, half3(0.86h, 0.9h, 0.88h), 0.18h),
+                saturate(waterFilm * 0.58h));
+            output.Albedo = lerp(
+                output.Albedo,
+                half3(0.24h, 0.36h, 0.35h),
+                saturate(waterFilm * 0.18h));
+            output.Albedo = lerp(
+                output.Albedo,
+                _ShoreFoamColor.rgb,
+                shoreFoam * 0.66h);
             half3 baseNormal = UnpackScaleNormal(
                 tex2D(_NormalMap, surfaceUv),
                 _NormalStrength);
@@ -201,7 +325,7 @@ Shader "Custom/Level01MiamiSurface"
             output.Smoothness = lerp(
                 drySmoothness,
                 max(drySmoothness, _WetSmoothness),
-                wetMask);
+                saturate(wetMask * 0.56h + waterFilm * 0.44h));
             output.Alpha = albedo.a;
         }
         ENDCG

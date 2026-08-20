@@ -1,0 +1,67 @@
+{
+  "body_triangles": 37448,
+  "wheel_triangles": {
+    "FL": 4717,
+    "FR": 4717,
+    "RL": 4614,
+    "RR": 4614
+  },
+  "wheel_core_triangles": {
+    "FL": 2669,
+    "FR": 2669,
+    "RL": 2566,
+    "RR": 2566
+  },
+  "new_tire_triangles": {
+    "FL": 2048,
+    "FR": 2048,
+    "RL": 2048,
+    "RR": 2048
+  },
+  "total_triangles": 56110,
+  "wheel_centers_blender": {
+    "FL": [
+      -0.3534005582332611,
+      -0.5199418067932129,
+      -0.1325935423374176
+    ],
+    "FR": [
+      0.3534005582332611,
+      -0.5199418067932129,
+      -0.1325935423374176
+    ],
+    "RL": [
+      -0.3547675609588623,
+      0.5147520899772644,
+      -0.1294606775045395
+    ],
+    "RR": [
+      0.3547675609588623,
+      0.5147520899772644,
+      -0.1294606775045395
+    ]
+  },
+  "right_side_source": "front_and_rear_mirrored_from_their_left_side_wheels",
+  "source_tire_and_artifact_triangles_removed": {
+    "FL": 1017,
+    "FR": 1017,
+    "RL": 664,
+    "RR": 664
+  },
+  "axle_corrections_degrees": {
+    "FL": 3.8698904148544906,
+    "FR": 3.8698904148544906,
+    "RL": 3.672531671900149,
+    "RR": 3.672531671900149
+  },
+  "hierarchy": {
+    "front": [
+      "Wheel_FL_Steer/Wheel_FL_Spin",
+      "Wheel_FR_Steer/Wheel_FR_Spin"
+    ],
+    "rear": [
+      "Wheel_RL_Spin",
+      "Wheel_RR_Spin"
+    ]
+  }
+}

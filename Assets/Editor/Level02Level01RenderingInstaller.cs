@@ -95,6 +95,15 @@ public static class Level02Level01RenderingInstaller
         skybox.CopyPropertiesFromMaterial(sourceSkybox);
         skybox.shader = level02Shader;
         skybox.name = "MAT_Level02_OceanSunsetSky";
+        skybox.SetColor("_ZenithColor", new Color(0.045f, 0.1f, 0.22f, 1f));
+        skybox.SetColor("_UpperSkyColor", new Color(0.13f, 0.28f, 0.5f, 1f));
+        skybox.SetColor("_HorizonColor", new Color(0.7f, 0.4f, 0.23f, 1f));
+        skybox.SetColor("_GroundColor", new Color(0.23f, 0.27f, 0.31f, 1f));
+        skybox.SetColor("_CloudShadow", new Color(0.22f, 0.28f, 0.37f, 1f));
+        skybox.SetColor("_CloudLight", new Color(0.78f, 0.72f, 0.66f, 1f));
+        skybox.SetFloat("_CloudCoverage", 0.56f);
+        skybox.SetFloat("_CloudOpacity", 0.66f);
+        skybox.SetFloat("_Exposure", 0.98f);
         EditorUtility.SetDirty(skybox);
         return skybox;
     }
@@ -116,24 +125,24 @@ public static class Level02Level01RenderingInstaller
     {
         RenderSettings.skybox = skybox;
         RenderSettings.ambientMode = AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.44f, 0.54f, 0.7f, 1f);
-        RenderSettings.ambientEquatorColor = new Color(0.64f, 0.55f, 0.47f, 1f);
-        RenderSettings.ambientGroundColor = new Color(0.42f, 0.44f, 0.47f, 1f);
-        RenderSettings.ambientIntensity = 1.24f;
+        RenderSettings.ambientSkyColor = new Color(0.34f, 0.45f, 0.62f, 1f);
+        RenderSettings.ambientEquatorColor = new Color(0.52f, 0.46f, 0.42f, 1f);
+        RenderSettings.ambientGroundColor = new Color(0.24f, 0.28f, 0.32f, 1f);
+        RenderSettings.ambientIntensity = 1.14f;
         RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
         RenderSettings.defaultReflectionResolution = 1024;
         RenderSettings.reflectionBounces = 2;
-        RenderSettings.reflectionIntensity = 0.94f;
+        RenderSettings.reflectionIntensity = 0.9f;
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogColor = new Color(0.48f, 0.46f, 0.44f, 1f);
-        RenderSettings.fogStartDistance = 220f;
-        RenderSettings.fogEndDistance = 1100f;
+        RenderSettings.fogColor = new Color(0.34f, 0.38f, 0.43f, 1f);
+        RenderSettings.fogStartDistance = 320f;
+        RenderSettings.fogEndDistance = 1500f;
 
-        sun.color = new Color(1f, 0.88f, 0.72f, 1f);
-        sun.intensity = 1.08f;
+        sun.color = new Color(1f, 0.84f, 0.66f, 1f);
+        sun.intensity = 1.16f;
         sun.shadows = LightShadows.Soft;
-        sun.shadowStrength = 0.34f;
+        sun.shadowStrength = 0.46f;
         sun.shadowBias = 0.045f;
         sun.shadowNormalBias = 0.28f;
         sun.shadowCustomResolution = 4096;
@@ -155,7 +164,7 @@ public static class Level02Level01RenderingInstaller
         camera.allowHDR = true;
         camera.allowMSAA = true;
         camera.useOcclusionCulling = true;
-        camera.farClipPlane = 900f;
+        camera.farClipPlane = 1600f;
         camera.renderingPath = RenderingPath.Forward;
         camera.depthTextureMode |= DepthTextureMode.DepthNormals | DepthTextureMode.MotionVectors;
 
@@ -228,8 +237,8 @@ public static class Level02Level01RenderingInstaller
         Bloom bloom = GetOrAddSetting<Bloom>(profile);
         bloom.active = true;
         bloom.enabled.Override(true);
-        bloom.intensity.Override(0.11f);
-        bloom.threshold.Override(1.18f);
+        bloom.intensity.Override(0.075f);
+        bloom.threshold.Override(1.28f);
         bloom.softKnee.Override(0.62f);
         bloom.diffusion.Override(6f);
         bloom.color.Override(new Color(1f, 0.96f, 0.9f, 1f));
@@ -249,16 +258,16 @@ public static class Level02Level01RenderingInstaller
         colorGrading.enabled.Override(true);
         colorGrading.gradingMode.Override(GradingMode.HighDefinitionRange);
         colorGrading.tonemapper.Override(Tonemapper.ACES);
-        colorGrading.temperature.Override(3f);
-        colorGrading.saturation.Override(3f);
-        colorGrading.contrast.Override(6f);
-        colorGrading.postExposure.Override(0.16f);
+        colorGrading.temperature.Override(1f);
+        colorGrading.saturation.Override(2f);
+        colorGrading.contrast.Override(7f);
+        colorGrading.postExposure.Override(0.08f);
 
         MotionBlur motionBlur = GetOrAddSetting<MotionBlur>(profile);
         motionBlur.active = true;
         motionBlur.enabled.Override(true);
-        motionBlur.shutterAngle.Override(28f);
-        motionBlur.sampleCount.Override(20);
+        motionBlur.shutterAngle.Override(18f);
+        motionBlur.sampleCount.Override(12);
 
         Vignette vignette = GetOrAddSetting<Vignette>(profile);
         vignette.active = true;

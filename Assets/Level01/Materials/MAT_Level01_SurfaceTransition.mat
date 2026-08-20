@@ -33,7 +33,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Opacity: 0.32
+    - _Opacity: 0.42
     m_Colors:
-    - _Color: {r: 0.66, g: 0.71, b: 0.53, a: 1}
+    - _Color: {r: 0.7, g: 0.73, b: 0.52, a: 1}
   m_BuildTextureStacks: []

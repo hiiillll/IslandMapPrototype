@@ -11,6 +11,7 @@ float _NormalStrength;
 float _heightScale;
 float _lgWaveHeight;
 float _CompatWaveAmplitude;
+float _AnimSpeed;
 float _turbulenceFactor;
 float _specularPower;
 float _roughness;
@@ -23,12 +24,21 @@ float _CinematicSunGlint;
 float _CinematicHorizonBlend;
 fixed4 _CinematicHorizonColor;
 float _CinematicMicroRipple;
+float _OpenOceanBlend;
+float _OpenOceanChop;
+float _OpenOceanFoam;
 float _ShorelineLevel;
 float _ShorelineWidth;
 float _ShorelineFoam;
+float _shorelineFrequency;
+float _shorelineSpeed;
+float _shorelineHeight;
+float _TideAmount;
+float _TideSpread;
 fixed4 _depthColor;
 fixed4 _shallowColor;
 fixed4 _SpecularColor;
+fixed4 _FoamColor;
 float _Level02WhirlpoolCount;
 float _Level02WhirlpoolTime;
 float4 _Level02WhirlpoolPositions[4];
@@ -55,7 +65,7 @@ SuimonoCompatVertexOutput SuimonoCompatVert(SuimonoCompatVertexInput input)
 {
     SuimonoCompatVertexOutput output;
     float3 worldPosition = mul(unity_ObjectToWorld, input.vertex).xyz;
-    float time = _Time.y;
+    float time = _Time.y * max(0.1, _AnimSpeed);
     float legacySwell = sin(worldPosition.x * 0.055 + time * 0.52)
         + sin(worldPosition.z * 0.071 - time * 0.43) * 0.65
         + sin((worldPosition.x + worldPosition.z) * 0.035 + time * 0.28) * 0.35;
@@ -72,6 +82,50 @@ SuimonoCompatVertexOutput SuimonoCompatVert(SuimonoCompatVertexInput input)
         legacySwell,
         cinematicSwell,
         saturate(_CinematicOcean)) * max(0.0, _CompatWaveAmplitude);
+
+    // Open water needs a smaller cross-swell riding on top of the broad waves.
+    // Level 01 leaves this disabled so its calmer coastline remains unchanged.
+    float shortCrossSwell = sin(
+        worldPosition.x * 0.118
+        - worldPosition.z * 0.073
+        + time * 0.91) * 0.58
+        + sin(
+            worldPosition.x * -0.086
+            + worldPosition.z * 0.142
+            - time * 0.74) * 0.42;
+    displacement += shortCrossSwell
+        * max(0.0, _CompatWaveAmplitude)
+        * 0.24
+        * saturate(_OpenOceanBlend)
+        * saturate(_OpenOceanChop);
+
+    // Add a low-cost geometric breaker that uses the same coastline and tide
+    // phase as the beach surface shader. The denser shallow-water mesh carries
+    // this deformation close to shore while the ocean mesh handles the horizon.
+    float maxCoordinate = max(abs(worldPosition.x), abs(worldPosition.z));
+    float alongEdge = abs(worldPosition.x) > abs(worldPosition.z)
+        ? worldPosition.z
+        : worldPosition.x;
+    float shoreVariation = sin(alongEdge * 0.075) * 2.6
+        + sin(alongEdge * 0.031 + 1.7) * 1.8
+        + sin(alongEdge * 0.17 + 0.4) * 0.65;
+    float shoreDistance = maxCoordinate - (_ShorelineLevel + shoreVariation);
+    float tidePhase = _Time.y * max(_shorelineSpeed, 0.1)
+        + alongEdge * 0.018
+        + sin(alongEdge * 0.011) * 0.45;
+    float tideCycle = 0.5 + 0.5 * sin(tidePhase);
+    float tideSurge = smoothstep(0.08, 0.88, tideCycle);
+    float shoreReach = max(1.8, _TideAmount * 2.2 + _TideSpread * 1.4);
+    float waveAdvance = lerp(1.8, -shoreReach, tideSurge)
+        + sin(_Time.y * max(_shorelineSpeed, 0.1) * 1.46
+            - alongEdge * 0.036) * 0.28;
+    float breakerBand = 1.0 - smoothstep(
+        0.35,
+        2.6,
+        abs(shoreDistance - waveAdvance));
+    displacement += breakerBand
+        * max(0.025, _shorelineHeight * 0.1)
+        * saturate(_ShorelineFoam);
 
     float whirlpoolDepression = 0.0;
     [unroll]
@@ -114,7 +168,7 @@ SuimonoCompatVertexOutput SuimonoCompatVert(SuimonoCompatVertexInput input)
 
 fixed4 SuimonoCompatFrag(SuimonoCompatVertexOutput input) : SV_Target
 {
-    float time = _Time.y;
+    float time = _Time.y * max(0.1, _AnimSpeed);
     float2 direction = normalize(_suimono_Dir.xz + float2(0.001, 0.001));
     float2 perpendicular = float2(-direction.y, direction.x);
     float2 uvA = input.uv + direction * time * 0.018;
@@ -124,9 +178,19 @@ fixed4 SuimonoCompatFrag(SuimonoCompatVertexOutput input) : SV_Target
     float3 normalA = UnpackNormal(tex2D(_NormalTexS, uvA));
     float3 normalB = UnpackNormal(tex2D(_NormalTexD, uvB));
     float3 normalC = UnpackNormal(tex2D(_NormalTexR, uvC));
+    float2 uvD = input.worldPosition.xz * 0.16
+        + direction * time * 0.041;
+    float2 uvE = input.worldPosition.xz * 0.29
+        - perpendicular * time * 0.054
+        + float2(0.31, 0.67);
+    float3 normalD = UnpackNormal(tex2D(_NormalTexS, uvD));
+    float3 normalE = UnpackNormal(tex2D(_NormalTexD, uvE));
     float2 slope = normalA.xy
         + normalB.xy * (0.52 + _turbulenceFactor)
         + normalC.xy * 0.24;
+    slope += (normalD.xy * 0.3 + normalE.xy * 0.16)
+        * saturate(_OpenOceanBlend)
+        * saturate(_OpenOceanChop);
 
     float vortexDepth = 0.0;
     float vortexFoam = 0.0;
@@ -288,30 +352,46 @@ fixed4 SuimonoCompatFrag(SuimonoCompatVertexOutput input) : SV_Target
         max(_ShorelineWidth, 0.1),
         shoreDistance)) * shoreEnabled;
 
-    float waveAdvance = sin(time * 0.72 + alongEdge * 0.052) * 0.72
-        + sin(time * 0.37 - alongEdge * 0.021) * 0.38;
-    float foamNoise = 0.5 + 0.3 * sin(alongEdge * 0.31 + time * 0.84)
-        + 0.2 * sin(alongEdge * 0.73 - time * 0.47);
-    float2 foamUv = input.worldPosition.xz * 0.082
-        + direction * time * 0.014;
-    float foamTexture = smoothstep(0.28, 0.76, tex2D(_FoamTex, foamUv).r);
-    float foamBreakup = lerp(0.08, 1.0, smoothstep(0.44, 0.8, foamNoise));
-    foamBreakup *= lerp(0.42, 1.12, foamTexture);
+    float shorelineRate = max(0.1, _shorelineSpeed);
+    float shorelineFrequency = max(0.1, _shorelineFrequency);
+    float shorelineTime = _Time.y * shorelineRate;
+    float tidePhase = shorelineTime
+        + alongEdge * 0.018
+        + sin(alongEdge * 0.011) * 0.45;
+    float tideCycle = 0.5 + 0.5 * sin(tidePhase);
+    float tideSurge = smoothstep(0.08, 0.88, tideCycle);
+    float shoreReach = max(1.8, _TideAmount * 2.2 + _TideSpread * 1.4);
+    float waveAdvance = lerp(1.8, -shoreReach, tideSurge)
+        + sin(shorelineTime * 1.46 - alongEdge * 0.036) * 0.28;
+    float foamNoise = 0.5 + 0.28 * sin(alongEdge * 0.31 + _Time.y * 0.94)
+        + 0.22 * sin(alongEdge * 0.73 - _Time.y * 0.53);
+    float2 foamUv = input.worldPosition.xz * 0.105
+        + direction * _Time.y * 0.021;
+    float rawFoamTexture = tex2D(_FoamTex, foamUv).r;
+    float foamTexture = smoothstep(0.3, 0.7, rawFoamTexture);
+    float foamBreakup = smoothstep(
+        0.38,
+        0.68,
+        foamNoise * 0.38 + foamTexture * 0.62);
+    foamBreakup = lerp(0.1, 1.0, foamBreakup);
+    float brokenWaveAdvance = waveAdvance
+        + (rawFoamTexture - 0.5) * 1.15
+        + sin(alongEdge * 0.21 + _Time.y * 0.37) * 0.32;
     float primaryLine = 1.0 - smoothstep(
-        0.12,
-        0.48,
-        abs(shoreDistance - 0.65 - waveAdvance * 0.82));
+        0.14,
+        1.28,
+        abs(shoreDistance - brokenWaveAdvance));
     float secondaryLine = 1.0 - smoothstep(
-        0.1,
-        0.48,
-        abs(shoreDistance - 3.1 + waveAdvance * 0.42));
-    secondaryLine *= smoothstep(0.72, 0.91, foamNoise) * 0.12;
+        0.18,
+        1.42,
+        abs(shoreDistance - brokenWaveAdvance - 1.55));
+    secondaryLine *= smoothstep(0.58, 0.84, foamNoise) * 0.2;
     float shoreFoam = saturate(primaryLine * foamBreakup + secondaryLine);
     shoreFoam *= _ShorelineFoam * shoreEnabled;
 
     float3 reflectedShallow = lerp(float3(0.34, 0.46, 0.49), skyReflection, 0.26);
     waterColor = lerp(waterColor, reflectedShallow, shallowBand * 0.7);
-    waterColor = lerp(waterColor, float3(0.84, 0.88, 0.86), shoreFoam);
+    waterColor = lerp(waterColor, _FoamColor.rgb, shoreFoam);
 
     float sunMirror = pow(saturate(dot(reflectionDirection, lightDirection)), 110.0);
     float3 sunColor = _LightColor0.rgb * lerp(float3(1.0, 1.0, 1.0), _SpecularColor.rgb, 0.12);
@@ -360,6 +440,26 @@ fixed4 SuimonoCompatFrag(SuimonoCompatVertexOutput input) : SV_Target
     float viewReflection = saturate(0.16 + physicalFresnel * 0.78);
     viewReflection *= saturate(_CinematicReflection);
     float3 cinematicColor = lerp(cinematicBase, cinematicSky, viewReflection);
+    // The previous cinematic branch discarded shallowBand entirely, so the
+    // deep-ocean blue continued all the way to dry sand. Restore an underwater
+    // depth gradient here: teal over the first ~30 m, then a smooth transition
+    // into the deeper reflective ocean.
+    float cinematicShoreWater = (1.0 - smoothstep(
+        1.5,
+        max(18.0, _ShorelineWidth),
+        shoreDistance)) * shoreEnabled;
+    float3 cinematicShallow = lerp(
+        float3(0.08, 0.27, 0.3),
+        _shallowColor.rgb,
+        0.62);
+    cinematicShallow = lerp(
+        cinematicShallow,
+        cinematicSky,
+        saturate(viewReflection * 0.42));
+    cinematicColor = lerp(
+        cinematicColor,
+        cinematicShallow,
+        saturate(cinematicShoreWater * 0.76));
     float3 vortexDeepColor = lerp(float3(0.045, 0.16, 0.2), cinematicSky, 0.12);
     cinematicColor = lerp(cinematicColor, vortexDeepColor, vortexDepth * 0.58);
     cinematicColor = lerp(
@@ -370,6 +470,29 @@ fixed4 SuimonoCompatFrag(SuimonoCompatVertexOutput input) : SV_Target
         cinematicColor,
         float3(0.64, 0.78, 0.8),
         saturate(vortexFoam * 0.42));
+
+    // Sparse, texture-broken capillary foam appears only on the strongest
+    // open-ocean crests. Keeping it blue-grey avoids the painted white stripes
+    // that made the previous water feel synthetic.
+    float openWaveHeight = saturate(
+        input.waveHeight / max(0.04, _CompatWaveAmplitude) * 0.5 + 0.5);
+    float openFoamTexture = tex2D(
+        _FoamTex,
+        input.worldPosition.xz * 0.052
+            + direction * time * 0.009).r;
+    float openCrestFoam = smoothstep(
+        0.67,
+        0.9,
+        openWaveHeight * 0.58
+            + fineRipple * 0.22
+            + openFoamTexture * 0.2);
+    openCrestFoam *= saturate(_OpenOceanBlend)
+        * saturate(_OpenOceanFoam)
+        * lerp(1.0, 0.62, saturate(cameraDistance / 850.0));
+    cinematicColor = lerp(
+        cinematicColor,
+        float3(0.58, 0.7, 0.72),
+        openCrestFoam * 0.34);
 
     float3 cinematicHalfDirection = normalize(viewDirection + lightDirection);
     float cinematicNdotH = saturate(dot(cinematicNormal, cinematicHalfDirection));
@@ -394,7 +517,7 @@ fixed4 SuimonoCompatFrag(SuimonoCompatVertexOutput input) : SV_Target
         _CinematicHorizonColor.rgb,
         cinematicSky,
         0.08);
-    cinematicColor = lerp(cinematicColor, float3(0.82, 0.87, 0.86), shoreFoam * 0.72);
+    cinematicColor = lerp(cinematicColor, _FoamColor.rgb, shoreFoam * 0.5);
     cinematicColor *= lerp(0.96, 1.04, saturate(_overallBrightness - 0.8));
     UNITY_APPLY_FOG(input.fogCoord, cinematicColor);
     cinematicColor = lerp(

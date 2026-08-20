@@ -334,12 +334,12 @@ public static class Level02SuimonoInstaller
 
         surface.customWaves = true;
         surface.flowDirection = 205f;
-        surface.flowSpeed = 0.035f;
-        surface.waveScale = 0.9f;
-        surface.waveHeight = 0.1f;
-        surface.lgWaveHeight = 0.045f;
-        surface.lgWaveScale = 0.075f;
-        surface.turbulenceFactor = 0.12f;
+        surface.flowSpeed = 0.052f;
+        surface.waveScale = 0.82f;
+        surface.waveHeight = 0.14f;
+        surface.lgWaveHeight = 0.065f;
+        surface.lgWaveScale = 0.09f;
+        surface.turbulenceFactor = 0.2f;
 
         surface.refractStrength = 0.08f;
         surface.aberrationScale = 0.015f;
@@ -349,10 +349,10 @@ public static class Level02SuimonoInstaller
         surface.reflectionDistance = 420f;
         surface.reflectFallback = 3;
         surface.customRefColor = new Color(0.6f, 0.64f, 0.68f, 1f);
-        surface.specularPower = 0.3f;
-        surface.roughness = 0.46f;
-        surface.roughness2 = 0.68f;
-        surface.reflectTerm = 0.025f;
+        surface.specularPower = 0.42f;
+        surface.roughness = 0.4f;
+        surface.roughness2 = 0.58f;
+        surface.reflectTerm = 0.035f;
 
         surface.enableReflections = true;
         surface.enableDynamicReflections = false;
@@ -364,18 +364,18 @@ public static class Level02SuimonoInstaller
         surface.enableUnderDebris = false;
         surface.enableFoam = false;
 
-        surface.overallBright = 1.03f;
+        surface.overallBright = 1.02f;
         surface.overallTransparency = 0.96f;
         surface.depthAmt = 0.78f;
         surface.shallowAmt = 0.26f;
         surface.edgeAmt = 0.14f;
-        surface.depthColor = new Color(0.13f, 0.31f, 0.41f, 1f);
-        surface.shallowColor = new Color(0.3f, 0.49f, 0.55f, 0.72f);
-        surface.reflectionColor = new Color(0.6f, 0.64f, 0.68f, 0.24f);
-        surface.specularColor = new Color(0.95f, 0.82f, 0.67f, 0.2f);
-        surface.sssColor = new Color(0.1f, 0.23f, 0.28f, 1f);
-        surface.blendColor = new Color(0.18f, 0.31f, 0.38f, 1f);
-        surface.overlayColor = new Color(0.08f, 0.13f, 0.16f, 0.22f);
+        surface.depthColor = new Color(0.055f, 0.18f, 0.27f, 1f);
+        surface.shallowColor = new Color(0.14f, 0.36f, 0.43f, 0.78f);
+        surface.reflectionColor = new Color(0.62f, 0.68f, 0.72f, 0.28f);
+        surface.specularColor = new Color(1f, 0.84f, 0.64f, 0.26f);
+        surface.sssColor = new Color(0.08f, 0.28f, 0.34f, 1f);
+        surface.blendColor = new Color(0.1f, 0.25f, 0.34f, 1f);
+        surface.overlayColor = new Color(0.035f, 0.09f, 0.14f, 0.18f);
 
         surface.foamColor = new Color(0.68f, 0.78f, 0.8f, 0.55f);
         surface.foamScale = 24f;
@@ -408,24 +408,24 @@ public static class Level02SuimonoInstaller
 
         RenderSettings.skybox = skybox;
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.44f, 0.54f, 0.7f, 1f);
-        RenderSettings.ambientEquatorColor = new Color(0.64f, 0.55f, 0.47f, 1f);
-        RenderSettings.ambientGroundColor = new Color(0.42f, 0.44f, 0.47f, 1f);
-        RenderSettings.ambientIntensity = 1.24f;
+        RenderSettings.ambientSkyColor = new Color(0.34f, 0.45f, 0.62f, 1f);
+        RenderSettings.ambientEquatorColor = new Color(0.52f, 0.46f, 0.42f, 1f);
+        RenderSettings.ambientGroundColor = new Color(0.24f, 0.28f, 0.32f, 1f);
+        RenderSettings.ambientIntensity = 1.14f;
         RenderSettings.defaultReflectionMode = UnityEngine.Rendering.DefaultReflectionMode.Skybox;
         RenderSettings.defaultReflectionResolution = 1024;
         RenderSettings.reflectionBounces = 2;
-        RenderSettings.reflectionIntensity = 0.94f;
+        RenderSettings.reflectionIntensity = 0.9f;
         RenderSettings.fog = true;
-        RenderSettings.fogColor = new Color(0.48f, 0.46f, 0.44f, 1f);
+        RenderSettings.fogColor = new Color(0.34f, 0.38f, 0.43f, 1f);
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 220f;
-        RenderSettings.fogEndDistance = 1100f;
+        RenderSettings.fogStartDistance = 320f;
+        RenderSettings.fogEndDistance = 1500f;
 
-        mainLight.color = new Color(1f, 0.88f, 0.72f, 1f);
-        mainLight.intensity = 1.08f;
+        mainLight.color = new Color(1f, 0.84f, 0.66f, 1f);
+        mainLight.intensity = 1.16f;
         mainLight.shadows = LightShadows.Soft;
-        mainLight.shadowStrength = 0.34f;
+        mainLight.shadowStrength = 0.46f;
         mainLight.shadowBias = 0.045f;
         mainLight.shadowNormalBias = 0.28f;
         mainLight.shadowCustomResolution = 4096;

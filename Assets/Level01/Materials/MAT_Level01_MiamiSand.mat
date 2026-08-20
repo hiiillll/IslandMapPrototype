@@ -35,33 +35,44 @@ Material:
         m_Texture: {fileID: 2800000, guid: 763deab3eb2b3ef44bbd7b1cfd5b74c2, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _SecondaryTex:
+        m_Texture: {fileID: 2800000, guid: 1abe818ee19697d4292039de3d18ec7d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _DetailFadeEnd: 220
-    - _DetailFadeStart: 80
-    - _DetailScale: 2.6
-    - _DetailStrength: 0.1
+    - _DetailFadeEnd: 720
+    - _DetailFadeStart: 180
+    - _DetailScale: 3.2
+    - _DetailStrength: 0.055
     - _EdgeStrength: 0
     - _EdgeWidth: 0
-    - _MacroMeters: 52
-    - _MacroStrength: 0
+    - _MacroMeters: 54
+    - _MacroStrength: 0.045
     - _Metallic: 0
-    - _NormalStrength: 0.7
-    - _PatchStrength: 0
+    - _NormalStrength: 0.24
+    - _PatchStrength: 0.02
+    - _SecondaryScale: 1.85
+    - _SecondaryStrength: 0.48
+    - _ShoreFoamStrength: 0.5
+    - _ShoreFoamWidth: 1.35
     - _Smoothness: 0.045
-    - _SmoothnessVariation: 0.01
-    - _TileMeters: 3.8
-    - _WearStrength: 0
-    - _WetColorStrength: 0.9
-    - _WetEdgeStart: 0.4
-    - _WetEdgeWidth: 13
+    - _SmoothnessVariation: 0.018
+    - _TideReach: 5.15
+    - _TideSpeed: 1.72
+    - _TileMeters: 2.8
+    - _WearStrength: 0.018
+    - _WetColorStrength: 0.5
+    - _WetEdgeStart: 1.25
+    - _WetEdgeWidth: 7
     - _WetShoreLevel: 145
-    - _WetSmoothness: 0.38
+    - _WetSmoothness: 0.42
     - _Wetness: 1
     m_Colors:
-    - _Color: {r: 0.9, g: 0.8, b: 0.64, a: 1}
+    - _Color: {r: 0.84, g: 0.86, b: 0.88, a: 1}
     - _EdgeTint: {r: 0.55, g: 0.52, b: 0.46, a: 1}
-    - _MacroTintA: {r: 1, g: 1, b: 1, a: 1}
-    - _MacroTintB: {r: 1, g: 1, b: 1, a: 1}
-    - _WetTint: {r: 0.48, g: 0.62, b: 0.68, a: 1}
+    - _MacroTintA: {r: 0.96, g: 0.96, b: 0.94, a: 1}
+    - _MacroTintB: {r: 1.01, g: 0.99, b: 0.96, a: 1}
+    - _ShoreFoamColor: {r: 0.74, g: 0.77, b: 0.73, a: 1}
+    - _WetTint: {r: 0.6, g: 0.55, b: 0.47, a: 1}
   m_BuildTextureStacks: []

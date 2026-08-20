@@ -172,12 +172,12 @@ public sealed class Level02SuimonoRuntimeGuard : MonoBehaviour
         ocean.typeIndex = 0;
         ocean.customWaves = true;
         ocean.flowDirection = 205f;
-        ocean.flowSpeed = 0.035f;
-        ocean.waveScale = 0.9f;
-        ocean.waveHeight = 0.1f;
-        ocean.lgWaveHeight = 0.045f;
-        ocean.lgWaveScale = 0.075f;
-        ocean.turbulenceFactor = 0.12f;
+        ocean.flowSpeed = 0.052f;
+        ocean.waveScale = 0.82f;
+        ocean.waveHeight = 0.14f;
+        ocean.lgWaveHeight = 0.065f;
+        ocean.lgWaveScale = 0.09f;
+        ocean.turbulenceFactor = 0.2f;
         ocean.enableReflections = true;
         ocean.enableDynamicReflections = false;
         ocean.enableTess = false;
@@ -188,18 +188,18 @@ public sealed class Level02SuimonoRuntimeGuard : MonoBehaviour
         ocean.reflectFallback = 3;
         ocean.customRefColor = new Color(0.6f, 0.64f, 0.68f, 1f);
         ocean.reflectProjection = 0.35f;
-        ocean.specularPower = 0.3f;
-        ocean.roughness = 0.46f;
-        ocean.roughness2 = 0.68f;
-        ocean.reflectTerm = 0.025f;
-        ocean.overallBright = 1.03f;
-        ocean.depthColor = new Color(0.13f, 0.31f, 0.41f, 1f);
-        ocean.shallowColor = new Color(0.3f, 0.49f, 0.55f, 0.72f);
-        ocean.reflectionColor = new Color(0.6f, 0.64f, 0.68f, 0.24f);
-        ocean.specularColor = new Color(0.95f, 0.82f, 0.67f, 0.2f);
-        ocean.sssColor = new Color(0.1f, 0.23f, 0.28f, 1f);
-        ocean.blendColor = new Color(0.18f, 0.31f, 0.38f, 1f);
-        ocean.overlayColor = new Color(0.08f, 0.13f, 0.16f, 0.22f);
+        ocean.specularPower = 0.42f;
+        ocean.roughness = 0.4f;
+        ocean.roughness2 = 0.58f;
+        ocean.reflectTerm = 0.035f;
+        ocean.overallBright = 1.02f;
+        ocean.depthColor = new Color(0.055f, 0.18f, 0.27f, 1f);
+        ocean.shallowColor = new Color(0.14f, 0.36f, 0.43f, 0.78f);
+        ocean.reflectionColor = new Color(0.62f, 0.68f, 0.72f, 0.28f);
+        ocean.specularColor = new Color(1f, 0.84f, 0.64f, 0.26f);
+        ocean.sssColor = new Color(0.08f, 0.28f, 0.34f, 1f);
+        ocean.blendColor = new Color(0.1f, 0.25f, 0.34f, 1f);
+        ocean.overlayColor = new Color(0.035f, 0.09f, 0.14f, 0.18f);
     }
 
     private void ConfigureStableSurface()
@@ -232,19 +232,33 @@ public sealed class Level02SuimonoRuntimeGuard : MonoBehaviour
     private static void ConfigureLevel01Rendering()
     {
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.44f, 0.54f, 0.7f, 1f);
-        RenderSettings.ambientEquatorColor = new Color(0.64f, 0.55f, 0.47f, 1f);
-        RenderSettings.ambientGroundColor = new Color(0.42f, 0.44f, 0.47f, 1f);
-        RenderSettings.ambientIntensity = 1.24f;
+        RenderSettings.ambientSkyColor = new Color(0.34f, 0.45f, 0.62f, 1f);
+        RenderSettings.ambientEquatorColor = new Color(0.52f, 0.46f, 0.42f, 1f);
+        RenderSettings.ambientGroundColor = new Color(0.24f, 0.28f, 0.32f, 1f);
+        RenderSettings.ambientIntensity = 1.14f;
         RenderSettings.defaultReflectionMode = UnityEngine.Rendering.DefaultReflectionMode.Skybox;
         RenderSettings.defaultReflectionResolution = 1024;
         RenderSettings.reflectionBounces = 2;
-        RenderSettings.reflectionIntensity = 0.94f;
+        RenderSettings.reflectionIntensity = 0.9f;
         RenderSettings.fog = true;
-        RenderSettings.fogColor = new Color(0.48f, 0.46f, 0.44f, 1f);
+        RenderSettings.fogColor = new Color(0.34f, 0.38f, 0.43f, 1f);
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 220f;
-        RenderSettings.fogEndDistance = 1100f;
+        RenderSettings.fogStartDistance = 320f;
+        RenderSettings.fogEndDistance = 1500f;
+
+        Material skybox = RenderSettings.skybox;
+        if (skybox != null && skybox.HasProperty("_ZenithColor"))
+        {
+            skybox.SetColor("_ZenithColor", new Color(0.045f, 0.1f, 0.22f, 1f));
+            skybox.SetColor("_UpperSkyColor", new Color(0.13f, 0.28f, 0.5f, 1f));
+            skybox.SetColor("_HorizonColor", new Color(0.7f, 0.4f, 0.23f, 1f));
+            skybox.SetColor("_GroundColor", new Color(0.23f, 0.27f, 0.31f, 1f));
+            skybox.SetColor("_CloudShadow", new Color(0.22f, 0.28f, 0.37f, 1f));
+            skybox.SetColor("_CloudLight", new Color(0.78f, 0.72f, 0.66f, 1f));
+            skybox.SetFloat("_CloudCoverage", 0.56f);
+            skybox.SetFloat("_CloudOpacity", 0.66f);
+            skybox.SetFloat("_Exposure", 0.98f);
+        }
 
         Light sun = GameObject.Find("SYS_DirectionalLight")?.GetComponent<Light>();
         if (sun == null)
@@ -252,10 +266,10 @@ public sealed class Level02SuimonoRuntimeGuard : MonoBehaviour
             return;
         }
 
-        sun.color = new Color(1f, 0.88f, 0.72f, 1f);
-        sun.intensity = 1.08f;
+        sun.color = new Color(1f, 0.84f, 0.66f, 1f);
+        sun.intensity = 1.16f;
         sun.shadows = LightShadows.Soft;
-        sun.shadowStrength = 0.34f;
+        sun.shadowStrength = 0.46f;
         sun.shadowBias = 0.045f;
         sun.shadowNormalBias = 0.28f;
         sun.shadowCustomResolution = 4096;
@@ -295,27 +309,28 @@ public sealed class Level02SuimonoRuntimeGuard : MonoBehaviour
             return;
         }
 
-        material.SetFloat("_overallBrightness", 1.03f);
-        material.SetFloat("_specularPower", 0.3f);
-        material.SetFloat("_roughness", 0.46f);
-        material.SetFloat("_roughness2", 0.68f);
-        material.SetFloat("_reflecTerm", 0.025f);
-        material.SetFloat("_NormalStrength", 0.58f);
-        material.SetFloat("_heightScale", 0.1f);
-        material.SetFloat("_lgWaveHeight", 0.045f);
+        material.SetFloat("_overallBrightness", 1.02f);
+        material.SetFloat("_specularPower", 0.42f);
+        material.SetFloat("_roughness", 0.4f);
+        material.SetFloat("_roughness2", 0.58f);
+        material.SetFloat("_reflecTerm", 0.035f);
+        material.SetFloat("_NormalStrength", 0.72f);
+        material.SetFloat("_heightScale", 0.14f);
+        material.SetFloat("_lgWaveHeight", 0.065f);
+        material.SetFloat("_AnimSpeed", 1.18f);
         if (material.HasProperty("_CompatWaveAmplitude"))
         {
-            material.SetFloat("_CompatWaveAmplitude", 0.22f);
+            material.SetFloat("_CompatWaveAmplitude", 0.3f);
         }
-        material.SetFloat("_lgWaveScale", 0.075f);
-        material.SetFloat("_turbulenceFactor", 0.12f);
+        material.SetFloat("_lgWaveScale", 0.09f);
+        material.SetFloat("_turbulenceFactor", 0.2f);
         material.SetFloat("_enableFoam", 0f);
-        material.SetColor("_depthColor", new Color(0.13f, 0.31f, 0.41f, 1f));
-        material.SetColor("_shallowColor", new Color(0.3f, 0.49f, 0.55f, 0.72f));
-        material.SetColor("_ReflectionColor", new Color(0.6f, 0.64f, 0.68f, 0.24f));
-        material.SetColor("_SpecularColor", new Color(0.95f, 0.82f, 0.67f, 0.2f));
-        material.SetColor("_SSSColor", new Color(0.1f, 0.23f, 0.28f, 1f));
-        material.SetColor("_BlendColor", new Color(0.18f, 0.31f, 0.38f, 1f));
+        material.SetColor("_depthColor", new Color(0.055f, 0.18f, 0.27f, 1f));
+        material.SetColor("_shallowColor", new Color(0.14f, 0.36f, 0.43f, 0.78f));
+        material.SetColor("_ReflectionColor", new Color(0.62f, 0.68f, 0.72f, 0.28f));
+        material.SetColor("_SpecularColor", new Color(1f, 0.84f, 0.64f, 0.26f));
+        material.SetColor("_SSSColor", new Color(0.08f, 0.28f, 0.34f, 1f));
+        material.SetColor("_BlendColor", new Color(0.1f, 0.25f, 0.34f, 1f));
         if (material.HasProperty("_Level01ColorBlend"))
         {
             material.SetFloat("_Level01ColorBlend", 1f);
@@ -327,9 +342,12 @@ public sealed class Level02SuimonoRuntimeGuard : MonoBehaviour
         if (material.HasProperty("_CinematicOcean"))
         {
             material.SetFloat("_CinematicOcean", 1f);
-            material.SetFloat("_CinematicReflection", 0.86f);
-            material.SetFloat("_CinematicSunGlint", 0.34f);
-            material.SetFloat("_CinematicHorizonBlend", 1f);
+            material.SetFloat("_CinematicReflection", 0.94f);
+            // A strong procedural glint created a white strip from the boat to
+            // the camera that was easy to mistake for oversized foam. The sun
+            // still reflects across the wave normals, but without blooming.
+            material.SetFloat("_CinematicSunGlint", 0.09f);
+            material.SetFloat("_CinematicHorizonBlend", 0.92f);
             if (material.HasProperty("_CinematicHorizonColor"))
             {
                 Color horizonColor = new Color(0.48f, 0.46f, 0.44f, 1f);
@@ -340,8 +358,16 @@ public sealed class Level02SuimonoRuntimeGuard : MonoBehaviour
                 }
                 material.SetColor("_CinematicHorizonColor", horizonColor);
             }
-            material.SetFloat("_CinematicMicroRipple", 0.62f);
+            material.SetFloat("_CinematicMicroRipple", 0.76f);
         }
-        material.SetColor("_OverlayColor", new Color(0.08f, 0.13f, 0.16f, 0.22f));
+        if (material.HasProperty("_OpenOceanBlend"))
+        {
+            material.SetFloat("_OpenOceanBlend", 1f);
+            material.SetFloat("_OpenOceanChop", 0.82f);
+            // Keep open-water crest foam sparse. Higher values form a bright
+            // camera-facing strip that reads as a giant artificial boat wake.
+            material.SetFloat("_OpenOceanFoam", 0.06f);
+        }
+        material.SetColor("_OverlayColor", new Color(0.035f, 0.09f, 0.14f, 0.18f));
     }
 }

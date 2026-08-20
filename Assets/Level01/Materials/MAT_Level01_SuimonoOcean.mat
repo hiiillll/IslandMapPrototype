@@ -142,11 +142,17 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AnimSpeed: 1
+    - _AnimSpeed: 1.55
     - _BlurSpread: 0
     - _BumpStrength: 0.084
     - _CausticsFade: 61.878002
     - _CenterHeight: 1
+    - _CinematicHorizonBlend: 0.78
+    - _CinematicMicroRipple: 0.42
+    - _CinematicOcean: 1
+    - _CinematicReflection: 0.78
+    - _CinematicSunGlint: 0.42
+    - _CompatWaveAmplitude: 0.24
     - _DepthAmt: 45
     - _DepthFade: 12.8936
     - _DetailHeight: 1.63
@@ -167,7 +173,7 @@ Material:
     - _MaskAmt: 8
     - _MasterScale: 2.25
     - _MaxVariance: 8.299999
-    - _NormalStrength: 0.48
+    - _NormalStrength: 0.62
     - _ReflBlend: 0.015
     - _ReflBlur: 0.01
     - _ReflDist: 200
@@ -182,14 +188,14 @@ Material:
     - _ShallowFoamAmt: 1
     - _ShoreAmt: -3.5
     - _ShoreAmtDk: 1
-    - _ShorelineFoam: 0.62
+    - _ShorelineFoam: 0.64
     - _ShorelineLevel: 145
     - _ShorelineWidth: 30
     - _SpecScatterAmt: 0.5
     - _SpecScatterWidth: 0.1
     - _Tess: 28
-    - _TideAmount: 0.3
-    - _TideSpread: 0.513
+    - _TideAmount: 1.65
+    - _TideSpread: 1.1
     - _UnderFogDist: -0.054
     - _UnderReflDist: -4.28
     - _WaveHeight: 0.63
@@ -203,13 +209,13 @@ Material:
     - _lgWaveHeight: 0.055
     - _maxDist: 116
     - _minDist: -180
-    - _overallBrightness: 1.08
+    - _overallBrightness: 1.02
     - _reflecTerm: 0.025
-    - _roughness: 0.55
-    - _shorelineFrequency: 0.5
-    - _shorelineHeight: 0.397
+    - _roughness: 0.48
+    - _shorelineFrequency: 0.82
+    - _shorelineHeight: 1.08
     - _shorelineScale: 3.55
-    - _shorelineSpeed: 4
+    - _shorelineSpeed: 1.72
     - _specularPower: 0.42
     - _suimono_DeepWaveHeight: 0.945
     - _suimono_DetailHeight: 1.63
@@ -237,6 +243,7 @@ Material:
     m_Colors:
     - _BlendColor: {r: 0.16, g: 0.24, b: 0.29, a: 1}
     - _CausticsColor: {r: 1, g: 1, b: 1, a: 1}
+    - _CinematicHorizonColor: {r: 0.4, g: 0.45, b: 0.49, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _DepthColor: {r: 0, g: 0, b: 0, a: 0}
     - _DepthColorB: {r: 1, g: 0.44, b: 0, a: 1}
@@ -244,9 +251,9 @@ Material:
     - _DepthColorR: {r: 1, g: 1, b: 1, a: 0}
     - _DynReflColor: {r: 1, g: 1, b: 1, a: 0.5}
     - _EdgeColor: {r: 0.73, g: 1, b: 0.94, a: 0}
-    - _FoamColor: {r: 0.912, g: 0.874, b: 0.791, a: 1}
+    - _FoamColor: {r: 0.68, g: 0.75, b: 0.74, a: 1}
     - _HighColor: {r: 0, g: 0, b: 0, a: 0.9}
-    - _Level01ReflectionTint: {r: 1.03, g: 1, b: 0.96, a: 1}
+    - _Level01ReflectionTint: {r: 0.98, g: 1, b: 1.03, a: 1}
     - _LowColor: {r: 0.34, g: 0.26, b: 0.18, a: 0.15}
     - _OverlayColor: {r: 0.1, g: 0.12, b: 0.14, a: 0.38}
     - _ReflectionColor: {r: 0.52, g: 0.43, b: 0.36, a: 0.18}
@@ -259,7 +266,7 @@ Material:
     - _UnderColor: {r: 1, g: 0.62, b: 0.17, a: 1}
     - _UnderwaterColor: {r: 1, g: 1, b: 1, a: 1}
     - _castshadowColor: {r: 0, g: 1, b: 0.79, a: 0.18}
-    - _depthColor: {r: 0.12, g: 0.27, b: 0.36, a: 1}
-    - _shallowColor: {r: 0.3, g: 0.46, b: 0.52, a: 0.72}
+    - _depthColor: {r: 0.055, g: 0.18, b: 0.28, a: 1}
+    - _shallowColor: {r: 0.12, g: 0.39, b: 0.42, a: 0.76}
     - _suimono_Dir: {r: -0.42, g: 1, b: -0.91, a: 0}
   m_BuildTextureStacks: []

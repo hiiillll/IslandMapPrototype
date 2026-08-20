@@ -33,8 +33,10 @@ public sealed class BoatWakeTrail : MonoBehaviour
     private readonly List<int> triangles = new List<int>();
 
     private Rigidbody body;
+    private BoatChaseController controller;
     private GameObject wakeObject;
     private Mesh wakeMesh;
+    private MeshRenderer wakeRenderer;
     private Material wakeMaterial;
     private Texture2D wakeTexture;
     private Material sprayMaterial;
@@ -44,6 +46,7 @@ public sealed class BoatWakeTrail : MonoBehaviour
     private ParticleSystem bowSpray;
     private ParticleSystem leftSurfaceFoam;
     private ParticleSystem rightSurfaceFoam;
+    private bool wasAirborne;
 
     private struct WakePoint
     {
@@ -64,6 +67,7 @@ public sealed class BoatWakeTrail : MonoBehaviour
     private void Awake()
     {
         body = GetComponent<Rigidbody>();
+        controller = GetComponent<BoatChaseController>();
         ApplyNaturalWakeTuning();
         CreateWakeRenderer();
         CreateWaterSpray();
@@ -75,19 +79,35 @@ public sealed class BoatWakeTrail : MonoBehaviour
         surfaceOffset = 0.085f;
         minimumSpeed = 2f;
         fullWakeSpeed = 18f;
-        sampleSpacing = 0.3f;
-        lifetime = 0.95f;
-        ribbonWidth = 1.15f;
-        maximumDivergence = 2.3f;
-        foamColor = new Color(0.84f, 0.93f, 0.96f, 0.82f);
+        sampleSpacing = 0.18f;
+        // At 24 m/s even a half-second ribbon fills the chase-camera
+        // foreground. Keep only the freshest five metres of disturbed water;
+        // the ocean shader supplies the longer, subtler surface response.
+        lifetime = 0.2f;
+        ribbonWidth = 0.18f;
+        maximumDivergence = 0.34f;
+        foamColor = new Color(0.52f, 0.68f, 0.72f, 0.17f);
         minimumSpraySpeed = 4f;
         fullSpraySpeed = 20f;
-        maximumSprayRate = 58f;
+        maximumSprayRate = 24f;
     }
 
     private void LateUpdate()
     {
-        UpdateWaterSpray();
+        bool airborne = controller != null && controller.IsJumping;
+        UpdateWakePoints(airborne);
+        BuildWakeMesh();
+        if (wakeRenderer != null)
+        {
+            wakeRenderer.enabled = wakePoints.Count >= 2;
+        }
+        UpdateWaterSpray(airborne);
+
+        if (wasAirborne && !airborne)
+        {
+            EmitLandingSplash();
+        }
+        wasAirborne = airborne;
     }
 
     private void OnDisable()
@@ -151,26 +171,26 @@ public sealed class BoatWakeTrail : MonoBehaviour
 
         MeshFilter meshFilter = wakeObject.AddComponent<MeshFilter>();
         meshFilter.sharedMesh = wakeMesh;
-        MeshRenderer meshRenderer = wakeObject.AddComponent<MeshRenderer>();
-        meshRenderer.sortingOrder = 1;
-        meshRenderer.enabled = false;
+        wakeRenderer = wakeObject.AddComponent<MeshRenderer>();
+        wakeRenderer.sortingOrder = 1;
+        wakeRenderer.enabled = false;
 
         wakeTexture = CreateWakeTexture();
         wakeMaterial = new Material(wakeShader)
         {
             name = "BoatWakeTrailMaterial",
             mainTexture = wakeTexture,
-            color = new Color(foamColor.r, foamColor.g, foamColor.b, 1f),
+            color = new Color(foamColor.r, foamColor.g, foamColor.b, 0.56f),
             renderQueue = 3000
         };
-        meshRenderer.sharedMaterial = wakeMaterial;
+        wakeRenderer.sharedMaterial = wakeMaterial;
 
         sprayTexture = CreateSprayTexture();
         sprayMaterial = new Material(wakeShader)
         {
             name = "BoatWaterSprayMaterial",
             mainTexture = sprayTexture,
-            color = new Color(0.78f, 0.9f, 0.93f, 0.68f),
+            color = new Color(0.54f, 0.72f, 0.78f, 0.34f),
             renderQueue = 3000
         };
     }
@@ -223,24 +243,24 @@ public sealed class BoatWakeTrail : MonoBehaviour
         ParticleSystem.MainModule main = foam.main;
         main.loop = true;
         main.playOnAwake = false;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(0.55f, 0.95f);
-        main.startSpeed = new ParticleSystem.MinMaxCurve(0.8f, 1.7f);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.52f, 1.08f);
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.38f, 0.68f);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(0.45f, 0.95f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.2f, 0.46f);
         main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
         main.startColor = new ParticleSystem.MinMaxGradient(
-            new Color(0.72f, 0.86f, 0.9f, 0.55f),
-            new Color(0.92f, 0.97f, 1f, 0.88f));
+            new Color(0.5f, 0.7f, 0.76f, 0.15f),
+            new Color(0.76f, 0.88f, 0.9f, 0.34f));
         main.gravityModifier = 0f;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
-        main.maxParticles = 180;
+        main.maxParticles = 90;
 
         ParticleSystem.EmissionModule emission = foam.emission;
         emission.rateOverTime = 0f;
 
         ParticleSystem.ShapeModule shape = foam.shape;
         shape.shapeType = ParticleSystemShapeType.Cone;
-        shape.angle = 18f;
-        shape.radius = 0.24f;
+        shape.angle = 13f;
+        shape.radius = 0.16f;
 
         ParticleSystem.ColorOverLifetimeModule color = foam.colorOverLifetime;
         color.enabled = true;
@@ -248,14 +268,14 @@ public sealed class BoatWakeTrail : MonoBehaviour
         gradient.SetKeys(
             new[]
             {
-                new GradientColorKey(new Color(0.9f, 0.96f, 1f), 0f),
-                new GradientColorKey(new Color(0.62f, 0.78f, 0.84f), 1f)
+                new GradientColorKey(new Color(0.66f, 0.82f, 0.86f), 0f),
+                new GradientColorKey(new Color(0.42f, 0.62f, 0.7f), 1f)
             },
             new[]
             {
                 new GradientAlphaKey(0f, 0f),
-                new GradientAlphaKey(0.88f, 0.12f),
-                new GradientAlphaKey(0.46f, 0.62f),
+                new GradientAlphaKey(0.28f, 0.12f),
+                new GradientAlphaKey(0.14f, 0.62f),
                 new GradientAlphaKey(0f, 1f)
             });
         color.color = gradient;
@@ -267,11 +287,11 @@ public sealed class BoatWakeTrail : MonoBehaviour
             new AnimationCurve(
                 new Keyframe(0f, 0.38f),
                 new Keyframe(0.28f, 1f),
-                new Keyframe(1f, 1.28f)));
+                new Keyframe(1f, 1.08f)));
 
         ParticleSystem.NoiseModule noise = foam.noise;
         noise.enabled = true;
-        noise.strength = 0.18f;
+        noise.strength = 0.1f;
         noise.frequency = 0.35f;
         noise.scrollSpeed = 0.1f;
 
@@ -302,28 +322,28 @@ public sealed class BoatWakeTrail : MonoBehaviour
         main.loop = true;
         main.playOnAwake = false;
         main.startLifetime = isBowSplash
-            ? new ParticleSystem.MinMaxCurve(0.32f, 0.58f)
-            : new ParticleSystem.MinMaxCurve(0.42f, 0.8f);
+            ? new ParticleSystem.MinMaxCurve(0.22f, 0.42f)
+            : new ParticleSystem.MinMaxCurve(0.28f, 0.52f);
         main.startSpeed = isBowSplash
-            ? new ParticleSystem.MinMaxCurve(1.4f, 3.2f)
-            : new ParticleSystem.MinMaxCurve(1.8f, 4.2f);
+            ? new ParticleSystem.MinMaxCurve(0.9f, 2.1f)
+            : new ParticleSystem.MinMaxCurve(1.1f, 2.8f);
         main.startSize = isBowSplash
-            ? new ParticleSystem.MinMaxCurve(0.22f, 0.58f)
-            : new ParticleSystem.MinMaxCurve(0.2f, 0.56f);
+            ? new ParticleSystem.MinMaxCurve(0.1f, 0.3f)
+            : new ParticleSystem.MinMaxCurve(0.08f, 0.28f);
         main.startColor = new ParticleSystem.MinMaxGradient(
-            new Color(0.62f, 0.8f, 0.86f, 0.42f),
-            new Color(0.9f, 0.96f, 1f, 0.72f));
+            new Color(0.48f, 0.68f, 0.74f, 0.14f),
+            new Color(0.74f, 0.86f, 0.9f, 0.34f));
         main.gravityModifier = 0.48f;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
-        main.maxParticles = isBowSplash ? 180 : 260;
+        main.maxParticles = isBowSplash ? 80 : 120;
 
         ParticleSystem.EmissionModule emission = spray.emission;
         emission.rateOverTime = 0f;
 
         ParticleSystem.ShapeModule shape = spray.shape;
         shape.shapeType = ParticleSystemShapeType.Cone;
-        shape.angle = isBowSplash ? 42f : 31f;
-        shape.radius = isBowSplash ? 0.2f : 0.15f;
+        shape.angle = isBowSplash ? 32f : 24f;
+        shape.radius = isBowSplash ? 0.14f : 0.1f;
 
         ParticleSystem.ColorOverLifetimeModule colorOverLifetime = spray.colorOverLifetime;
         colorOverLifetime.enabled = true;
@@ -331,13 +351,13 @@ public sealed class BoatWakeTrail : MonoBehaviour
         colorGradient.SetKeys(
             new[]
             {
-                new GradientColorKey(new Color(0.88f, 0.95f, 1f), 0f),
-                new GradientColorKey(new Color(0.58f, 0.76f, 0.82f), 1f)
+                new GradientColorKey(new Color(0.66f, 0.82f, 0.86f), 0f),
+                new GradientColorKey(new Color(0.42f, 0.62f, 0.68f), 1f)
             },
             new[]
             {
                 new GradientAlphaKey(0f, 0f),
-                new GradientAlphaKey(0.62f, 0.12f),
+                new GradientAlphaKey(0.26f, 0.12f),
                 new GradientAlphaKey(0f, 1f)
             });
         colorOverLifetime.color = colorGradient;
@@ -360,7 +380,7 @@ public sealed class BoatWakeTrail : MonoBehaviour
         return spray;
     }
 
-    private void UpdateWaterSpray()
+    private void UpdateWaterSpray(bool airborne)
     {
         if (leftSpray == null
             || rightSpray == null
@@ -373,12 +393,29 @@ public sealed class BoatWakeTrail : MonoBehaviour
 
         Vector3 planarVelocity = new Vector3(body.velocity.x, 0f, body.velocity.z);
         float sprayStrength = Mathf.InverseLerp(minimumSpraySpeed, fullSpraySpeed, planarVelocity.magnitude);
-        float emissionRate = maximumSprayRate * sprayStrength;
-        SetSprayRate(leftSpray, emissionRate);
-        SetSprayRate(rightSpray, emissionRate);
-        SetSprayRate(bowSpray, emissionRate * 0.4f);
-        SetSprayRate(leftSurfaceFoam, emissionRate * 0.9f);
-        SetSprayRate(rightSurfaceFoam, emissionRate * 0.9f);
+        float emissionRate = airborne ? 0f : maximumSprayRate * sprayStrength;
+        SetSprayRate(leftSpray, emissionRate * 0.12f);
+        SetSprayRate(rightSpray, emissionRate * 0.12f);
+        SetSprayRate(bowSpray, emissionRate * 0.08f);
+        // The procedural ribbon already draws the persistent V-shaped wake.
+        // Continuous horizontal billboards turn into oversized white clouds
+        // near the chase camera, so reserve these emitters for landing only.
+        SetSprayRate(leftSurfaceFoam, 0f);
+        SetSprayRate(rightSurfaceFoam, 0f);
+    }
+
+    private void EmitLandingSplash()
+    {
+        if (leftSpray == null || rightSpray == null || bowSpray == null)
+        {
+            return;
+        }
+
+        leftSpray.Emit(8);
+        rightSpray.Emit(8);
+        bowSpray.Emit(12);
+        leftSurfaceFoam?.Emit(5);
+        rightSurfaceFoam?.Emit(5);
     }
 
     private static void SetSprayRate(ParticleSystem spray, float emissionRate)
@@ -387,7 +424,7 @@ public sealed class BoatWakeTrail : MonoBehaviour
         emission.rateOverTime = emissionRate;
     }
 
-    private void UpdateWakePoints()
+    private void UpdateWakePoints(bool airborne)
     {
         float currentTime = Time.time;
         while (wakePoints.Count > 0 && currentTime - wakePoints[0].SpawnTime > lifetime)
@@ -397,7 +434,7 @@ public sealed class BoatWakeTrail : MonoBehaviour
 
         Vector3 planarVelocity = new Vector3(body.velocity.x, 0f, body.velocity.z);
         float currentSpeed = planarVelocity.magnitude;
-        if (currentSpeed < minimumSpeed)
+        if (airborne || currentSpeed < minimumSpeed)
         {
             return;
         }
@@ -525,7 +562,7 @@ public sealed class BoatWakeTrail : MonoBehaviour
                 float alpha = edgeFade
                     * Mathf.Lerp(0.45f, 1f, foamNoise)
                     * breakupMask
-                    * 0.88f;
+                    * 0.42f;
                 texture.SetPixel(column, row, new Color(1f, 1f, 1f, alpha));
             }
         }

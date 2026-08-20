@@ -26,6 +26,7 @@ Properties {
 	_heightScale ("Wave Height", Float) = 0.12
 	_lgWaveHeight ("Large Wave Height", Float) = 0.055
 	_CompatWaveAmplitude ("Visible Wave Amplitude", Float) = 0.028
+	_AnimSpeed ("Animation Speed", Float) = 1.0
 	_turbulenceFactor ("Turbulence", Range(0.0,1.0)) = 0.08
 	_specularPower ("Specular Power", Range(0.0,2.0)) = 0.42
 	_roughness ("Roughness", Range(0.0,1.0)) = 0.62
@@ -38,6 +39,9 @@ Properties {
 	_CinematicHorizonBlend ("Cinematic Horizon Blend", Range(0.0,1.0)) = 0.68
 	_CinematicHorizonColor ("Cinematic Horizon Color", Color) = (0.78,0.52,0.32,1.0)
 	_CinematicMicroRipple ("Cinematic Micro Ripple", Range(0.0,1.0)) = 0.46
+	_OpenOceanBlend ("Open Ocean Detail", Range(0.0,1.0)) = 0.0
+	_OpenOceanChop ("Open Ocean Choppiness", Range(0.0,1.5)) = 0.0
+	_OpenOceanFoam ("Open Ocean Crest Foam", Range(0.0,1.0)) = 0.0
 	_suimono_Dir ("Flow Direction", Vector) = (0.42,1,-0.91,0)
 	_RefractStrength ("Refraction Strength", Range(0.0,1.0)) = 0.5
 	_EdgeFade ("Edge Fade", Range(0.01,500.0)) = 1.0
@@ -50,6 +54,8 @@ Properties {
 	_ShorelineLevel ("Island Shoreline Level", Float) = 150.0
 	_ShorelineWidth ("Island Shoreline Width", Float) = 14.0
 	_ShorelineFoam ("Island Shoreline Foam", Range(0.0,1.0)) = 0.0
+	_TideAmount ("Tide Reach", Float) = 0.3
+	_TideSpread ("Tide Spread", Float) = 0.5
 
 	_DepthFade ("Depth Fade", Range(0.01,5.0)) = 1.0
 	_ShallowFade ("Shallow Fade", Range(0.01,5.0)) = 1.0

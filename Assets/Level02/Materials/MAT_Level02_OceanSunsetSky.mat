@@ -37,23 +37,23 @@ Material:
     - _AtmosphereThickness: 0.9
     - _CloudBrightness: 1.02
     - _CloudContrast: 0.14
-    - _CloudCoverage: 0.62
-    - _CloudOpacity: 0.58
+    - _CloudCoverage: 0.56
+    - _CloudOpacity: 0.66
     - _CloudSoftness: 0.14
-    - _Exposure: 1.02
+    - _Exposure: 0.98
     - _SunDisk: 2
     - _SunSize: 0.028
     - _SunSizeConvergence: 6
     m_Colors:
-    - _CloudLight: {r: 0.82, g: 0.76, b: 0.68, a: 1}
-    - _CloudShadow: {r: 0.34, g: 0.36, b: 0.41, a: 1}
+    - _CloudLight: {r: 0.78, g: 0.72, b: 0.66, a: 1}
+    - _CloudShadow: {r: 0.22, g: 0.28, b: 0.37, a: 1}
     - _DriftA: {r: 0.00045, g: 0.00008, b: 0, a: 0}
     - _DriftB: {r: -0.00018, g: 0.00012, b: 0, a: 0}
-    - _GroundColor: {r: 0.34, g: 0.35, b: 0.38, a: 1}
-    - _HorizonColor: {r: 0.78, g: 0.52, b: 0.32, a: 1}
+    - _GroundColor: {r: 0.23, g: 0.27, b: 0.31, a: 1}
+    - _HorizonColor: {r: 0.7, g: 0.4, b: 0.23, a: 1}
     - _SkyTint: {r: 0.25, g: 0.28, b: 0.35, a: 1}
-    - _SunColor: {r: 1, g: 0.67, b: 0.34, a: 1}
+    - _SunColor: {r: 1, g: 0.64, b: 0.34, a: 1}
     - _SunDirection: {r: -0.64, g: 0.055, b: 0.77, a: 0}
-    - _UpperSkyColor: {r: 0.25, g: 0.4, b: 0.6, a: 1}
-    - _ZenithColor: {r: 0.09, g: 0.18, b: 0.34, a: 1}
+    - _UpperSkyColor: {r: 0.13, g: 0.28, b: 0.5, a: 1}
+    - _ZenithColor: {r: 0.045, g: 0.1, b: 0.22, a: 1}
   m_BuildTextureStacks: []

@@ -19,12 +19,23 @@ public sealed class BoatChaseController : MonoBehaviour
     [SerializeField, Min(0f)] private float minimumSteeringSpeed = 1.5f;
     [SerializeField] private bool immediateSteering = true;
 
+    [Header("Wave Jump")]
+    [SerializeField] private KeyCode jumpKey = KeyCode.Space;
+    [SerializeField, Min(0f)] private float jumpVelocity = 6.2f;
+    [SerializeField, Min(0f)] private float jumpCooldown = 0.45f;
+    [SerializeField, Min(0f)] private float landingTolerance = 0.08f;
+
     private Rigidbody body;
     private SimplePlayerHealth health;
     private BoatChaseDifficultyController difficultyController;
     private float steeringInput;
+    private float waterlineY;
+    private float jumpStartedAt;
+    private float nextJumpTime;
+    private bool jumpQueued;
 
     public float CurrentForwardSpeed { get; private set; }
+    public bool IsJumping { get; private set; }
     public float MaximumTurnRate => maximumTurnRate;
     public float TurnAcceleration => turnAcceleration;
     public float TurnResponse => turnResponse;
@@ -66,6 +77,7 @@ public sealed class BoatChaseController : MonoBehaviour
         body.angularDrag = 0.2f;
         ApplyAngularVelocityLimit();
         EnsureOceanBoundaries();
+        waterlineY = body.position.y;
     }
 
     private void Start()
@@ -77,6 +89,18 @@ public sealed class BoatChaseController : MonoBehaviour
     private void Update()
     {
         steeringInput = Input.GetAxis("Horizontal");
+        if (Input.GetKeyDown(jumpKey))
+        {
+            QueueJump();
+        }
+    }
+
+    public void QueueJump()
+    {
+        if (health == null || health.CurrentHealth > 0)
+        {
+            jumpQueued = true;
+        }
     }
 
     private void FixedUpdate()
@@ -88,6 +112,8 @@ public sealed class BoatChaseController : MonoBehaviour
             body.angularVelocity = Vector3.zero;
             return;
         }
+
+        UpdateJump();
 
         if (difficultyController == null)
         {
@@ -104,8 +130,10 @@ public sealed class BoatChaseController : MonoBehaviour
             float turnDegrees = steeringInput * maximumTurnRate * Time.fixedDeltaTime;
             Quaternion nextRotation = body.rotation * Quaternion.Euler(0f, turnDegrees, 0f);
             body.MoveRotation(nextRotation);
+            float verticalVelocity = body.velocity.y;
             body.velocity = nextRotation * Vector3.forward * targetForwardSpeed
-                + whirlpoolCurrent;
+                + whirlpoolCurrent
+                + Vector3.up * verticalVelocity;
             body.angularVelocity = Vector3.zero;
             CurrentForwardSpeed = targetForwardSpeed;
             return;
@@ -140,6 +168,49 @@ public sealed class BoatChaseController : MonoBehaviour
         body.AddTorque(Vector3.up * yawAcceleration * Mathf.Deg2Rad, ForceMode.Acceleration);
 
         CurrentForwardSpeed = Mathf.Max(0f, currentForwardSpeed);
+    }
+
+    private void UpdateJump()
+    {
+        if (jumpQueued)
+        {
+            jumpQueued = false;
+            if (!IsJumping && Time.time >= nextJumpTime)
+            {
+                IsJumping = true;
+                jumpStartedAt = Time.time;
+                nextJumpTime = Time.time + jumpCooldown;
+                body.constraints &= ~RigidbodyConstraints.FreezePositionY;
+                body.useGravity = true;
+                Vector3 velocity = body.velocity;
+                velocity.y = jumpVelocity;
+                body.velocity = velocity;
+            }
+        }
+
+        if (!IsJumping)
+        {
+            return;
+        }
+
+        bool descending = body.velocity.y <= 0f;
+        bool minimumAirTimeElapsed = Time.time - jumpStartedAt > 0.18f;
+        if (!descending
+            || !minimumAirTimeElapsed
+            || body.position.y > waterlineY + landingTolerance)
+        {
+            return;
+        }
+
+        Vector3 landedPosition = body.position;
+        landedPosition.y = waterlineY;
+        body.position = landedPosition;
+        Vector3 landedVelocity = body.velocity;
+        landedVelocity.y = 0f;
+        body.velocity = landedVelocity;
+        body.useGravity = false;
+        body.constraints |= RigidbodyConstraints.FreezePositionY;
+        IsJumping = false;
     }
 
     private float GetTargetForwardSpeed()
