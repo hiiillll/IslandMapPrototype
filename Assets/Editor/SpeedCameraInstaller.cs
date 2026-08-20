@@ -36,19 +36,19 @@ public static class SpeedCameraInstaller
         }
 
         cameraFollow.target = player.transform;
-        cameraComponent.orthographic = true;
-        cameraComponent.orthographicSize = 7f;
-        cameraComponent.fieldOfView = 60f;
+        cameraFollow.ConfigureCloseChaseView(true);
+        cameraComponent.orthographic = false;
+        cameraComponent.fieldOfView = 62f;
         cameraComponent.nearClipPlane = 0.3f;
         cameraComponent.farClipPlane = 1000f;
         cameraComponent.backgroundColor = new Color(0.15f, 0.15f, 0.15f);
-        cameraObject.transform.position = player.transform.position + Vector3.up * 19f;
-        cameraObject.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+        cameraObject.transform.position = player.transform.TransformPoint(new Vector3(0f, 8f, -18f));
+        cameraObject.transform.LookAt(player.transform.TransformPoint(new Vector3(0f, 1.5f, -2f)));
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene, ScenePath);
         File.WriteAllText(MarkerPath, DateTime.UtcNow.ToString("O"));
         Selection.activeGameObject = cameraObject;
-        Debug.Log("Installed Speed-style top-down camera follow with C view toggle.");
+        Debug.Log("Installed the fixed third-person Speed camera.");
     }
 }

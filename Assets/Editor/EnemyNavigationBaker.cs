@@ -14,11 +14,9 @@ public static class EnemyNavigationBaker
     private const string SurfaceName = "AI_NAVIGATION_CarSurface";
     private const string EnclosedAreaGroupName = "AI_NAVIGATION_EnclosedAreas";
     private const float AdditionalObstacleClearance = 2.25f;
-    private const float EnclosedAreaPadding = 1.25f;
-    private const float MinimumEnclosedAreaSpan = 6f;
-    // Two perpendicular hedge runs can close a courtyard when buildings form
-    // the remaining sides, as in the Tolite block.
-    private const int MinimumEnclosureColliderCount = 2;
+    private const float TentClusterDistance = 10f;
+    private const float TentAreaPadding = 0.4f;
+    private const int MinimumTentClusterSize = 3;
 
     [MenuItem("Tools/Island Map/Bake Enemy Navigation")]
     public static void Bake()
@@ -42,7 +40,7 @@ public static class EnemyNavigationBaker
         ConfigureSurface(surface, notWalkableArea);
         int sourceCount = ConfigureColliderModifiers(notWalkableArea);
         int clearanceVolumeCount = ConfigureObstacleClearanceVolumes(notWalkableArea);
-        int enclosedAreaCount = ConfigureEnclosedObstacleVolumes(notWalkableArea);
+        int enclosedAreaCount = ConfigureTentEnclosedVolumes(notWalkableArea);
         if (sourceCount == 0)
         {
             Debug.LogError("Enemy navigation bake failed: no road, grass, or beach collider was found.");
@@ -165,26 +163,18 @@ public static class EnemyNavigationBaker
         return volumeCount;
     }
 
-    private static int ConfigureEnclosedObstacleVolumes(int notWalkableArea)
+    private static int ConfigureTentEnclosedVolumes(int notWalkableArea)
     {
-        Dictionary<int, List<Collider>> enclosureGroups = new Dictionary<int, List<Collider>>();
-        Dictionary<int, Transform> enclosureOwners = new Dictionary<int, Transform>();
-        foreach (Collider collider in Object.FindObjectsOfType<Collider>(true))
+        List<Transform> tents = new List<Transform>();
+        foreach (Transform candidate in Object.FindObjectsOfType<Transform>(true))
         {
-            if (!ShouldBakeCollider(collider) || !TryGetHedgeOwner(collider, out Transform owner))
+            if (!IsInActiveScene(candidate) || !candidate.gameObject.activeInHierarchy
+                || !candidate.name.StartsWith("MB_Tent_") || HasTentAncestor(candidate))
             {
                 continue;
             }
 
-            int ownerId = owner != null ? owner.GetInstanceID() : 0;
-            if (!enclosureGroups.TryGetValue(ownerId, out List<Collider> colliders))
-            {
-                colliders = new List<Collider>();
-                enclosureGroups.Add(ownerId, colliders);
-                enclosureOwners.Add(ownerId, owner);
-            }
-
-            colliders.Add(collider);
+            tents.Add(candidate);
         }
 
         GameObject systems = GameObject.Find("SYSTEMS");
@@ -196,37 +186,59 @@ public static class EnemyNavigationBaker
         GameObject generatedGroup = new GameObject(EnclosedAreaGroupName);
         generatedGroup.transform.SetParent(systems.transform, false);
         int volumeCount = 0;
-        foreach (KeyValuePair<int, List<Collider>> pair in enclosureGroups)
+        HashSet<Transform> unassigned = new HashSet<Transform>(tents);
+        while (unassigned.Count > 0)
         {
-            List<Collider> colliders = pair.Value;
-            if (colliders.Count < MinimumEnclosureColliderCount)
+            Transform seed = null;
+            foreach (Transform candidate in unassigned)
+            {
+                seed = candidate;
+                break;
+            }
+
+            List<Transform> cluster = new List<Transform>();
+            Queue<Transform> pending = new Queue<Transform>();
+            pending.Enqueue(seed);
+            unassigned.Remove(seed);
+            while (pending.Count > 0)
+            {
+                Transform current = pending.Dequeue();
+                cluster.Add(current);
+
+                List<Transform> neighbours = new List<Transform>();
+                foreach (Transform candidate in unassigned)
+                {
+                    Vector2 delta = new Vector2(
+                        candidate.position.x - current.position.x,
+                        candidate.position.z - current.position.z);
+                    if (delta.sqrMagnitude <= TentClusterDistance * TentClusterDistance)
+                    {
+                        neighbours.Add(candidate);
+                    }
+                }
+
+                foreach (Transform neighbour in neighbours)
+                {
+                    unassigned.Remove(neighbour);
+                    pending.Enqueue(neighbour);
+                }
+            }
+
+            if (cluster.Count < MinimumTentClusterSize || !TryGetClusterBounds(cluster, out Bounds bounds))
             {
                 continue;
             }
 
-            Bounds bounds = colliders[0].bounds;
-            for (int index = 1; index < colliders.Count; index++)
-            {
-                bounds.Encapsulate(colliders[index].bounds);
-            }
-
-            if (bounds.size.x < MinimumEnclosedAreaSpan || bounds.size.z < MinimumEnclosedAreaSpan)
-            {
-                continue;
-            }
-
-            Transform owner = enclosureOwners[pair.Key];
-            string ownerName = owner != null ? owner.name : "RootHedges";
-            GameObject volumeObject = new GameObject($"ENCLOSED_{ownerName}_{volumeCount + 1:00}");
+            GameObject volumeObject = new GameObject($"ENCLOSED_TENT_CLUSTER_{volumeCount + 1:00}");
             volumeObject.transform.SetParent(generatedGroup.transform, false);
             volumeObject.transform.position = bounds.center;
 
             NavMeshModifierVolume volume = volumeObject.AddComponent<NavMeshModifierVolume>();
             volume.center = Vector3.zero;
             volume.size = new Vector3(
-                bounds.size.x + EnclosedAreaPadding * 2f,
-                Mathf.Max(4f, bounds.size.y + 4f),
-                bounds.size.z + EnclosedAreaPadding * 2f);
+                bounds.size.x + TentAreaPadding * 2f,
+                Mathf.Max(4f, bounds.size.y + 2f),
+                bounds.size.z + TentAreaPadding * 2f);
             volume.area = notWalkableArea;
             EditorUtility.SetDirty(volume);
             volumeCount++;
@@ -240,25 +252,55 @@ public static class EnemyNavigationBaker
         return volumeCount;
     }
 
-    private static bool TryGetHedgeOwner(Collider collider, out Transform owner)
+    private static bool HasTentAncestor(Transform candidate)
     {
-        Transform hedgeRoot = null;
-        for (Transform current = collider.transform; current != null; current = current.parent)
+        for (Transform parent = candidate.parent; parent != null; parent = parent.parent)
         {
-            if (current.name.StartsWith("MB_Boxwood_Shrubs_"))
+            if (parent.name.StartsWith("MB_Tent_"))
             {
-                hedgeRoot = current;
+                return true;
             }
         }
 
-        if (hedgeRoot != null)
+        return false;
+    }
+
+    private static bool TryGetClusterBounds(List<Transform> cluster, out Bounds bounds)
+    {
+        bounds = default;
+        bool initialized = false;
+        foreach (Transform tent in cluster)
         {
-            owner = hedgeRoot.parent;
-            return true;
+            foreach (Collider collider in tent.GetComponentsInChildren<Collider>(true))
+            {
+                if (!ShouldBakeCollider(collider))
+                {
+                    continue;
+                }
+
+                if (!initialized)
+                {
+                    bounds = collider.bounds;
+                    initialized = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(collider.bounds);
+                }
+            }
         }
 
-        owner = null;
-        return false;
+        if (!initialized && cluster.Count > 0)
+        {
+            bounds = new Bounds(cluster[0].position, new Vector3(2f, 4f, 2f));
+            for (int index = 1; index < cluster.Count; index++)
+            {
+                bounds.Encapsulate(cluster[index].position);
+            }
+            initialized = true;
+        }
+
+        return initialized;
     }
 
     private static bool IsClearanceObstacle(Collider collider)

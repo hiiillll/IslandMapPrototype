@@ -557,8 +557,8 @@ Camera:
     height: 1
   near clip plane: 0.1
   far clip plane: 6000
-  field of view: 60
-  orthographic: 1
+  field of view: 70
+  orthographic: 0
   orthographic size: 36
   m_Depth: 0
   m_CullingMask:
@@ -588,12 +588,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 1486993548}
-  height: 62
-  orthographicSize: 36
   followSmoothTime: 0.14
   maximumFollowSpeed: 100
-  toggleViewKey: 99
-  startViewMode: 0
   viewBlendSpeed: 8
   thirdPersonCameraOffset: {x: 0, y: 14, z: -32}
   thirdPersonLookOffset: {x: 0, y: 2, z: -4}

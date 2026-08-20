@@ -359,12 +359,14 @@ public static class Level04SkyChaseBuilder
         cameraObject.tag = "MainCamera";
         SceneManager.MoveGameObjectToScene(cameraObject, scene);
         cameraObject.transform.SetParent(parent, false);
-        cameraObject.transform.position = player.position + Vector3.up * 55f;
-        cameraObject.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+        cameraObject.transform.position = player.TransformPoint(new Vector3(0f, 14f, -32f));
+        cameraObject.transform.LookAt(player.TransformPoint(new Vector3(0f, 2f, -4f)));
         Camera cameraComponent = cameraObject.AddComponent<Camera>();
         cameraComponent.clearFlags = CameraClearFlags.Skybox;
         cameraComponent.backgroundColor = new Color(0.3f, 0.66f, 0.88f);
         cameraComponent.allowHDR = true;
+        cameraComponent.orthographic = false;
+        cameraComponent.fieldOfView = 70f;
         PlaneChaseTopDownCamera follow = cameraObject.AddComponent<PlaneChaseTopDownCamera>();
         follow.Configure(player, 62f, 36f);
         return cameraComponent;
@@ -849,13 +851,8 @@ public static class Level04SkyChaseBuilder
         bool originalOrthographic = camera.orthographic;
         float originalOrthographicSize = camera.orthographicSize;
         float originalFieldOfView = camera.fieldOfView;
-        camera.transform.position = player.transform.position + Vector3.up * 62f;
-        camera.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-        camera.orthographic = true;
-        camera.orthographicSize = 36f;
         GameObject enemyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyPrefabPath);
         List<GameObject> previewEnemies = CreatePreviewEnemies(player.transform, enemyPrefab);
-        RenderPreview(camera, PreviewPath);
 
         Vector3 forward = Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
         if (forward.sqrMagnitude < 0.001f)
@@ -867,6 +864,7 @@ public static class Level04SkyChaseBuilder
         camera.transform.rotation = Quaternion.LookRotation(lookTarget - camera.transform.position, Vector3.up);
         camera.orthographic = false;
         camera.fieldOfView = 70f;
+        RenderPreview(camera, PreviewPath);
         RenderPreview(camera, ThirdPersonPreviewPath);
 
         camera.transform.position = originalPosition;

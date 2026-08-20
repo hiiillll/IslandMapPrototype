@@ -31,6 +31,7 @@ public sealed class PlayerSkillSystem : MonoBehaviour
     private const float UnupgradedBlinkCooldown = 7f;
     private const float UnupgradedFlameTrailCooldown = 12f;
     private const float UnupgradedTankShellCooldown = 10f;
+    private const float BlinkWallClearance = 0.35f;
     private const float HealthPackDropChanceUpgrade = 0.1f;
     private const string StartBrandXKey = "Menu.Layout.BrandX";
     private const string StartBrandYKey = "Menu.Layout.BrandY";
@@ -395,17 +396,62 @@ public sealed class PlayerSkillSystem : MonoBehaviour
 
     private void BlinkForward(float distance, float minimumSpeed)
     {
-        Vector3 destination = transform.position + transform.forward * distance;
+        Vector3 direction = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+        if (direction.sqrMagnitude < 0.001f)
+        {
+            direction = transform.forward.normalized;
+        }
+
+        float travelDistance = GetBlinkTravelDistance(direction, distance);
+        Vector3 destination = transform.position + direction * travelDistance;
         if (body != null)
         {
             body.position = destination;
-            body.velocity = transform.forward * Mathf.Max(body.velocity.magnitude, minimumSpeed);
+            body.velocity = direction * Mathf.Max(body.velocity.magnitude, minimumSpeed);
         }
         else
         {
             transform.position = destination;
         }
         LegacySkillVfx.FlashPlayer(transform, 0.1f);
+    }
+
+    private float GetBlinkTravelDistance(Vector3 direction, float requestedDistance)
+    {
+        if (body == null)
+        {
+            return Physics.Raycast(
+                transform.position,
+                direction,
+                out RaycastHit fallbackHit,
+                requestedDistance,
+                ~0,
+                QueryTriggerInteraction.Ignore)
+                ? Mathf.Max(0f, fallbackHit.distance - BlinkWallClearance)
+                : requestedDistance;
+        }
+
+        RaycastHit[] hits = body.SweepTestAll(direction, requestedDistance, QueryTriggerInteraction.Ignore);
+        float nearestBlockingDistance = requestedDistance;
+        foreach (RaycastHit hit in hits)
+        {
+            if (hit.collider == null || hit.collider.attachedRigidbody == body
+                || hit.collider.transform.IsChildOf(transform))
+            {
+                continue;
+            }
+
+            // The car starts in contact with the drive surface. Upward-facing
+            // contacts are ground, not a wall blocking the blink path.
+            if (hit.normal.y > 0.65f)
+            {
+                continue;
+            }
+
+            nearestBlockingDistance = Mathf.Min(nearestBlockingDistance, hit.distance);
+        }
+
+        return Mathf.Max(0f, nearestBlockingDistance - BlinkWallClearance);
     }
 
     private void FireTankShells(float speed, float lifetime, float explosionRadius)

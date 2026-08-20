@@ -252,12 +252,14 @@ public static class BoatChaseLevelBuilder
         cameraObject.tag = "MainCamera";
         SceneManager.MoveGameObjectToScene(cameraObject, scene);
         cameraObject.transform.SetParent(parent, false);
-        cameraObject.transform.position = playerBoat.position + Vector3.up * 55f;
-        cameraObject.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+        cameraObject.transform.position = playerBoat.TransformPoint(new Vector3(0f, 10.5f, -24.5f));
+        cameraObject.transform.LookAt(playerBoat.TransformPoint(new Vector3(0f, 1.7f, -6.5f)));
 
         Camera cameraComponent = cameraObject.AddComponent<Camera>();
         cameraComponent.clearFlags = CameraClearFlags.Skybox;
         cameraComponent.backgroundColor = new Color(0.08f, 0.45f, 0.62f);
+        cameraComponent.orthographic = false;
+        cameraComponent.fieldOfView = 66f;
         BoatChaseTopDownCamera cameraFollow = cameraObject.AddComponent<BoatChaseTopDownCamera>();
         cameraFollow.Configure(playerBoat, 62f, 36f);
         return cameraComponent;

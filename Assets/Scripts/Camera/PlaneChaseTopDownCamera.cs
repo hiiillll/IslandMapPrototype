@@ -4,25 +4,12 @@ using UnityEngine;
 [RequireComponent(typeof(AudioListener))]
 public sealed class PlaneChaseTopDownCamera : MonoBehaviour
 {
-    private enum CameraViewMode
-    {
-        TopDown,
-        ThirdPerson
-    }
-
     [SerializeField] private Transform target;
-
-    [Header("Top Down")]
-    [SerializeField, Min(0f)] private float height = 62f;
-    [SerializeField, Min(0.01f)] private float orthographicSize = 36f;
 
     [Header("Follow")]
     [SerializeField, Min(0f)] private float followSmoothTime = 0.14f;
     [SerializeField, Min(0f)] private float maximumFollowSpeed = 100f;
 
-    [Header("View Toggle")]
-    [SerializeField] private KeyCode toggleViewKey = KeyCode.C;
-    [SerializeField] private CameraViewMode startViewMode = CameraViewMode.TopDown;
     [SerializeField, Min(0f)] private float viewBlendSpeed = 8f;
 
     [Header("Third Person")]
@@ -31,7 +18,6 @@ public sealed class PlaneChaseTopDownCamera : MonoBehaviour
     [SerializeField, Range(30f, 100f)] private float thirdPersonFieldOfView = 70f;
 
     private Camera cameraComponent;
-    private CameraViewMode viewMode;
     private Vector3 followVelocity;
     private float shakeRemaining;
     private float shakeDuration;
@@ -47,8 +33,6 @@ public sealed class PlaneChaseTopDownCamera : MonoBehaviour
     public void Configure(Transform followTarget, float cameraHeight, float cameraOrthographicSize)
     {
         target = followTarget;
-        height = cameraHeight;
-        orthographicSize = cameraOrthographicSize;
         cameraComponent = GetComponent<Camera>();
         ApplyCameraSettings();
     }
@@ -56,8 +40,6 @@ public sealed class PlaneChaseTopDownCamera : MonoBehaviour
     private void Awake()
     {
         cameraComponent = GetComponent<Camera>();
-        height = Mathf.Max(height, 62f);
-        orthographicSize = Mathf.Max(orthographicSize, 36f);
         ApplyCameraSettings();
     }
 
@@ -69,18 +51,12 @@ public sealed class PlaneChaseTopDownCamera : MonoBehaviour
             target = player != null ? player.transform : null;
         }
 
-        viewMode = startViewMode;
         ApplyCameraSettings();
-    }
-
-    private void Update()
-    {
-        if (Input.GetKeyDown(toggleViewKey))
+        if (target != null)
         {
-            viewMode = viewMode == CameraViewMode.TopDown
-                ? CameraViewMode.ThirdPerson
-                : CameraViewMode.TopDown;
-            ApplyCameraSettings();
+            GetThirdPersonPose(out Vector3 position, out Quaternion rotation);
+            transform.SetPositionAndRotation(position, rotation);
+            followVelocity = Vector3.zero;
         }
     }
 
@@ -91,17 +67,7 @@ public sealed class PlaneChaseTopDownCamera : MonoBehaviour
             return;
         }
 
-        Vector3 targetPosition;
-        Quaternion targetRotation;
-        if (viewMode == CameraViewMode.TopDown)
-        {
-            targetPosition = target.position + Vector3.up * height;
-            targetRotation = Quaternion.Euler(90f, 0f, 0f);
-        }
-        else
-        {
-            GetThirdPersonPose(out targetPosition, out targetRotation);
-        }
+        GetThirdPersonPose(out Vector3 targetPosition, out Quaternion targetRotation);
 
         Vector3 shakeOffset = Vector3.zero;
         if (shakeRemaining > 0f)
@@ -137,16 +103,8 @@ public sealed class PlaneChaseTopDownCamera : MonoBehaviour
         }
 
         cameraComponent.clearFlags = CameraClearFlags.Skybox;
-        bool topDown = viewMode == CameraViewMode.TopDown;
-        cameraComponent.orthographic = topDown;
-        if (topDown)
-        {
-            cameraComponent.orthographicSize = orthographicSize;
-        }
-        else
-        {
-            cameraComponent.fieldOfView = thirdPersonFieldOfView;
-        }
+        cameraComponent.orthographic = false;
+        cameraComponent.fieldOfView = thirdPersonFieldOfView;
         cameraComponent.nearClipPlane = 0.1f;
         // The cloud sea spans several kilometres. A short far plane exposes the
         // procedural sky's lower hemisphere as a dark band in chase view.

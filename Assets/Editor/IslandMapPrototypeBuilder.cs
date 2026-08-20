@@ -88,8 +88,8 @@ public static class IslandMapPrototypeBuilder
         cameraObject.tag = "MainCamera";
         cameraObject.transform.position = new Vector3(0f, 650f, 0f);
         cameraObject.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-        camera.orthographic = true;
-        camera.orthographicSize = 540f;
+        camera.orthographic = false;
+        camera.fieldOfView = 62f;
         camera.nearClipPlane = 0.3f;
         camera.farClipPlane = 300f;
         camera.clearFlags = CameraClearFlags.SolidColor;

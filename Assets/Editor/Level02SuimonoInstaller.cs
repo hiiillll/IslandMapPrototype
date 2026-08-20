@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using Suimono.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -222,16 +221,7 @@ public static class Level02SuimonoInstaller
             throw new InvalidOperationException("Cannot switch Level02 preview without its camera controller.");
         }
 
-        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
-        FieldInfo viewModeField = typeof(BoatChaseTopDownCamera).GetField("viewMode", flags);
-        MethodInfo applySettings = typeof(BoatChaseTopDownCamera).GetMethod("ApplyCameraSettings", flags);
-        if (viewModeField == null || applySettings == null)
-        {
-            throw new MissingMemberException("Level02 camera preview hooks are unavailable.");
-        }
-
-        viewModeField.SetValue(controller, Enum.ToObject(viewModeField.FieldType, 1));
-        applySettings.Invoke(controller, null);
+        // The boat camera is permanently third-person now; no mode switch is needed.
     }
 
     private static void CaptureCameraPreview(string path)
