@@ -35,7 +35,32 @@ public class SimpleSpeedCameraFollow : MonoBehaviour
     [Tooltip("数值越小越像长焦、速度感更稳；数值越大视野更广。")]
     [SerializeField] private float closeChaseFieldOfView = 60f;
 
+    [Header("近距离视角后视镜")]
+    [InspectorName("启用后视镜")]
+    [SerializeField] private bool enableRearViewMirror = true;
+    [InspectorName("后视摄像机位置偏移")]
+    [Tooltip("相对于车辆的位置：X 左右、Y 高度、Z 前后。")]
+    [SerializeField] private Vector3 rearViewCameraOffset = new Vector3(0f, 2.35f, -1.6f);
+    [InspectorName("后视摄像机注视点偏移")]
+    [Tooltip("默认朝车后方看。Z 越小，视线看得越靠后。")]
+    [SerializeField] private Vector3 rearViewLookOffset = new Vector3(0f, 1.25f, -24f);
+    [InspectorName("后视镜视野 FOV")]
+    [Range(30f, 100f)]
+    [SerializeField] private float rearViewFieldOfView = 58f;
+    [InspectorName("后视镜屏幕位置")]
+    [Tooltip("归一化屏幕坐标：X 是中心位置，Y 是顶部位置。")]
+    [SerializeField] private Vector2 rearViewScreenPosition = new Vector2(0.5f, 0.035f);
+    [InspectorName("后视镜屏幕大小")]
+    [Tooltip("归一化屏幕尺寸。建议保持宽度约为高度的 2.8 至 3.4 倍。")]
+    [SerializeField] private Vector2 rearViewScreenSize = new Vector2(0.36f, 0.135f);
+    [InspectorName("后视镜渲染分辨率")]
+    [Tooltip("提高会更清晰但更耗性能。")]
+    [SerializeField] private Vector2Int rearViewRenderResolution = new Vector2Int(768, 256);
+
     private Camera cameraComponent;
+    private Camera rearViewCamera;
+    private RenderTexture rearViewTexture;
+    private Material rearViewMaterial;
     private bool closeChaseViewActive;
     private Vector3 followVelocity;
     private float shakeRemaining;
@@ -57,6 +82,7 @@ public class SimpleSpeedCameraFollow : MonoBehaviour
             closeChaseViewActive = false;
         }
         ApplyProjection();
+        UpdateRearViewMirrorState();
     }
 
     private void Awake()
@@ -67,6 +93,8 @@ public class SimpleSpeedCameraFollow : MonoBehaviour
             gameObject.AddComponent<AudioListener>();
         }
         ApplyProjection();
+        EnsureRearViewMirror();
+        UpdateRearViewMirrorState();
     }
 
     private void Start()
@@ -99,6 +127,7 @@ public class SimpleSpeedCameraFollow : MonoBehaviour
         closeChaseViewActive = !closeChaseViewActive;
         followVelocity = Vector3.zero;
         ApplyProjection();
+        UpdateRearViewMirrorState();
     }
 
     private void LateUpdate()
@@ -133,6 +162,52 @@ public class SimpleSpeedCameraFollow : MonoBehaviour
             transform.rotation,
             desiredRotation,
             viewBlendSpeed * Time.unscaledDeltaTime);
+
+        UpdateRearViewCameraPose();
+    }
+
+    private void OnGUI()
+    {
+        if (!ShouldShowRearViewMirror() || rearViewTexture == null || Event.current.type != EventType.Repaint)
+        {
+            return;
+        }
+
+        float width = Mathf.Clamp(rearViewScreenSize.x, 0.12f, 0.8f) * Screen.width;
+        float height = Mathf.Clamp(rearViewScreenSize.y, 0.05f, 0.4f) * Screen.height;
+        float centerX = Mathf.Clamp01(rearViewScreenPosition.x) * Screen.width;
+        float top = Mathf.Clamp01(rearViewScreenPosition.y) * Screen.height;
+        Rect mirrorRect = new Rect(centerX - width * 0.5f, top, width, height);
+
+        int previousDepth = GUI.depth;
+        GUI.depth = -900;
+        if (rearViewMaterial != null)
+        {
+            Graphics.DrawTexture(mirrorRect, rearViewTexture, rearViewMaterial);
+        }
+        else
+        {
+            GUI.DrawTexture(mirrorRect, rearViewTexture, ScaleMode.StretchToFill, false);
+            GUI.Box(mirrorRect, GUIContent.none);
+        }
+        GUI.depth = previousDepth;
+    }
+
+    private void OnDestroy()
+    {
+        if (rearViewCamera != null)
+        {
+            Destroy(rearViewCamera.gameObject);
+        }
+        if (rearViewTexture != null)
+        {
+            rearViewTexture.Release();
+            Destroy(rearViewTexture);
+        }
+        if (rearViewMaterial != null)
+        {
+            Destroy(rearViewMaterial);
+        }
     }
 
     private void ApplyProjection()
@@ -146,6 +221,87 @@ public class SimpleSpeedCameraFollow : MonoBehaviour
         cameraComponent.fieldOfView = closeChaseViewActive
             ? closeChaseFieldOfView
             : thirdPersonFieldOfView;
+    }
+
+    private void EnsureRearViewMirror()
+    {
+        if (!enableCloseChaseView || !enableRearViewMirror || rearViewCamera != null || cameraComponent == null)
+        {
+            return;
+        }
+
+        int textureWidth = Mathf.Clamp(rearViewRenderResolution.x, 256, 1920);
+        int textureHeight = Mathf.Clamp(rearViewRenderResolution.y, 96, 720);
+        rearViewTexture = new RenderTexture(textureWidth, textureHeight, 24, RenderTextureFormat.ARGB32)
+        {
+            name = "RT_Level01_RearViewMirror",
+            antiAliasing = 1,
+            filterMode = FilterMode.Bilinear,
+            useMipMap = false
+        };
+        rearViewTexture.Create();
+
+        GameObject rearCameraObject = new GameObject("SYS_RearViewMirrorCamera");
+        rearCameraObject.transform.SetParent(transform, false);
+        rearViewCamera = rearCameraObject.AddComponent<Camera>();
+        rearViewCamera.CopyFrom(cameraComponent);
+        rearViewCamera.name = "Rear View Mirror Camera";
+        rearViewCamera.targetTexture = rearViewTexture;
+        rearViewCamera.depth = cameraComponent.depth - 1f;
+        rearViewCamera.allowMSAA = false;
+        rearViewCamera.useOcclusionCulling = true;
+        rearViewCamera.fieldOfView = rearViewFieldOfView;
+
+        Shader mirrorShader = Shader.Find("Hidden/SpeedEscape/RearViewMirror");
+        if (mirrorShader != null)
+        {
+            rearViewMaterial = new Material(mirrorShader)
+            {
+                name = "MAT_Runtime_RearViewMirror"
+            };
+        }
+    }
+
+    private bool ShouldShowRearViewMirror()
+    {
+        return enableCloseChaseView && enableRearViewMirror && closeChaseViewActive && target != null;
+    }
+
+    private void UpdateRearViewMirrorState()
+    {
+        EnsureRearViewMirror();
+        if (rearViewCamera != null)
+        {
+            rearViewCamera.enabled = ShouldShowRearViewMirror();
+        }
+    }
+
+    private void UpdateRearViewCameraPose()
+    {
+        if (rearViewCamera == null || !ShouldShowRearViewMirror())
+        {
+            return;
+        }
+
+        Vector3 forward = Vector3.ProjectOnPlane(target.forward, Vector3.up).normalized;
+        if (forward.sqrMagnitude < 0.001f)
+        {
+            forward = Vector3.forward;
+        }
+
+        Vector3 right = Vector3.Cross(Vector3.up, forward).normalized;
+        Vector3 cameraPosition = target.position
+            + right * rearViewCameraOffset.x
+            + Vector3.up * rearViewCameraOffset.y
+            + forward * rearViewCameraOffset.z;
+        Vector3 lookTarget = target.position
+            + right * rearViewLookOffset.x
+            + Vector3.up * rearViewLookOffset.y
+            + forward * rearViewLookOffset.z;
+        rearViewCamera.transform.SetPositionAndRotation(
+            cameraPosition,
+            Quaternion.LookRotation(lookTarget - cameraPosition, Vector3.up));
+        rearViewCamera.fieldOfView = rearViewFieldOfView;
     }
 
     private void GetThirdPersonPose(out Vector3 position, out Quaternion rotation)
